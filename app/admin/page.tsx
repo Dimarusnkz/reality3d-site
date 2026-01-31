@@ -118,7 +118,7 @@ export default function AdminDashboard() {
                         Мало материала: PETG (Черный) - осталось 200г
                      </div>
                      <div className="text-sm p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-200">
-                        Новое сообщение от клиента John Doe
+                        Новое сообщение от клиента
                      </div>
                   </div>
                </div>

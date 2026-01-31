@@ -1,79 +1,30 @@
-"use client";
-
+import { getSession } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  Package, 
-  Calculator, 
-  FileBox, 
-  Settings, 
-  LogOut, 
-  MessageSquare 
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { LkSidebar } from "@/components/lk-sidebar";
+import { MessageSquare } from "lucide-react";
 
-const NAV_ITEMS = [
-  { href: "/lk", label: "Дашборд", icon: LayoutDashboard },
-  { href: "/lk/orders", label: "Мои заказы", icon: Package },
-  { href: "/lk/calculations", label: "Мои расчеты", icon: Calculator },
-  { href: "/lk/files", label: "Мои файлы", icon: FileBox },
-  { href: "/lk/settings", label: "Настройки", icon: Settings },
-];
-
-export default function LkLayout({
+export default async function LkLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  const session = await getSession();
+  if (!session?.userId) {
+     redirect('/login');
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: parseInt(session.userId) } });
+  
+  if (!user) {
+    redirect('/login');
+  }
 
   return (
     <div className="flex min-h-screen bg-black">
       {/* Sidebar */}
-      <aside className="w-64 border-r border-slate-800 bg-slate-950/50 hidden md:flex flex-col fixed h-full z-40">
-        <div className="p-6 border-b border-slate-800">
-          <Link href="/" className="flex items-center gap-2 font-bold text-2xl tracking-tighter">
-             <span className="text-primary text-glow">Reality</span>3D
-             <span className="text-xs text-primary border border-primary px-1 rounded ml-1">LK</span>
-          </Link>
-        </div>
-        
-        <div className="p-4 flex-1 space-y-2">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300",
-                pathname === item.href 
-                  ? "bg-primary/10 text-primary border border-primary/20 shadow-[0_0_10px_rgba(255,94,0,0.1)]" 
-                  : "text-gray-400 hover:text-white hover:bg-slate-900"
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              {item.label}
-            </Link>
-          ))}
-        </div>
-
-        <div className="p-4 border-t border-slate-800">
-           <div className="flex items-center gap-3 mb-6 px-4">
-              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-primary font-bold border border-slate-700">
-                JD
-              </div>
-              <div className="overflow-hidden">
-                 <p className="text-sm font-bold text-white truncate">John Doe</p>
-                 <p className="text-xs text-gray-500 truncate">client@example.com</p>
-              </div>
-           </div>
-           
-           <button className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-500 hover:bg-red-500/10 w-full transition-colors">
-             <LogOut className="h-5 w-5" />
-             Выйти
-           </button>
-        </div>
-      </aside>
+      <LkSidebar user={user} />
 
       {/* Main Content */}
       <main className="flex-1 md:ml-64 min-h-screen relative">
