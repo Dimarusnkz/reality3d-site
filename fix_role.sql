@@ -1,0 +1,1 @@
+UPDATE "User" SET role = 'admin' WHERE email = 'admin@reality3d.ru';
