@@ -2,10 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export function SiteHeader() {
+interface SiteHeaderProps {
+  user?: {
+    userId: string;
+    role: string;
+  } | null;
+}
+
+export function SiteHeader({ user }: SiteHeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -45,12 +52,22 @@ export function SiteHeader() {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-4">
-          <Link 
-            className="text-sm font-medium text-gray-300 hover:text-white transition-colors"
-            href="/login"
-          >
-            Войти
-          </Link>
+          {user ? (
+            <Link 
+              className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-2"
+              href={user.role === 'admin' ? "/admin" : "/lk"}
+            >
+              <User className="w-4 h-4" />
+              {user.role === 'admin' ? 'Админ-панель' : 'Кабинет'}
+            </Link>
+          ) : (
+            <Link 
+              className="text-sm font-medium text-gray-300 hover:text-white transition-colors"
+              href="/login"
+            >
+              Войти
+            </Link>
+          )}
           <Link
             className="h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-[0_0_15px_rgba(255,94,0,0.3)] hover:bg-primary/90 transition-all hover:shadow-[0_0_20px_rgba(255,94,0,0.5)] flex"
             href="/calculator"
@@ -90,13 +107,24 @@ export function SiteHeader() {
                 </Link>
               ))}
               <hr className="border-slate-800 my-2" />
-              <Link
-                href="/login"
-                className="text-lg font-medium text-gray-200 hover:text-primary transition-colors py-2"
-                onClick={() => setIsOpen(false)}
-              >
-                Войти
-              </Link>
+              {user ? (
+                <Link
+                  href={user.role === 'admin' ? "/admin" : "/lk"}
+                  className="text-lg font-medium text-gray-200 hover:text-primary transition-colors py-2 flex items-center gap-2"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <User className="w-5 h-5" />
+                  {user.role === 'admin' ? 'Админ-панель' : 'Кабинет'}
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="text-lg font-medium text-gray-200 hover:text-primary transition-colors py-2"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Войти
+                </Link>
+              )}
               <Link
                 href="/calculator"
                 className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-base font-bold text-white shadow-[0_0_15px_rgba(255,94,0,0.3)] hover:bg-primary/90 transition-all"

@@ -29,18 +29,21 @@ import { ChatProvider } from "@/app/components/chat/chat-provider";
 import { ChatWidget } from "@/app/components/chat/chat-widget";
 import { PortfolioProvider } from "@/app/context/portfolio-context";
 import { SiteHeader } from "@/components/site-header";
+import { getSession } from "@/lib/session";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getSession();
+  
   return (
     <html lang="ru" className="dark">
       <body className={cn(inter.className, "min-h-screen bg-black text-slate-200 flex flex-col")}>
         <PortfolioProvider>
           <ChatProvider>
-            <SiteHeader />
+            <SiteHeader user={session as any} />
 
             <main className="flex-1">{children}</main>
 
