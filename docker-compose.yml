@@ -1,0 +1,58 @@
+services:
+  # Основное приложение Next.js
+  app:
+    container_name: reality3d-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      # - NEXT_PUBLIC_SUPABASE_URL=...
+      # - NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+    depends_on:
+      - db
+      - minio
+
+  # База данных PostgreSQL (если решили хранить данные у себя)
+  db:
+    image: postgres:15-alpine
+    container_name: reality3d-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword # ЗАМЕНИТЕ ЭТО НА СВОЙ ПАРОЛЬ!
+      POSTGRES_DB: reality3d
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # S3-хранилище MinIO (для хранения 3D файлов)
+  minio:
+    image: minio/minio
+    container_name: reality3d-storage
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: admin # ЗАМЕНИТЕ!
+      MINIO_ROOT_PASSWORD: mysecretpassword # ЗАМЕНИТЕ!
+    volumes:
+      - ./minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  # Nginx Proxy Manager (опционально, для удобного SSL и доменов)
+  # nginx:
+  #   image: jc21/nginx-proxy-manager:latest
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "81:81"
+  #     - "443:443"
+  #   volumes:
+  #     - ./data:/data
+  #     - ./letsencrypt:/etc/letsencrypt

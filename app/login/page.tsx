@@ -1,43 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, AlertCircle, Eye, EyeOff } from "lucide-react";
 import Captcha from "@/components/ui/captcha";
 import { cn } from "@/lib/utils";
+import { login } from "@/actions/auth";
 
 export default function LoginPage() {
-  const router = useRouter();
+  const [state, formAction, isPending] = useActionState(login, undefined);
   const [isCaptchaValid, setIsCaptchaValid] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isCaptchaValid) {
-        setError("Подтвердите, что вы не робот");
-        return;
-    }
-    
-    setError("");
-    setLoading(true);
-
-    // Демо-вход (симуляция)
-    setTimeout(() => {
-        if (email === "admin" && password === "P@Reality3D!") {
-            router.push("/admin");
-        } else if (email === "admin") {
-            setError("Неверный пароль администратора");
-            setLoading(false);
-        } else {
-            router.push("/lk");
-        }
-    }, 1000);
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black relative overflow-hidden">
@@ -59,23 +32,19 @@ export default function LoginPage() {
            <p className="text-xs text-primary mt-2">Войдите в личный кабинет, чтобы отследить заказ</p>
         </div>
 
-        <form className="space-y-4" onSubmit={handleLogin}>
-           {error && (
+        <form className="space-y-4" action={formAction}>
+           {state?.errors?.email && (
              <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-sm p-3 rounded-lg flex items-center gap-2">
                <AlertCircle className="h-4 w-4" />
-               {error}
+               {state.errors.email[0]}
              </div>
            )}
            <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">Email</label>
               <input 
+                name="email"
                 type="email" 
                 placeholder="client@example.com"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setError("");
-                }}
                 className="w-full bg-slate-900/50 border border-slate-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary/50 transition-colors"
                 required
               />
@@ -85,13 +54,9 @@ export default function LoginPage() {
               <label className="block text-sm font-medium text-gray-400 mb-1">Пароль</label>
               <div className="relative">
                 <input 
+                  name="password"
                   type={showPassword ? "text" : "password"} 
                   placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setError("");
-                  }}
                   className="w-full bg-slate-900/50 border border-slate-800 rounded-lg pl-4 pr-10 py-3 text-white focus:outline-none focus:border-primary/50 transition-colors"
                   required
                 />
@@ -117,13 +82,13 @@ export default function LoginPage() {
 
            <button 
              type="submit"
-             disabled={!isCaptchaValid || loading}
+             disabled={!isCaptchaValid || isPending}
              className={cn(
                "neon-button w-full flex items-center justify-center",
-               (!isCaptchaValid || loading) && "opacity-50 pointer-events-none grayscale"
+               (!isCaptchaValid || isPending) && "opacity-50 pointer-events-none grayscale"
              )}
            >
-              {loading ? "Вход..." : "Войти"}
+              {isPending ? "Вход..." : "Войти"}
            </button>
         </form>
 

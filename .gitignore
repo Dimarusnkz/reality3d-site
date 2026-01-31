@@ -24,6 +24,7 @@ pnpm-debug.log*
 
 # Local env files
 .env*.local
+.env
 
 # Vercel
 .vercel
@@ -31,3 +32,9 @@ pnpm-debug.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Scripts
+test-*.js
+create-admin.js
+setup_postgres.sh
+*.log
