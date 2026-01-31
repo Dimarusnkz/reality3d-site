@@ -1,14 +1,18 @@
-"use client";
-
+import { getSession } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { ArrowRight, Package, Clock, Calculator, Plus, Upload, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function LkDashboard() {
+export default async function LkDashboard() {
+  const session = await getSession();
+  const user = session?.userId ? await prisma.user.findUnique({ where: { id: parseInt(session.userId) } }) : null;
+  const name = user?.name || "Пользователь";
+
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-white mb-2">Добро пожаловать, John!</h1>
+        <h1 className="text-3xl font-bold text-white mb-2">Добро пожаловать, {name}!</h1>
         <p className="text-gray-400">Вот сводка по вашим проектам на сегодня.</p>
       </div>
 

@@ -1,0 +1,1 @@
+DELETE FROM "User" WHERE email != 'admin@reality3d.ru';
