@@ -12,7 +12,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
   const captchaError =
-    state?.errors?.captcha?.[0] || (state?.errors as any)?.["cf-turnstile-response"]?.[0];
+    (state?.errors as any)?.captcha?.[0] || (state?.errors as any)?.["cf-turnstile-response"]?.[0];
   const showCaptcha =
     process.env.NEXT_PUBLIC_TURNSTILE_ENABLED === "true" &&
     !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
