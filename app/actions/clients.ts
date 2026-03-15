@@ -1,5 +1,6 @@
 'use server'
 
+import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { revalidatePath } from 'next/cache'
@@ -102,7 +103,7 @@ export async function deleteClient(id: number) {
   }
 }
 
-export async function updateClient(id: number, data: { name: string; phone: string; email: string; address: string }) {
+export async function updateClient(id: number, data: { name: string; phone: string; email: string; address: string; password?: string }) {
   const session = await getSession()
   if (!session || session.role !== 'admin') {
     return { error: 'Unauthorized' }
@@ -123,14 +124,20 @@ export async function updateClient(id: number, data: { name: string; phone: stri
       }
     }
 
+    const updateData: any = {
+      name: data.name,
+      phone: data.phone,
+      email: data.email,
+      address: data.address
+    }
+
+    if (data.password && data.password.trim() !== '') {
+      updateData.password = await bcrypt.hash(data.password, 10)
+    }
+
     await prisma.user.update({
       where: { id },
-      data: {
-        name: data.name,
-        phone: data.phone,
-        email: data.email,
-        address: data.address
-      }
+      data: updateData
     })
 
     revalidatePath('/admin/clients')

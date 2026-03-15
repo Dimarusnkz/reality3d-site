@@ -14,7 +14,7 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
   const [selectedClient, setSelectedClient] = useState<ClientWithStats | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', address: '' });
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', address: '', password: '' });
   
   const { selectSession, openChat, refreshChats } = useChat();
   const router = useRouter();
@@ -36,7 +36,8 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
       name: selectedClient.name || '',
       email: selectedClient.email || '',
       phone: selectedClient.phone || '',
-      address: selectedClient.address || ''
+      address: selectedClient.address || '',
+      password: ''
     });
     setIsEditing(true);
   };
@@ -44,11 +45,19 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
   const handleSave = async () => {
     if (!selectedClient) return;
     setIsSaving(true);
-    const result = await updateClient(selectedClient.id, editForm);
+    
+    // Create payload, omit password if empty
+    const payload = { ...editForm };
+    if (!payload.password) delete (payload as any).password;
+    
+    const result = await updateClient(selectedClient.id, payload);
     if (result.success) {
       // Update local state
-      setClients(prev => prev.map(c => c.id === selectedClient.id ? { ...c, ...editForm } : c));
-      setSelectedClient(prev => prev ? { ...prev, ...editForm } : null);
+      const updatedData = { ...editForm };
+      delete (updatedData as any).password;
+      
+      setClients(prev => prev.map(c => c.id === selectedClient.id ? { ...c, ...updatedData } : c));
+      setSelectedClient(prev => prev ? { ...prev, ...updatedData } : null);
       setIsEditing(false);
     } else {
       alert(result.error || "Ошибка при обновлении");
@@ -266,6 +275,22 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
                                 )}
                             </div>
                         </div>
+
+                        {isEditing && (
+                          <div className="flex items-start gap-3">
+                              <User className="w-4 h-4 text-primary mt-1" />
+                              <div className="flex-1">
+                                  <div className="text-sm text-gray-400">Новый пароль (оставьте пустым, чтобы не менять)</div>
+                                  <input
+                                    type="password"
+                                    value={editForm.password}
+                                    onChange={(e) => setEditForm({...editForm, password: e.target.value})}
+                                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1 text-white focus:outline-none focus:border-primary mt-1"
+                                    placeholder="Минимум 6 символов"
+                                  />
+                              </div>
+                          </div>
+                        )}
                     </div>
                 </div>
 
