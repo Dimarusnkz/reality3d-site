@@ -18,6 +18,10 @@
   --border-color: #333333;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -56,4 +60,31 @@ body {
     @apply bg-primary/90 -translate-y-0.5;
     box-shadow: 0 0 25px rgba(255, 94, 0, 0.5);
   }
+}
+
+@keyframes neon-flicker {
+  0%,
+  18%,
+  22%,
+  25%,
+  53%,
+  57%,
+  100% {
+    opacity: 1;
+    text-shadow: 0 0 10px rgba(255, 94, 0, 0.55), 0 0 22px rgba(255, 94, 0, 0.25);
+  }
+  20%,
+  24%,
+  55% {
+    opacity: 0.75;
+    text-shadow: 0 0 6px rgba(255, 94, 0, 0.35), 0 0 14px rgba(255, 94, 0, 0.18);
+  }
+  56% {
+    opacity: 0.92;
+    text-shadow: 0 0 8px rgba(255, 94, 0, 0.45), 0 0 18px rgba(255, 94, 0, 0.22);
+  }
+}
+
+@utility neon-flicker {
+  animation: neon-flicker 2.6s infinite;
 }

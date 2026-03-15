@@ -1,155 +1,190 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
+import { getChats, getChatMessages, sendMessage as serverSendMessage, createChatSession, ChatSessionWithDetails } from "@/app/actions/chat";
 
 export type MessageType = "text" | "image";
-export type SenderRole = "client" | "manager" | "engineer" | "admin";
+export type SenderRole = "client" | "manager" | "engineer" | "admin" | "warehouse" | "delivery" | "guest";
 
 export interface Message {
   id: string;
   text: string;
-  sender: SenderRole;
+  sender: string;
   timestamp: number;
-  isInternal?: boolean; // For engineer/manager comments
+  isInternal?: boolean;
   type?: MessageType;
 }
 
 export interface ChatSession {
-  id: string;
+  id: string; // converted to string for compatibility
+  dbId: number;
   clientName: string;
   messages: Message[];
   lastMessage?: Message;
   unreadCount: number;
-  status: "active" | "closed";
+  clientUnreadCount: number; // Not really used in DB logic yet, but kept for compatibility
+  status: "active" | "closed" | "archived";
 }
 
 interface ChatContextType {
   sessions: ChatSession[];
-  currentSessionId: string | null; // For client, this is their session. For manager, this is selected session.
-  role: SenderRole;
+  currentSessionId: string | null;
+  role: string;
   isOpen: boolean;
   toggleChat: () => void;
   openChat: () => void;
   closeChat: () => void;
-  sendMessage: (text: string, isInternal?: boolean) => void;
+  sendMessage: (text: string, isInternal?: boolean) => Promise<void>;
   selectSession: (sessionId: string) => void;
-  currentUserRole: SenderRole; // The actual role of the user using the app
-  setRole: (role: SenderRole) => void; // For testing/demo
+  currentUserRole: string;
+  setRole: (role: string) => void; // Deprecated/Debug
+  createNewChat: () => Promise<void>;
+  isLoading: boolean;
+  refreshChats: () => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
-export function ChatProvider({ children }: { children: React.ReactNode }) {
+export function ChatProvider({ 
+  children, 
+  initialRole = "guest",
+  userId 
+}: { 
+  children: React.ReactNode;
+  initialRole?: string;
+  userId?: string;
+}) {
   const pathname = usePathname();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  
-  // Determine initial role based on path
-  const [role, setRole] = useState<SenderRole>("client");
+  const [role, setRole] = useState<string>(initialRole);
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Sync role if prop changes (e.g. login)
   useEffect(() => {
-    if (pathname?.startsWith("/admin")) {
-      setRole("manager"); // Default to manager in admin panel, can be switched
-    } else {
-      setRole("client");
-    }
-  }, [pathname]);
+    if (initialRole) setRole(initialRole);
+  }, [initialRole]);
 
-  // Load from local storage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem("reality3d_chat");
-    if (stored) {
-      try {
-        const data = JSON.parse(stored);
-        setSessions(data.sessions || []);
-        
-        // If client, ensure they have a session
-        if (!pathname?.startsWith("/admin")) {
-           // Try to find existing client session or create one
-           // For simplicity in this demo, we'll just pick the first one or create new
-           if (data.clientSessionId) {
-             setCurrentSessionId(data.clientSessionId);
-           } else {
-             const newId = Date.now().toString();
-             const newSession: ChatSession = {
-               id: newId,
-               clientName: "Гость " + newId.slice(-4),
-               messages: [],
-               unreadCount: 0,
-               status: "active"
-             };
-             setSessions(prev => [...prev, newSession]);
-             setCurrentSessionId(newId);
-             localStorage.setItem("reality3d_chat", JSON.stringify({
-               sessions: [...(data.sessions || []), newSession],
-               clientSessionId: newId
-             }));
-           }
-        }
-      } catch (e) {
-        console.error("Failed to parse chat storage", e);
-      }
-    } else {
-      // Initialize
-      if (!pathname?.startsWith("/admin")) {
-         const newId = Date.now().toString();
-         const newSession: ChatSession = {
-           id: newId,
-           clientName: "Гость " + newId.slice(-4),
-           messages: [{
-             id: "welcome",
-             text: "Здравствуйте! Чем мы можем вам помочь?",
-             sender: "manager",
-             timestamp: Date.now()
-           }],
-           unreadCount: 1,
-           status: "active"
-         };
-         setSessions([newSession]);
-         setCurrentSessionId(newId);
-         localStorage.setItem("reality3d_chat", JSON.stringify({
-           sessions: [newSession],
-           clientSessionId: newId
-         }));
-      }
-    }
-  }, [pathname]);
-
-  // Save to local storage on change
-  useEffect(() => {
-    if (sessions.length > 0) {
-      const stored = localStorage.getItem("reality3d_chat");
-      let clientSessionId = currentSessionId;
-      if (stored) {
-         const data = JSON.parse(stored);
-         // Keep the client's session ID if we are in admin mode (don't overwrite with null or selected)
-         if (!pathname?.startsWith("/admin")) {
-            clientSessionId = currentSessionId;
-         } else {
-            clientSessionId = data.clientSessionId;
-         }
-      }
+  const fetchChats = useCallback(async () => {
+    if (role === 'guest') return; // Guests don't fetch DB chats yet
+    try {
+      const dbChats = await getChats();
       
-      localStorage.setItem("reality3d_chat", JSON.stringify({
-        sessions,
-        clientSessionId
+      const mappedSessions: ChatSession[] = await Promise.all(dbChats.map(async (chat) => {
+        // Fetch messages for each chat (or optimize to fetch only for active/selected)
+        // For list view, we might need last message.
+        // For now, let's just fetch messages for the CURRENT session to save bandwidth, 
+        // or fetch all if list is small. 
+        // Let's optimize: fetch messages only if it's the current session.
+        // But for "unread" counts and last message preview, we usually need them.
+        // Let's rely on what `getChats` returns. `getChats` returns unreadCount.
+        
+        // We'll fetch full messages only for the active session.
+        let messages: Message[] = [];
+        if (currentSessionId === chat.id.toString()) {
+             const dbMessages = await getChatMessages(chat.id);
+             messages = dbMessages.map(m => ({
+                 id: m.id.toString(),
+                 text: m.content,
+                 sender: m.sender?.role || 'system',
+                 timestamp: new Date(m.createdAt).getTime(),
+                 isInternal: m.isInternal,
+                 type: 'text'
+             }));
+        }
+
+        return {
+          id: chat.id.toString(),
+          dbId: chat.id,
+          clientName: chat.user.name || chat.user.email,
+          messages: messages, // Will be empty unless selected
+          unreadCount: chat.unreadCount || 0,
+          clientUnreadCount: (role === 'user' || role === 'client') ? (chat.unreadCount || 0) : 0, 
+          status: chat.status as any
+        };
       }));
+
+      setSessions(prev => {
+         // Merge with previous to keep messages if we didn't fetch them
+         // This is a bit complex. Simplification:
+         // If we fetched messages (current session), use them.
+         // If not, keep existing messages from `prev` if available.
+         return mappedSessions.map(newS => {
+             const oldS = prev.find(p => p.id === newS.id);
+             if (newS.id === currentSessionId) return newS; // We fetched messages
+             return { ...newS, messages: oldS?.messages || [] };
+         });
+      });
+      
+      // If client has only one chat and no current session, select it
+      if ((role === 'user' || role === 'client') && dbChats.length === 1 && !currentSessionId) {
+          setCurrentSessionId(dbChats[0].id.toString());
+      }
+
+    } catch (error) {
+      console.error("Failed to fetch chats", error);
     }
-  }, [sessions, currentSessionId, pathname]);
+  }, [role, currentSessionId]);
+
+  // Initial fetch and polling
+  useEffect(() => {
+    fetchChats();
+    const interval = setInterval(fetchChats, 5000);
+    return () => clearInterval(interval);
+  }, [fetchChats]);
+
+  // Load messages when session is selected
+  useEffect(() => {
+      if (currentSessionId && role !== 'guest') {
+          // Immediately fetch messages for the selected session
+          getChatMessages(parseInt(currentSessionId)).then(dbMessages => {
+              setSessions(prev => prev.map(s => {
+                  if (s.id === currentSessionId) {
+                      return {
+                          ...s,
+                          messages: dbMessages.map(m => ({
+                              id: m.id.toString(),
+                              text: m.content,
+                              sender: m.sender?.role || 'system',
+                              timestamp: new Date(m.createdAt).getTime(),
+                              isInternal: m.isInternal,
+                              type: 'text'
+                          }))
+                      };
+                  }
+                  return s;
+              }));
+          });
+      }
+  }, [currentSessionId, role]);
+
+
+  const createNewChat = async () => {
+      if (role === 'guest') {
+          alert("Пожалуйста, войдите или зарегистрируйтесь, чтобы начать чат.");
+          return;
+      }
+      const res = await createChatSession();
+      if (res.success && res.chatId) {
+          setCurrentSessionId(res.chatId.toString());
+          fetchChats();
+          setIsOpen(true);
+      }
+  };
 
   const toggleChat = () => setIsOpen(prev => !prev);
   const openChat = () => setIsOpen(true);
   const closeChat = () => setIsOpen(false);
 
-  const sendMessage = (text: string, isInternal: boolean = false) => {
+  const sendMessage = async (text: string, isInternal: boolean = false) => {
     if (!text.trim()) return;
     
-    if (!currentSessionId) return;
-
+    // Optimistic update
+    const tempId = Date.now().toString();
     const newMessage: Message = {
-      id: Date.now().toString(),
+      id: tempId,
       text,
       sender: role,
       timestamp: Date.now(),
@@ -161,40 +196,38 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         return {
           ...session,
           messages: [...session.messages, newMessage],
-          lastMessage: newMessage,
-          unreadCount: role === "client" ? session.unreadCount + 1 : 0 // If client sends, increment unread for manager
         };
       }
       return session;
     }));
+
+    if (currentSessionId && role !== 'guest') {
+        await serverSendMessage(parseInt(currentSessionId), text, isInternal);
+        // Refresh to get real ID and confirmed state
+        fetchChats();
+    }
   };
 
   const selectSession = (sessionId: string) => {
     setCurrentSessionId(sessionId);
-    // Clear unread count when staff opens the chat
-    if (role !== "client") {
-      setSessions(prev => prev.map(s => {
-        if (s.id === sessionId) {
-          return { ...s, unreadCount: 0 };
-        }
-        return s;
-      }));
-    }
   };
 
   return (
-    <ChatContext.Provider value={{
-      sessions,
-      currentSessionId,
-      role,
-      isOpen,
-      toggleChat,
-      openChat,
-      closeChat,
-      sendMessage,
-      selectSession,
+    <ChatContext.Provider value={{ 
+      sessions, 
+      currentSessionId, 
+      role, 
+      isOpen, 
+      toggleChat, 
+      openChat, 
+      closeChat, 
+      sendMessage, 
+      selectSession: setCurrentSessionId,
       currentUserRole: role,
-      setRole
+      setRole,
+      createNewChat,
+      isLoading,
+      refreshChats: fetchChats
     }}>
       {children}
     </ChatContext.Provider>

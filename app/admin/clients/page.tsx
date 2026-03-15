@@ -1,12 +1,24 @@
-"use client";
+import ClientsTable from "./clients-table";
+import { getSession } from "@/lib/session";
+import { redirect } from "next/navigation";
 
-export default function AdminClientsPage() {
+export default async function AdminClientsPage() {
+  const session = await getSession();
+  
+  if (!session || (session.role !== 'admin' && session.role !== 'manager')) {
+    redirect('/login');
+  }
+
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-white">Клиенты</h1>
-      <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/50">
-        <p className="text-gray-400">Список клиентов и история их активности.</p>
+      <div className="flex justify-between items-center">
+        <div>
+           <h1 className="text-3xl font-bold text-white mb-2">Клиенты</h1>
+           <p className="text-gray-400">Управление базой клиентов и история заказов.</p>
+        </div>
       </div>
+      
+      <ClientsTable currentUserRole={session.role} />
     </div>
   );
 }

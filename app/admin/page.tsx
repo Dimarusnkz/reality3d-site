@@ -1,13 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { ArrowUpRight, ArrowDownRight, Users, ShoppingBag, DollarSign, Activity } from "lucide-react";
 
 export default function AdminDashboard() {
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2">Панель управления</h1>
-        <p className="text-gray-400">Обзор ключевых показателей бизнеса</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Панель управления</h1>
+          <p className="text-gray-400">Обзор ключевых показателей бизнеса</p>
+        </div>
+        <Link 
+          href="/admin/team" 
+          className="neon-button flex items-center gap-2"
+        >
+          <Users className="h-4 w-4" />
+          Сотрудники
+        </Link>
       </div>
 
       {/* KPI Cards */}

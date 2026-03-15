@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createOrder } from "@/app/actions/orders";
 import { Upload, FileBox, Calculator, Info, Check, Zap, Layers, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +28,8 @@ const MATERIALS = {
 };
 
 export default function CalculatorPage() {
+  const router = useRouter();
+  const [isOrdering, setIsOrdering] = useState(false);
   const [mode, setMode] = useState<"file" | "manual">("file");
   const [file, setFile] = useState<File | null>(null);
   const [tech, setTech] = useState("fdm");
@@ -63,6 +67,40 @@ export default function CalculatorPage() {
     basePrice = basePrice + (matPrice * 10); // Simple mock logic
 
     return Math.round(basePrice * count);
+  };
+
+  const handleOrder = async () => {
+    setIsOrdering(true);
+    const price = calculatePrice();
+    const details = {
+      mode,
+      tech: mode === 'file' ? tech : undefined,
+      material: mode === 'file' ? material : undefined,
+      infill: mode === 'file' && tech === 'fdm' ? infill : undefined,
+      layerHeight: mode === 'file' && tech === 'fdm' ? layerHeight : undefined,
+      count,
+      fileName: file ? file.name : undefined,
+      fileSize: file ? file.size : undefined,
+      manualParams: mode === 'manual' ? manualParams : undefined
+    };
+
+    try {
+        const result = await createOrder({ price, details });
+
+        if (result.error === 'Unauthorized') {
+        router.push('/login?redirect=/calculator');
+        } else if (result.success) {
+        alert('Заказ успешно создан! Менеджер свяжется с вами.');
+        router.push('/lk/orders');
+        } else {
+        alert('Ошибка при создании заказа');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Произошла ошибка');
+    } finally {
+        setIsOrdering(false);
+    }
   };
 
   return (
@@ -294,8 +332,11 @@ export default function CalculatorPage() {
                 * Предварительный расчет. Не является офертой.
               </p>
               
-              <button className="w-full bg-primary hover:bg-orange-600 text-white py-4 rounded-xl font-bold shadow-[0_0_20px_rgba(255,94,0,0.3)] transition-all hover:shadow-[0_0_30px_rgba(255,94,0,0.5)] hover:-translate-y-1 active:translate-y-0">
-                Оформить заказ
+              <button 
+                onClick={handleOrder}
+                disabled={isOrdering}
+                className="w-full bg-primary hover:bg-orange-600 text-white py-4 rounded-xl font-bold shadow-[0_0_20px_rgba(255,94,0,0.3)] transition-all hover:shadow-[0_0_30px_rgba(255,94,0,0.5)] hover:-translate-y-1 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                {isOrdering ? 'Оформление...' : 'Оформить заказ'}
               </button>
             </div>
           </div>

@@ -1,10 +1,81 @@
 "use client";
 
+import RequestForm from "@/components/request-form";
 import Link from "next/link";
-import { ArrowRight, Clock, Truck, ShieldCheck, Cpu, Briefcase, FileText, Layers, Zap } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight, Clock, Truck, ShieldCheck, Cpu, FileText, Layers, Zap, Upload, Calculator, Printer, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { usePortfolio } from "@/app/context/portfolio-context";
+
+function useInViewOnce<T extends Element>(options?: IntersectionObserverInit) {
+  const ref = useRef<T | null>(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    if (inView) return;
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting) {
+        setInView(true);
+        observer.disconnect();
+      }
+    }, options);
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [inView, options]);
+
+  return { ref, inView };
+}
+
+function AnimatedNumber({
+  value,
+  suffix,
+  durationMs = 1400,
+}: {
+  value: number;
+  suffix?: string;
+  durationMs?: number;
+}) {
+  const { ref, inView } = useInViewOnce<HTMLSpanElement>({ threshold: 0.3 });
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    if (!inView) return;
+
+    const start = performance.now();
+    const from = 0;
+    const to = value;
+
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / durationMs);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const next = Math.round(from + (to - from) * eased);
+      setCurrent(next);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [durationMs, inView, value]);
+
+  const formatted = useMemo(() => new Intl.NumberFormat("ru-RU").format(current), [current]);
+
+  return (
+    <span ref={ref} className="text-4xl md:text-5xl font-bold text-white text-glow">
+      {formatted}
+      {suffix || ""}
+    </span>
+  );
+}
 
 export default function Home() {
+  const { projects } = usePortfolio();
+  const featuredProjects = useMemo(() => projects.slice(0, 3), [projects]);
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
@@ -83,12 +154,37 @@ export default function Home() {
                        <p className="text-gray-400 mt-2">до 50 микрон</p>
                     </div>
                  </div>
-                 <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-slate-800 rounded-xl border border-slate-700 flex flex-col items-center justify-center shadow-xl animate-bounce delay-700">
-                    <span className="text-3xl font-bold text-white">100+</span>
-                    <span className="text-xs text-gray-400">Материалов</span>
-                 </div>
+                 <a href="#request-form" className="absolute -bottom-10 -left-10 w-40 h-40 bg-slate-900/80 backdrop-blur-sm rounded-2xl border border-slate-800 flex flex-col items-center justify-center shadow-2xl border-glow animate-bounce delay-700 cursor-pointer hover:bg-slate-800 transition-all z-20 group no-underline">
+                     <span className="text-xl font-bold text-white neon-flicker text-center leading-tight group-hover:scale-105 transition-transform">
+                       Оставить<br/>заявку
+                     </span>
+                  </a>
               </div>
             </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats */}
+      <section className="py-14 md:py-20 bg-black border-t border-slate-800">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="neon-card p-6 rounded-2xl border border-slate-800 bg-slate-950/50">
+              <AnimatedNumber value={100} suffix="+" />
+              <div className="mt-2 text-sm text-gray-400">Материалов в наличии</div>
+            </div>
+            <div className="neon-card p-6 rounded-2xl border border-slate-800 bg-slate-950/50">
+              <AnimatedNumber value={50} suffix=" мкм" />
+              <div className="mt-2 text-sm text-gray-400">Точность печати</div>
+            </div>
+            <div className="neon-card p-6 rounded-2xl border border-slate-800 bg-slate-950/50">
+              <AnimatedNumber value={24} suffix="/7" />
+              <div className="mt-2 text-sm text-gray-400">Производство</div>
+            </div>
+            <div className="neon-card p-6 rounded-2xl border border-slate-800 bg-slate-950/50">
+              <AnimatedNumber value={1000} suffix="+" />
+              <div className="mt-2 text-sm text-gray-400">Реализованных деталей</div>
+            </div>
           </div>
         </div>
       </section>
@@ -170,6 +266,130 @@ export default function Home() {
         </div>
       </section>
 
+      {/* How We Work */}
+      <section className="py-20 bg-black border-t border-slate-800">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">Как мы работаем</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Быстрый и понятный процесс: от заявки до готовой детали.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                icon: Upload,
+                title: "Заявка",
+                text: "Опишите задачу и приложите модель (STL/OBJ/STEP) или чертеж.",
+              },
+              {
+                icon: Calculator,
+                title: "Расчет",
+                text: "Подбираем технологию и материал, согласуем сроки и стоимость.",
+              },
+              {
+                icon: Printer,
+                title: "Печать",
+                text: "Запускаем производство, выполняем постобработку при необходимости.",
+              },
+              {
+                icon: CheckCircle2,
+                title: "Выдача",
+                text: "Самовывоз в СПб или доставка по России. Контроль качества перед отправкой.",
+              },
+            ].map((step, idx) => (
+              <motion.div
+                key={step.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.5, delay: idx * 0.06 }}
+                className="neon-card p-6 rounded-2xl border border-slate-800 bg-slate-950/50 relative overflow-hidden"
+              >
+                <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" />
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shadow-[0_0_15px_rgba(255,94,0,0.15)]">
+                      <step.icon className="w-6 h-6 text-primary" />
+                    </div>
+                    <div className="text-sm text-gray-500 font-medium">Шаг {idx + 1}</div>
+                  </div>
+                  <div className="text-xl font-bold text-white mb-2">{step.title}</div>
+                  <div className="text-sm text-gray-400 leading-relaxed">{step.text}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="#request-form" className="neon-button text-lg">
+              Оставить заявку
+            </a>
+            <Link
+              href="/calculator"
+              className="inline-flex h-12 items-center justify-center rounded-lg border border-slate-700 bg-slate-900/50 px-8 text-base font-medium text-white transition-all hover:bg-slate-800 hover:border-slate-500"
+            >
+              Рассчитать стоимость
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Portfolio Preview */}
+      <section className="py-20 bg-slate-950 border-t border-slate-800 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-slate-950 to-black" />
+        <div className="container mx-auto px-4 md:px-6 relative z-10">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-10">
+            <div>
+              <h2 className="text-3xl md:text-5xl font-bold text-white mb-3">Портфолио работ</h2>
+              <p className="text-gray-400 max-w-2xl">
+                Примеры изделий: прототипы, макеты, корпуса, миниатюры и функциональные детали.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Link href="/portfolio" className="inline-flex h-12 items-center justify-center rounded-lg border border-slate-700 bg-slate-900/50 px-6 text-base font-medium text-white transition-all hover:bg-slate-800 hover:border-slate-500">
+                Смотреть все
+              </Link>
+              <a href="#request-form" className="neon-button text-lg">
+                Хочу так же
+              </a>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {featuredProjects.map((project, idx) => (
+              <motion.div
+                key={project.id}
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ duration: 0.45, delay: idx * 0.06 }}
+                className="group relative rounded-2xl overflow-hidden border border-slate-800 bg-black/40 hover:border-primary/50 transition-all"
+              >
+                <div className="aspect-[4/3] relative overflow-hidden">
+                  <img
+                    src={project.imageUrl}
+                    alt={project.title}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+                  <div className="absolute top-4 left-4">
+                    <span className="px-3 py-1 bg-black/70 backdrop-blur-md text-xs font-bold text-white rounded-full border border-white/10">
+                      {project.category}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-5">
+                  <div className="text-lg font-bold text-white mb-1">{project.title}</div>
+                  <div className="text-sm text-gray-400 line-clamp-2">{project.description}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Trust & B2B Section */}
       <section className="py-20 bg-slate-900 border-t border-slate-800">
          <div className="container mx-auto px-4 md:px-6">
@@ -212,25 +432,9 @@ export default function Home() {
                   </div>
                </div>
                
-               <div className="relative">
+               <div className="relative scroll-mt-32" id="request-form">
                   <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full"></div>
-                  <div className="relative bg-slate-950 border border-slate-800 p-8 rounded-2xl shadow-2xl">
-                     <h3 className="text-2xl font-bold text-white mb-6">Оставить заявку</h3>
-                     <form className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                           <input type="text" placeholder="Имя" className="bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-primary outline-none" />
-                           <input type="text" placeholder="Телефон" className="bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-primary outline-none" />
-                        </div>
-                        <input type="email" placeholder="Email (для счета/КП)" className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-primary outline-none" />
-                        <textarea placeholder="Описание задачи..." className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-primary outline-none h-32"></textarea>
-                        <button className="w-full bg-primary hover:bg-orange-600 text-white font-bold py-4 rounded-lg transition-colors shadow-lg">
-                           Получить консультацию
-                        </button>
-                        <p className="text-xs text-center text-gray-500">
-                           Нажимая кнопку, вы соглашаетесь с политикой обработки данных.
-                        </p>
-                     </form>
-                  </div>
+                  <RequestForm />
                </div>
             </div>
          </div>
@@ -270,7 +474,7 @@ export default function Home() {
             "logo": "https://reality3d.ru/logo.png",
             "contactPoint": {
               "@type": "ContactPoint",
-              "telephone": "+7-812-999-00-00",
+              "telephone": "+7-923-631-7850",
               "contactType": "customer service",
               "areaServed": "RU",
               "availableLanguage": "Russian"

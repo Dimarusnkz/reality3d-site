@@ -11,6 +11,7 @@ import {
   LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logout } from "@/app/actions/auth";
 
 const NAV_ITEMS = [
   { href: "/lk", label: "Дашборд", icon: LayoutDashboard },
@@ -20,13 +21,22 @@ const NAV_ITEMS = [
   { href: "/lk/settings", label: "Настройки", icon: Settings },
 ];
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Администратор',
+  manager: 'Менеджер',
+  engineer: 'Инженер',
+  warehouse: 'Склад',
+  delivery: 'Доставка',
+  user: 'Клиент',
+  client: 'Клиент'
+};
+
 export function LkSidebar({ user }: { user: any }) {
   const pathname = usePathname();
+  const roleLabel = ROLE_LABELS[user.role as string] || 'Клиент';
 
   const handleLogout = async () => {
-    // Clear cookie client-side
-    document.cookie = 'session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-    window.location.href = '/login';
+    await logout();
   };
 
   const initials = user.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2) : 'U';
@@ -34,9 +44,8 @@ export function LkSidebar({ user }: { user: any }) {
   return (
       <aside className="w-64 border-r border-slate-800 bg-slate-950/50 hidden md:flex flex-col fixed h-full z-40">
         <div className="p-6 border-b border-slate-800">
-          <Link href="/" className="flex items-center gap-2 font-bold text-2xl tracking-tighter">
-             <span className="text-primary text-glow">Reality</span>3D
-             <span className="text-xs text-primary border border-primary px-1 rounded ml-1">LK</span>
+          <Link href="/" className="flex items-center justify-center w-full">
+             <span className="text-lg font-bold text-primary border border-primary/50 bg-primary/10 px-4 py-2 rounded-lg uppercase w-full text-center shadow-[0_0_15px_rgba(255,94,0,0.2)]">{roleLabel}</span>
           </Link>
         </div>
         

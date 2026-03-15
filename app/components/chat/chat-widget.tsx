@@ -18,9 +18,7 @@ export function ChatWidget() {
 
   // Calculate unread count for client
   const currentSession = sessions.find(s => s.id === currentSessionId);
-  // For client, we just want to know if there are messages from manager that are 'unread' (simplified logic here)
-  // In a real app, we'd track 'lastReadTimestamp'
-  const unreadCount = 0; // Simplified for now
+  const unreadCount = currentSession?.clientUnreadCount || 0;
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">

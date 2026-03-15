@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, User } from "lucide-react";
+import { Menu, X, User, LogOut, Send, Box, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logout } from "@/app/actions/auth";
 
 interface SiteHeaderProps {
   user?: {
@@ -14,16 +15,29 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ user }: SiteHeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const toggleMenu = () => setIsOpen(!isOpen);
+
+  const handleLogout = async () => {
+    await logout();
+  };
 
   const menuItems = [
     { href: "/services", label: "Услуги" },
     { href: "/portfolio", label: "Портфолио" },
-    { href: "/equipment", label: "Оборудование" },
+    { href: "/blog", label: "Блог" },
     { href: "/materials", label: "Материалы" },
-    { href: "/calculator", label: "Калькулятор" },
+    { href: "/reviews", label: "Отзывы" },
   ];
+
+  const isAdminRole = user?.role && ['admin', 'manager', 'engineer', 'warehouse', 'delivery'].includes(user.role);
+  
+  const dashboardLabel = user?.role === 'admin' 
+    ? 'Админ-панель' 
+    : (user?.role && ['manager', 'engineer', 'warehouse', 'delivery'].includes(user.role) 
+      ? 'Сотрудник' 
+      : 'Кабинет');
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-black/80 backdrop-blur-md">
@@ -50,16 +64,65 @@ export function SiteHeader({ user }: SiteHeaderProps) {
           ))}
         </nav>
 
+        {/* Social Icons */}
+        <div className="hidden md:flex items-center gap-3 border-r border-slate-800 pr-4 mr-4">
+           {/* Telegram */}
+           <a href="https://t.me/Reality_3Dtg" target="_blank" rel="noopener noreferrer" className="bg-[#2AABEE] text-white w-8 h-8 rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-[0_0_10px_rgba(42,171,238,0.4)]" title="Telegram">
+              <Send className="w-4 h-4" />
+           </a>
+           {/* Max (Custom Logo) */}
+           <a href="https://max.ru/join/4YSX3vkvUjYNPAqayBmTLJuEmr0pBy65drrrrOOm6qg" target="_blank" rel="noopener noreferrer" className="relative w-8 h-8 rounded-full overflow-hidden hover:scale-110 transition-transform shadow-[0_0_10px_rgba(147,51,234,0.4)]" title="Max">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/max-logo.png" alt="Max" className="w-full h-full object-cover" />
+           </a>
+           {/* VK */}
+           <a href="https://vk.com/Reality3DSPB" target="_blank" rel="noopener noreferrer" className="relative w-8 h-8 rounded-full overflow-hidden hover:scale-110 transition-transform shadow-[0_0_10px_rgba(0,119,255,0.4)]" title="VK">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/vk-logo.png" alt="VK" className="w-full h-full object-cover" />
+           </a>
+        </div>
+
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-4">
           {user ? (
-            <Link 
-              className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-2"
-              href={user.role === 'admin' ? "/admin" : "/lk"}
-            >
-              <User className="w-4 h-4" />
-              {user.role === 'admin' ? 'Админ-панель' : 'Кабинет'}
-            </Link>
+            <div className="relative">
+              <button 
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-2"
+              >
+                <User className="w-4 h-4" />
+                {dashboardLabel}
+              </button>
+
+              <AnimatePresence>
+                {isUserMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute right-0 top-full mt-2 w-48 bg-slate-900 border border-slate-800 rounded-lg shadow-xl overflow-hidden"
+                  >
+                    <Link
+                      href={isAdminRole ? "/admin" : "/lk"}
+                      className="block px-4 py-2 text-sm text-gray-300 hover:bg-slate-800 hover:text-white"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
+                      {dashboardLabel}
+                    </Link>
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-slate-800 hover:text-red-400 flex items-center gap-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Выход
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           ) : (
             <Link 
               className="text-sm font-medium text-gray-300 hover:text-white transition-colors"
@@ -108,14 +171,26 @@ export function SiteHeader({ user }: SiteHeaderProps) {
               ))}
               <hr className="border-slate-800 my-2" />
               {user ? (
-                <Link
-                  href={user.role === 'admin' ? "/admin" : "/lk"}
-                  className="text-lg font-medium text-gray-200 hover:text-primary transition-colors py-2 flex items-center gap-2"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <User className="w-5 h-5" />
-                  {user.role === 'admin' ? 'Админ-панель' : 'Кабинет'}
-                </Link>
+                <>
+                  <Link
+                    href={isAdminRole ? "/admin" : "/lk"}
+                    className="text-lg font-medium text-gray-200 hover:text-primary transition-colors py-2 flex items-center gap-2"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <User className="w-5 h-5" />
+                    {dashboardLabel}
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setIsOpen(false);
+                    }}
+                    className="text-lg font-medium text-red-500 hover:text-red-400 transition-colors py-2 flex items-center gap-2"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    Выход
+                  </button>
+                </>
               ) : (
                 <Link
                   href="/login"

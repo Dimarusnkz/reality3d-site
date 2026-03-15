@@ -57,7 +57,7 @@ export default async function LkDashboard() {
         </div>
 
         <div className="neon-card p-6 rounded-xl flex flex-col justify-center gap-3 border-dashed border-slate-700 bg-transparent hover:bg-slate-900/50">
-           <Link href="/lk/new-order" className="flex items-center gap-3 text-white hover:text-primary transition-colors">
+           <Link href="/lk/orders?action=new" className="flex items-center gap-3 text-white hover:text-primary transition-colors">
               <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                  <Plus className="h-5 w-5 text-white" />
               </div>
