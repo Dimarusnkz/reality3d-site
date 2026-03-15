@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export default async function ReviewsPage() {
   const reviews = await getReviews();
   const session = await getSession();
-  const user = session?.userId ? { name: session.name } : null;
+  const user = session?.userId ? { name: (session as any).name || 'Пользователь' } : null;
 
   return (
     <div className="container mx-auto px-4 py-8">
