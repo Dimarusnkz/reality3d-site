@@ -62,5 +62,5 @@ export async function getSession() {
   const cookieStore = await cookies();
   const session = cookieStore.get(cookie.name)?.value;
   const payload = await decrypt(session);
-  return payload;
+  return payload as { userId: string; role: string } | null;
 }
