@@ -101,10 +101,10 @@ export default function RegisterPage() {
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">6-20 символов, минимум 1 цифра и буквы разного регистра (A-z).</p>
-              {state?.errors?.password && (
-                <p className="text-red-500 text-xs mt-1">{state.errors.password[0]}</p>
-              )}
-           </div>
+               {(state?.errors as any)?.password && (
+                 <p className="text-red-500 text-xs mt-1">{(state?.errors as any).password[0]}</p>
+               )}
+            </div>
 
            {showCaptcha && (
              <>
