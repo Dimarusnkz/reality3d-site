@@ -9,11 +9,11 @@ import { createSession, deleteSession } from '@/lib/session';
 
 async function verifyTurnstile(token: string) {
   if (process.env.TURNSTILE_ENABLED !== 'true') {
-    return { ok: true, reason: null as const, skipped: true as const };
+    return { ok: true, reason: null as any, skipped: true };
   }
   const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret) return { ok: false, reason: 'missing_secret' as const };
-  if (!token) return { ok: false, reason: 'missing_token' as const };
+  if (!secret) return { ok: false, reason: 'missing_secret' as any };
+  if (!token) return { ok: false, reason: 'missing_token' as any };
 
   const headersList = await headers();
   const ip =
