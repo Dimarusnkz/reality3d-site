@@ -5,6 +5,13 @@ import { X, Upload, Loader2, FileIcon, Trash2 } from "lucide-react";
 import { createOrder } from "@/app/actions/orders";
 import { uploadFile } from "@/app/actions/upload";
 
+function getCsrfToken() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length !== 2) return '';
+  return parts.pop()?.split(';').shift() || '';
+}
+
 interface CreateOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -39,6 +46,7 @@ export function CreateOrderModal({ isOpen, onClose, onSuccess }: CreateOrderModa
     
     for (const file of files) {
       const data = new FormData();
+      data.append('csrf_token', getCsrfToken());
       data.append('file', file);
       
       const res = await uploadFile(data);
@@ -67,12 +75,14 @@ export function CreateOrderModal({ isOpen, onClose, onSuccess }: CreateOrderModa
     e.preventDefault();
     setIsLoading(true);
 
+    const csrfToken = getCsrfToken();
     const res = await createOrder({
       title: formData.title,
       details: {
         description: formData.description,
         files: formData.uploadedFiles
-      }
+      },
+      csrfToken,
     });
 
     setIsLoading(false);

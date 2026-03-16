@@ -2,6 +2,7 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "./profile-form";
+import { SessionsCard } from "./sessions-card";
 
 export default async function LkSettingsPage() {
   const session = await getSession();
@@ -22,6 +23,24 @@ export default async function LkSettingsPage() {
             address: (user as any).address || null
         }} />
       </div>
+
+      <SessionsCard
+        currentSessionId={session?.sessionId || ""}
+        sessions={(
+          await prisma.session.findMany({
+            where: { userId: user.id },
+            orderBy: { lastUsedAt: 'desc' },
+            select: { id: true, createdAt: true, lastUsedAt: true, expiresAt: true, revokedAt: true, userAgent: true },
+          })
+        ).map((s) => ({
+          id: s.id,
+          createdAt: s.createdAt.toISOString(),
+          lastUsedAt: s.lastUsedAt.toISOString(),
+          expiresAt: s.expiresAt.toISOString(),
+          revokedAt: s.revokedAt ? s.revokedAt.toISOString() : null,
+          userAgent: s.userAgent,
+        }))}
+      />
     </div>
   );
 }

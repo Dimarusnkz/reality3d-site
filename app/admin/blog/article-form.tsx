@@ -85,11 +85,17 @@ export default function ArticleForm({ article }: { article?: any }) {
     e.preventDefault();
     setLoading(true);
 
-    const action = article ? updateArticle : createArticle;
-    const args = article ? [article.id, formData] : [formData];
+    const csrfToken = (() => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; csrf_token=`);
+      if (parts.length !== 2) return '';
+      return parts.pop()?.split(';').shift() || '';
+    })();
 
-    // @ts-ignore
-    const result = await action(...args);
+    const dataWithCsrf = { ...formData, csrfToken };
+    const result = article
+      ? await updateArticle(article.id, dataWithCsrf)
+      : await createArticle(dataWithCsrf);
 
     if (result.success) {
       router.push("/admin/blog");

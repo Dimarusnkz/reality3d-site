@@ -1,0 +1,153 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../generated/mysql-client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL_MYSQL")
+}
+
+model User {
+  id             Int            @id @default(autoincrement())
+  email          String         @unique
+  password       String // Хэш пароля
+  name           String?
+  role           String         @default("user") // admin, user, engineer, manager, warehouse, delivery
+  phone          String? // Телефон
+  address        String? // Адрес доставки
+  tokenVersion   Int            @default(0)
+  createdAt      DateTime       @default(now())
+  orders         Order[]
+  assignedOrders Order[]        @relation("OrderAssignee")
+  chatSessions   ChatSession[] // Чаты пользователя (как клиента)
+  messages       ChatMessage[] // Сообщения, отправленные пользователем
+  comments       OrderComment[] // Комментарии к заказам
+  reviews        Review[] // Отзывы пользователя
+  articles       Article[] // Статьи автора
+  sessions       Session[]
+  auditEvents    AuditEvent[]   @relation("AuditActor")
+}
+
+model Session {
+  id         String    @id @default(uuid())
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id])
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  ipHash     String?
+  userAgent  String?
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model AuditEvent {
+  id          String   @id @default(uuid())
+  actorUserId Int?
+  actor       User?    @relation("AuditActor", fields: [actorUserId], references: [id])
+  action      String
+  target      String?
+  metadata    String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorUserId, createdAt])
+}
+
+model Article {
+  id         Int      @id @default(autoincrement())
+  title      String
+  slug       String   @unique
+  excerpt    String?
+  content    String
+  coverImage String?
+  published  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  authorId   Int
+  author     User     @relation(fields: [authorId], references: [id])
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  rating    Int // 1-5
+  text      String
+  photos    String? // JSON массив ссылок на фото
+  status    String   @default("pending") // pending, approved, rejected
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id           Int            @id @default(autoincrement())
+  userId       Int
+  user         User           @relation(fields: [userId], references: [id])
+  title        String? // Short description/name of the order
+  status       String         @default("pending") // "pending", "processing", "completed", "paid", "shipped"
+  details      String? // JSON or text description
+  price        Float?
+  deadline     DateTime? // Expected completion date
+  assignedToId Int? // Employee assigned to this order
+  assignedTo   User?          @relation("OrderAssignee", fields: [assignedToId], references: [id])
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now()) @updatedAt
+  chat         ChatSession? // Связанный чат заказа
+  comments     OrderComment[]
+}
+
+model OrderComment {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id])
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  text      String
+  createdAt DateTime @default(now())
+}
+
+model ChatSession {
+  id        Int           @id @default(autoincrement())
+  userId    Int
+  user      User          @relation(fields: [userId], references: [id])
+  orderId   Int?          @unique
+  order     Order?        @relation(fields: [orderId], references: [id])
+  status    String        @default("active") // "active", "archived"
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id          Int         @id @default(autoincrement())
+  sessionId   Int
+  session     ChatSession @relation(fields: [sessionId], references: [id])
+  senderId    Int? // Null для системных сообщений
+  sender      User?       @relation(fields: [senderId], references: [id])
+  content     String
+  isInternal  Boolean     @default(false) // true = скрыто от клиента (для общения команды)
+  attachments String? // JSON массив ссылок на файлы
+  read        Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+}
+
+model TelegramSubscriber {
+  id        Int      @id @default(autoincrement())
+  chatId    String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+}
+
+model MaxSubscriber {
+  id        Int      @id @default(autoincrement())
+  chatId    String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+}

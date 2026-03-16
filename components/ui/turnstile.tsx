@@ -73,7 +73,7 @@ export default function Turnstile({ onToken, className }: TurnstileProps) {
 
     const widgetId = window.turnstile.render(containerRef.current, {
       sitekey: SITE_KEY,
-      theme: "dark",
+      theme: "auto",
       callback: (token) => onToken(token),
       "expired-callback": () => onToken(""),
       "error-callback": () => onToken(""),

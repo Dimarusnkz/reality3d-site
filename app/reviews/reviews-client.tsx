@@ -6,6 +6,13 @@ import { uploadPublicFile } from '@/app/actions/upload-public';
 import { createReview } from '@/app/actions/reviews';
 import Link from 'next/link';
 
+function getCsrfToken() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length !== 2) return '';
+  return parts.pop()?.split(';').shift() || '';
+}
+
 type Review = {
   id: number;
   rating: number;
@@ -45,10 +52,13 @@ export default function ReviewsClient({ initialReviews, user }: { initialReviews
     setIsSubmitting(true);
 
     try {
+      const csrfToken = getCsrfToken();
+
       // 1. Upload files
       const uploadedPhotoNames: string[] = [];
       for (const file of files) {
         const formData = new FormData();
+        formData.append('csrf_token', csrfToken);
         formData.append('file', file);
         const result = await uploadPublicFile(formData);
         
@@ -61,7 +71,7 @@ export default function ReviewsClient({ initialReviews, user }: { initialReviews
       }
 
       // 2. Create review
-      const result = await createReview(rating, text, uploadedPhotoNames);
+      const result = await createReview(rating, text, uploadedPhotoNames, csrfToken);
       
       if (result.error) {
         throw new Error(result.error);

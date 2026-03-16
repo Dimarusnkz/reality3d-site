@@ -5,13 +5,20 @@ import { deleteArticle } from "@/app/actions/blog";
 import Link from "next/link";
 import { Edit2, Trash2, Eye, CheckCircle, XCircle } from "lucide-react";
 
+function getCsrfToken() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length !== 2) return '';
+  return parts.pop()?.split(';').shift() || '';
+}
+
 export default function BlogListClient({ initialArticles }: { initialArticles: any[] }) {
   const [articles, setArticles] = useState(initialArticles);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Вы уверены, что хотите удалить эту статью?")) return;
     
-    const result = await deleteArticle(id);
+    const result = await deleteArticle(id, getCsrfToken());
     if (result.success) {
       setArticles(articles.filter(a => a.id !== id));
     } else {

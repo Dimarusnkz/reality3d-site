@@ -6,6 +6,13 @@ import { createOrder } from "@/app/actions/orders";
 import { Upload, FileBox, Calculator, Info, Check, Zap, Layers, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+function getCsrfToken() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length !== 2) return '';
+  return parts.pop()?.split(';').shift() || '';
+}
+
 const TECHNOLOGIES = [
   { id: "fdm", name: "FDM", icon: Cpu, desc: "Послойная печать пластиком. Прототипы, корпуса." },
   { id: "sla", name: "SLA", icon: Zap, desc: "Фотополимер. Высокая детализация, гладкость." },
@@ -88,7 +95,8 @@ export default function CalculatorPage() {
         const result = await createOrder({ 
             title: `Заказ ${mode === 'file' ? file?.name || '' : 'по параметрам'}`,
             price, 
-            details 
+            details,
+            csrfToken: getCsrfToken(),
         });
 
         if (result.error === 'Unauthorized') {

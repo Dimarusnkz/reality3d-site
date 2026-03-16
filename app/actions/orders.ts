@@ -1,11 +1,19 @@
 'use server'
 
-import { PrismaClient } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/session'
 import { sendTelegramMessage } from '@/lib/telegram'
+import { prisma } from '@/lib/prisma'
+import { assertCsrfTokenValue } from '@/lib/csrf'
 
-const prisma = new PrismaClient()
+function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
 
 // --- Client Actions ---
 
@@ -13,7 +21,13 @@ export async function createOrder(data: {
   title: string;
   details: any;
   price?: number;
+  csrfToken: string;
 }) {
+  const csrf = await assertCsrfTokenValue(data.csrfToken || null)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || !session.userId) {
     return { error: 'Unauthorized' }
@@ -34,15 +48,20 @@ export async function createOrder(data: {
     })
 
     // Send Telegram Notification
+    const safeTitle = escapeHtml(order.title || 'Без названия')
+    const safeName = escapeHtml(order.user.name || 'Не указано')
+    const safeEmail = escapeHtml(order.user.email)
+    const safePhone = escapeHtml(order.user.phone || 'Не указан')
+    const safeDetails = escapeHtml(JSON.stringify(data.details, null, 2))
     const message = `
 <b>📦 Новый заказ #${order.id}</b>
 
-📝 <b>Название:</b> ${order.title || 'Без названия'}
-👤 <b>Клиент:</b> ${order.user.name || 'Не указано'} (${order.user.email})
-📱 <b>Телефон:</b> ${order.user.phone || 'Не указан'}
+📝 <b>Название:</b> ${safeTitle}
+👤 <b>Клиент:</b> ${safeName} (${safeEmail})
+📱 <b>Телефон:</b> ${safePhone}
 
 📝 <b>Детали заказа:</b>
-<pre>${JSON.stringify(data.details, null, 2)}</pre>
+<pre>${safeDetails}</pre>
     `
 
     await sendTelegramMessage(message)
@@ -124,7 +143,12 @@ export async function getOrderDetails(orderId: number) {
   return order;
 }
 
-export async function updateOrderStatus(orderId: number, status: string) {
+export async function updateOrderStatus(orderId: number, status: string, csrfToken: string) {
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || !['admin', 'manager', 'engineer', 'warehouse', 'delivery'].includes(session.role)) {
     return { error: 'Unauthorized' }
@@ -147,7 +171,12 @@ export async function updateOrderStatus(orderId: number, status: string) {
   }
 }
 
-export async function updateOrderPrice(orderId: number, price: number) {
+export async function updateOrderPrice(orderId: number, price: number, csrfToken: string) {
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
     return { error: 'Unauthorized' }
@@ -167,7 +196,12 @@ export async function updateOrderPrice(orderId: number, price: number) {
   }
 }
 
-export async function assignOrder(orderId: number, employeeId: number | null) {
+export async function assignOrder(orderId: number, employeeId: number | null, csrfToken: string) {
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
     return { error: 'Unauthorized' }
@@ -186,7 +220,12 @@ export async function assignOrder(orderId: number, employeeId: number | null) {
   }
 }
 
-export async function updateOrderDeadline(orderId: number, deadline: Date | null) {
+export async function updateOrderDeadline(orderId: number, deadline: Date | null, csrfToken: string) {
+    const csrf = await assertCsrfTokenValue(csrfToken || null)
+    if (!csrf.ok) {
+      return { error: csrf.error }
+    }
+
     const session = await getSession()
     if (!session || !['admin', 'manager'].includes(session.role)) {
       return { error: 'Unauthorized' }
@@ -205,7 +244,12 @@ export async function updateOrderDeadline(orderId: number, deadline: Date | null
     }
 }
 
-export async function addOrderComment(orderId: number, text: string) {
+export async function addOrderComment(orderId: number, text: string, csrfToken: string) {
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || !session.userId) {
     return { error: 'Unauthorized' }
@@ -228,7 +272,12 @@ export async function addOrderComment(orderId: number, text: string) {
   }
 }
 
-export async function deleteOrder(orderId: number) {
+export async function deleteOrder(orderId: number, csrfToken: string) {
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || session.role !== 'admin') {
     return { error: 'Unauthorized' }
@@ -257,7 +306,12 @@ export async function deleteOrder(orderId: number) {
   }
 }
 
-export async function updateOrderDetails(orderId: number, data: { title: string, details: any }) {
+export async function updateOrderDetails(orderId: number, data: { title: string, details: any }, csrfToken: string) {
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
     return { error: 'Unauthorized' }

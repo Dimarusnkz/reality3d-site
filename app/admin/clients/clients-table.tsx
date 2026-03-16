@@ -19,16 +19,16 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
   const { selectSession, openChat, refreshChats } = useChat();
   const router = useRouter();
 
-  useEffect(() => {
-    loadClients();
-  }, []);
-
   const loadClients = async () => {
     setIsLoading(true);
     const data = await getClients();
     setClients(data);
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    loadClients();
+  }, []);
 
   const handleEditClick = () => {
     if (!selectedClient) return;

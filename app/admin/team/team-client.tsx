@@ -6,6 +6,13 @@ import { cn } from "@/lib/utils";
 import { createUser, updateUser, deleteUser } from "@/app/actions/admin";
 import { useRouter } from "next/navigation";
 
+function getCsrfToken() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length !== 2) return '';
+  return parts.pop()?.split(';').shift() || '';
+}
+
 type Role = 'admin' | 'manager' | 'engineer' | 'warehouse' | 'delivery' | 'user';
 
 interface UserType {
@@ -60,6 +67,7 @@ export default function TeamClient({ users }: { users: UserType[] }) {
     setIsLoading(true);
 
     const data = new FormData();
+    data.append('csrf_token', getCsrfToken());
     data.append("name", formData.name);
     data.append("email", formData.email);
     data.append("role", formData.role);

@@ -4,6 +4,7 @@ import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { getSession } from '@/lib/session'
+import { assertCsrf } from '@/lib/csrf'
 
 const PUBLIC_UPLOAD_DIR = process.platform === 'win32' 
   ? 'C:\\Users\\Dmitry\\Desktop\\reality3d-uploads\\public' // Local dev
@@ -13,6 +14,11 @@ const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
 export async function uploadPublicFile(formData: FormData) {
+  const csrf = await assertCsrf(formData)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || !session.userId) {
     return { error: 'Unauthorized' }

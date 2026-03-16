@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, AlertCircle, Eye, EyeOff } from "lucide-react";
 import Turnstile from "@/components/ui/turnstile";
+import { CsrfTokenField } from "@/components/ui/csrf-token-field";
 import { cn } from "@/lib/utils";
 import { login } from "@/actions/auth";
 
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [captchaToken, setCaptchaToken] = useState("");
   const captchaError =
     (state?.errors as any)?.captcha?.[0] || (state?.errors as any)?.["cf-turnstile-response"]?.[0];
+  const csrfError = (state?.errors as any)?.csrf_token?.[0];
   const showCaptcha =
     process.env.NEXT_PUBLIC_TURNSTILE_ENABLED === "true" &&
     !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -38,6 +40,7 @@ export default function LoginPage() {
         </div>
 
         <form className="space-y-4" action={formAction}>
+           <CsrfTokenField />
            {(state?.errors as any)?.email && (
              <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-sm p-3 rounded-lg flex items-center gap-2">
                <AlertCircle className="h-4 w-4" />
@@ -48,6 +51,12 @@ export default function LoginPage() {
              <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-sm p-3 rounded-lg flex items-center gap-2">
                <AlertCircle className="h-4 w-4" />
                {captchaError}
+             </div>
+           )}
+           {csrfError && (
+             <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-sm p-3 rounded-lg flex items-center gap-2">
+               <AlertCircle className="h-4 w-4" />
+               {csrfError}
              </div>
            )}
 

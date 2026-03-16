@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate && prisma generate --schema prisma/sqlite/schema.prisma && prisma generate --schema prisma/mysql/schema.prisma",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:sqlite": "prisma migrate dev --schema prisma/sqlite/schema.prisma",
+    "db:migrate:mysql": "prisma migrate dev --schema prisma/mysql/schema.prisma",
+    "db:seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

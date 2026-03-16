@@ -1,10 +1,9 @@
 'use server'
 
-import { PrismaClient } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/session'
-
-const prisma = new PrismaClient()
+import { assertCsrfTokenValue } from '@/lib/csrf'
+import { prisma } from '@/lib/prisma'
 
 export async function getArticles(publishedOnly = true) {
   const where = publishedOnly ? { published: true } : {}
@@ -36,6 +35,11 @@ export async function createArticle(data: { title: string; slug: string; excerpt
     return { error: 'Unauthorized' }
   }
 
+  const csrf = await assertCsrfTokenValue((data as any).csrfToken || null)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   try {
     await prisma.article.create({
       data: {
@@ -58,6 +62,11 @@ export async function updateArticle(id: number, data: { title: string; slug: str
     return { error: 'Unauthorized' }
   }
 
+  const csrf = await assertCsrfTokenValue((data as any).csrfToken || null)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   try {
     await prisma.article.update({
       where: { id },
@@ -72,10 +81,15 @@ export async function updateArticle(id: number, data: { title: string; slug: str
   }
 }
 
-export async function deleteArticle(id: number) {
+export async function deleteArticle(id: number, csrfToken: string) {
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
     return { error: 'Unauthorized' }
+  }
+
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) {
+    return { error: csrf.error }
   }
 
   try {

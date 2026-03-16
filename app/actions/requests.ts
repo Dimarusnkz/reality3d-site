@@ -1,21 +1,48 @@
 'use server'
 
-import { PrismaClient } from '@prisma/client'
 import { sendTelegramMessage } from '@/lib/telegram'
 import { sendMaxMessage } from '@/lib/max'
 import bcrypt from 'bcryptjs'
+import { prisma } from '@/lib/prisma'
+import { assertCsrf } from '@/lib/csrf'
+import { getClientIp } from '@/lib/request'
+import { rateLimit } from '@/lib/rate-limit'
+import { z } from 'zod'
 
-const prisma = new PrismaClient()
+function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+const requestSchema = z.object({
+  name: z.string().min(1).max(20),
+  phone: z.string().min(1).max(12).regex(/^\d+$/),
+  email: z.string().min(3).max(30).email().regex(/^[a-zA-Z0-9@._-]+$/),
+  description: z.string().min(1).max(200),
+});
 
 export async function submitRequest(formData: FormData) {
-  const name = formData.get('name') as string
-  const phone = formData.get('phone') as string
-  const email = formData.get('email') as string
-  const description = formData.get('description') as string
-
-  if (!name || !phone || !email || !description) {
-    return { error: 'Все поля обязательны' }
+  const csrf = await assertCsrf(formData)
+  if (!csrf.ok) {
+    return { error: csrf.error }
   }
+
+  const ip = await getClientIp()
+  const rl = rateLimit(`request:submit:${ip}`, 10, 60 * 60_000)
+  if (!rl.ok) {
+    return { error: 'Слишком много заявок. Попробуйте позже.' }
+  }
+
+  const parsed = requestSchema.safeParse(Object.fromEntries(formData))
+  if (!parsed.success) {
+    return { error: 'Проверьте корректность заполнения формы' }
+  }
+
+  const { name, phone, email, description } = parsed.data
 
   try {
     // 1. Find or create user
@@ -71,14 +98,14 @@ export async function submitRequest(formData: FormData) {
     const notificationMessage = `
 <b>🔔 Новая заявка с сайта</b>
 
-👤 <b>Имя:</b> ${name}
-📞 <b>Телефон:</b> ${phone}
-📧 <b>Email:</b> ${email}
+👤 <b>Имя:</b> ${escapeHtml(name)}
+📞 <b>Телефон:</b> ${escapeHtml(phone)}
+📧 <b>Email:</b> ${escapeHtml(email)}
 
 📝 <b>Описание:</b>
-${description}
+${escapeHtml(description)}
 
-🔗 <a href="https://reality3d.ru/admin/chat?sessionId=${session.id}">Перейти в чат</a>
+🔗 <a href="https://reality3d.ru/admin/chat?sessionId=${encodeURIComponent(session.id.toString())}">Перейти в чат</a>
     `
 
     await sendTelegramMessage(notificationMessage)

@@ -18,6 +18,7 @@ model User {
   role         String        @default("user") // admin, user, engineer, manager, warehouse, delivery
   phone        String?       // Телефон
   address      String?       // Адрес доставки
+  tokenVersion Int           @default(0)
   createdAt    DateTime      @default(now())
   orders       Order[]
   assignedOrders Order[]     @relation("OrderAssignee")
@@ -26,6 +27,36 @@ model User {
   comments     OrderComment[] // Комментарии к заказам
   reviews      Review[]       // Отзывы пользователя
   articles     Article[]      // Статьи автора
+  sessions     Session[]
+  auditEvents  AuditEvent[]   @relation("AuditActor")
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  ipHash     String?
+  userAgent  String?
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model AuditEvent {
+  id          String   @id @default(uuid())
+  actorUserId Int?
+  actor       User?    @relation("AuditActor", fields: [actorUserId], references: [id])
+  action      String
+  target      String?
+  metadata    String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 model Article {
