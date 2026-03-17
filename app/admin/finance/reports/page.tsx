@@ -54,6 +54,7 @@ export default async function AdminFinanceReportsPage({ searchParams }: { search
       by: ["shopOrderId"],
       where: { actionType: "writeoff", reason: "sale", shopOrderId: { not: null }, createdAt: { gte: range.start, lt: range.end } },
       _sum: { totalCostKopeks: true },
+      orderBy: { _sum: { totalCostKopeks: "desc" } },
       take: 2000,
     }),
   ]);
@@ -151,4 +152,3 @@ export default async function AdminFinanceReportsPage({ searchParams }: { search
     </div>
   );
 }
-
