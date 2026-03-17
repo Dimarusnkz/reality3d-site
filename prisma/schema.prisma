@@ -29,6 +29,9 @@ model User {
   articles     Article[]      // Статьи автора
   sessions     Session[]
   auditEvents  AuditEvent[]   @relation("AuditActor")
+  shopWishlistItems ShopWishlistItem[]
+  shopCart     ShopCart?
+  shopOrders   ShopOrder[]
 }
 
 model Session {
