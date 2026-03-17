@@ -59,6 +59,12 @@ export default async function AdminWarehousePage() {
             Категории
           </Link>
           <Link
+            href="/admin/warehouse/low-stock"
+            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+          >
+            Низкий остаток
+          </Link>
+          <Link
             href="/admin/warehouse/receipts"
             className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
           >
