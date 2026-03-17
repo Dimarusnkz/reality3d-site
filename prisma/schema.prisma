@@ -105,6 +105,7 @@ model Order {
   updatedAt DateTime     @updatedAt @default(now())
   chat      ChatSession? // Связанный чат заказа
   comments  OrderComment[]
+  shopWarehouseLogs ShopWarehouseLog[]
 }
 
 model OrderComment {
@@ -185,6 +186,9 @@ model ShopProduct {
   wishlistItems    ShopWishlistItem[]
   cartItems        ShopCartItem[]
   orderItems       ShopOrderItem[]
+  inventoryItem    ShopInventoryItem?
+  warehouseLogs    ShopWarehouseLog[]
+  clientLogs       ShopClientLog[]
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
@@ -260,6 +264,8 @@ model ShopOrder {
   comment            String?
   items              ShopOrderItem[]
   payments           ShopPayment[]
+  warehouseLogs      ShopWarehouseLog[]
+  clientLogs         ShopClientLog[]
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
