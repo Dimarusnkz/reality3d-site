@@ -96,7 +96,8 @@ export async function POST(request: Request) {
               update: {},
             })
 
-            const nextQty = Number(inv.quantity) - item.quantity
+            const currentQty = Number(inv.quantity)
+            const nextQty = Math.max(0, currentQty - item.quantity)
             await tx.shopInventoryItem.update({
               where: { id: inv.id },
               data: { quantity: nextQty },
@@ -127,7 +128,10 @@ export async function POST(request: Request) {
                 serviceOrderId: null,
                 supplier: null,
                 documentNo: null,
-                comment: `Автосписание по оплате заказа #${orderForWriteoff.orderNo}`,
+                comment:
+                  currentQty >= item.quantity
+                    ? `Автосписание по оплате заказа #${orderForWriteoff.orderNo}`
+                    : `Автосписание по оплате заказа #${orderForWriteoff.orderNo} (нехватка остатка: было ${currentQty})`,
                 ipHash,
                 userAgent,
               },

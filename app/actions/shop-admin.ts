@@ -179,8 +179,40 @@ export async function deleteShopProduct(id: number, csrfToken: string) {
   if (!admin.ok) return admin
 
   try {
+    const product = await prisma.shopProduct.findUnique({
+      where: { id },
+      select: { id: true, slug: true, name: true },
+    })
+    if (!product) return { ok: true as const }
+
+    const [orderItems, warehouseLogs, clientLogs] = await Promise.all([
+      prisma.shopOrderItem.count({ where: { productId: id } }),
+      prisma.shopWarehouseLog.count({ where: { productId: id } }),
+      prisma.shopClientLog.count({ where: { productId: id } }),
+    ])
+
+    await prisma.shopCartItem.deleteMany({ where: { productId: id } })
+    await prisma.shopWishlistItem.deleteMany({ where: { productId: id } })
     await prisma.shopProductImage.deleteMany({ where: { productId: id } })
-    await prisma.shopProduct.delete({ where: { id } })
+
+    if (orderItems > 0 || warehouseLogs > 0 || clientLogs > 0) {
+      await prisma.shopInventoryItem.updateMany({ where: { productId: id }, data: { quantity: 0 } })
+      const suffix = Date.now()
+      await prisma.shopProduct.update({
+        where: { id },
+        data: {
+          isActive: false,
+          stock: 0,
+          slug: `${product.slug}--archived-${suffix}`,
+          name: `${product.name} (архив)`,
+        },
+      })
+    } else {
+      await prisma.shopInventoryItem.deleteMany({ where: { productId: id } })
+      await prisma.shopWarehouseLog.deleteMany({ where: { productId: id } })
+      await prisma.shopClientLog.deleteMany({ where: { productId: id } })
+      await prisma.shopProduct.delete({ where: { id } })
+    }
     await logAudit({ actorUserId: admin.userId, action: 'shop.product.delete', target: String(id) })
     revalidatePath('/admin/shop/products')
     revalidatePath('/shop')
