@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       target: orderNo || paymentId || null,
       metadata: { status, success, body },
     });
-    return NextResponse.text('OK');
+    return new Response('OK');
   }
 
   const nextStatus = success === false ? 'failed' : isPaidStatus(status) ? 'succeeded' : status.toLowerCase();
@@ -86,6 +86,5 @@ export async function POST(request: Request) {
     metadata: { paymentId, status, mappedStatus: nextStatus, success },
   });
 
-  return NextResponse.text('OK');
+  return new Response('OK');
 }
-

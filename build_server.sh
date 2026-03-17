@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 cd /var/www/reality3d
 rm -rf .next
 npx prisma migrate deploy > build_log.txt 2>&1
