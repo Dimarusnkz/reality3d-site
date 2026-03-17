@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getPrisma } from "@/lib/prisma";
+import { hasPermission } from "@/lib/access";
 
 function csvEscape(value: string) {
   const v = value ?? "";
@@ -12,7 +13,11 @@ function csvEscape(value: string) {
 
 export async function GET(request: Request) {
   const session = await getSession();
-  if (!session?.userId || !["admin", "manager"].includes(session.role)) {
+  if (!session?.userId) {
+    return NextResponse.json({ ok: false }, { status: 401 });
+  }
+  const allowed = await hasPermission(parseInt(session.userId, 10), session.role, "logs.export");
+  if (!allowed) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
@@ -147,4 +152,3 @@ export async function GET(request: Request) {
     },
   });
 }
-

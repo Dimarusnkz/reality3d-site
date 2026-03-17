@@ -20,6 +20,7 @@ type ProductInput = {
   shortDescription: string;
   description: string;
   priceRub: number;
+  purchasePriceRub: number | null;
   compareAtRub: number | null;
   stock: number;
   isActive: boolean;
@@ -30,6 +31,7 @@ type ProductInput = {
 export function ProductForm({
   categories,
   product,
+  canEditPurchasePrice,
 }: {
   categories: Category[];
   product?: {
@@ -40,11 +42,13 @@ export function ProductForm({
     shortDescription: string | null;
     description: string | null;
     priceKopeks: number;
+    purchasePriceKopeks: number | null;
     compareAtKopeks: number | null;
     stock: number;
     isActive: boolean;
     categoryId: number | null;
   };
+  canEditPurchasePrice?: boolean;
 }) {
   const initial = useMemo<ProductInput>(
     () => ({
@@ -54,6 +58,7 @@ export function ProductForm({
       shortDescription: product?.shortDescription || "",
       description: product?.description || "",
       priceRub: (product?.priceKopeks || 0) / 100,
+      purchasePriceRub: product?.purchasePriceKopeks == null ? null : product.purchasePriceKopeks / 100,
       compareAtRub: product?.compareAtKopeks == null ? null : product.compareAtKopeks / 100,
       stock: product?.stock ?? 0,
       isActive: product?.isActive ?? true,
@@ -129,6 +134,7 @@ export function ProductForm({
         shortDescription: form.shortDescription || null,
         description: form.description || null,
         priceRub: Number(form.priceRub),
+        purchasePriceRub: canEditPurchasePrice ? (form.purchasePriceRub == null ? null : Number(form.purchasePriceRub)) : null,
         compareAtRub: form.compareAtRub == null ? null : Number(form.compareAtRub),
         stock: Number(form.stock),
         isActive: Boolean(form.isActive),
@@ -212,6 +218,19 @@ export function ProductForm({
             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
           />
         </div>
+
+        {canEditPurchasePrice ? (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-400 ml-1">Цена закупки (₽)</label>
+            <input
+              type="number"
+              inputMode="decimal"
+              value={form.purchasePriceRub ?? ""}
+              onChange={(e) => setForm({ ...form, purchasePriceRub: e.target.value ? Number(e.target.value) : null })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+            />
+          </div>
+        ) : null}
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-400 ml-1">Старая цена (₽)</label>

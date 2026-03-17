@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getPrisma } from "@/lib/prisma";
+import { hasPermission } from "@/lib/access";
 
 type SearchParams = {
   type?: string;
@@ -22,7 +23,8 @@ function parseDate(value: string | undefined) {
 export default async function AdminLogsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const session = await getSession();
   if (!session?.userId) redirect("/login");
-  if (!["admin", "manager"].includes(session.role)) redirect("/admin");
+  const allowed = await hasPermission(parseInt(session.userId, 10), session.role, "logs.view");
+  if (!allowed) redirect("/admin");
 
   const prisma = getPrisma();
   const sp = await searchParams;
@@ -187,4 +189,3 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
     </div>
   );
 }
-

@@ -2,8 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPrisma } from "@/lib/prisma";
 import { ProductForm } from "../product-form";
+import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/access";
 
 export default async function EditShopProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const session = await getSession();
   const prisma = getPrisma();
   const { id } = await params;
   const productId = parseInt(id, 10);
@@ -20,6 +23,7 @@ export default async function EditShopProductPage({ params }: { params: Promise<
         shortDescription: true,
         description: true,
         priceKopeks: true,
+        purchasePriceKopeks: true,
         compareAtKopeks: true,
         stock: true,
         isActive: true,
@@ -33,6 +37,9 @@ export default async function EditShopProductPage({ params }: { params: Promise<
   ]);
 
   if (!product) notFound();
+  const canEditPurchasePrice = session?.userId
+    ? await hasPermission(parseInt(session.userId, 10), session.role, "products.purchase_price.edit")
+    : false;
 
   return (
     <div className="space-y-6">
@@ -47,9 +54,8 @@ export default async function EditShopProductPage({ params }: { params: Promise<
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-        <ProductForm categories={categories} product={product} />
+        <ProductForm categories={categories} product={product} canEditPurchasePrice={canEditPurchasePrice} />
       </div>
     </div>
   );
 }
-

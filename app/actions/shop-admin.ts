@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/session'
 import { getPrisma } from '@/lib/prisma'
 import { assertCsrfTokenValue } from '@/lib/csrf'
+import { hasPermission } from '@/lib/access'
 import { toKopeks } from '@/lib/shop/money'
 import { z } from 'zod'
 import { logAudit } from '@/lib/audit'
@@ -69,6 +70,7 @@ const productSchema = z.object({
   shortDescription: z.string().trim().max(400).optional().nullable(),
   description: z.string().trim().max(10000).optional().nullable(),
   priceRub: z.number().min(0),
+  purchasePriceRub: z.number().min(0).optional().nullable(),
   compareAtRub: z.number().min(0).optional().nullable(),
   stock: z.number().int().min(0).max(100000),
   isActive: z.boolean(),
@@ -89,6 +91,7 @@ export async function createShopProduct(input: unknown, csrfToken: string) {
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
 
   try {
+    const canEditPurchase = await hasPermission(admin.userId, session!.role, 'products.purchase_price.edit')
     const product = await prisma.shopProduct.create({
       data: {
         name: parsed.data.name,
@@ -97,6 +100,7 @@ export async function createShopProduct(input: unknown, csrfToken: string) {
         shortDescription: parsed.data.shortDescription || null,
         description: parsed.data.description || null,
         priceKopeks: toKopeks(parsed.data.priceRub),
+        purchasePriceKopeks: canEditPurchase && parsed.data.purchasePriceRub != null ? toKopeks(parsed.data.purchasePriceRub) : null,
         compareAtKopeks: parsed.data.compareAtRub == null ? null : toKopeks(parsed.data.compareAtRub),
         stock: parsed.data.stock,
         isActive: parsed.data.isActive,
@@ -136,6 +140,7 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
 
   try {
+    const canEditPurchase = await hasPermission(admin.userId, session!.role, 'products.purchase_price.edit')
     await prisma.shopProduct.update({
       where: { id },
       data: {
@@ -145,6 +150,9 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
         shortDescription: parsed.data.shortDescription || null,
         description: parsed.data.description || null,
         priceKopeks: toKopeks(parsed.data.priceRub),
+        ...(canEditPurchase
+          ? { purchasePriceKopeks: parsed.data.purchasePriceRub == null ? null : toKopeks(parsed.data.purchasePriceRub) }
+          : {}),
         compareAtKopeks: parsed.data.compareAtRub == null ? null : toKopeks(parsed.data.compareAtRub),
         stock: parsed.data.stock,
         isActive: parsed.data.isActive,

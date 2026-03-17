@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getPrisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { verifyTbankToken } from '@/lib/shop/tbank';
+import crypto from 'crypto';
 
 function normalizeStatus(status: string | null) {
   const value = (status || '').toUpperCase();
@@ -70,6 +71,99 @@ export async function POST(request: Request) {
       where: { id: resolvedPayment.orderId },
       data: { paymentStatus: 'paid', status: 'paid' },
     });
+
+    const alreadyWrittenOff = await prisma.shopWarehouseLog.findFirst({
+      where: { shopOrderId: resolvedPayment.orderId, actionType: 'writeoff', reason: 'sale' },
+      select: { id: true },
+    })
+
+    if (!alreadyWrittenOff) {
+      const orderForWriteoff = await prisma.shopOrder.findUnique({
+        where: { id: resolvedPayment.orderId },
+        include: { items: true },
+      })
+      if (orderForWriteoff) {
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
+        const userAgent = request.headers.get('user-agent')?.slice(0, 500) || null;
+        const ipHash = ip ? crypto.createHash('sha256').update(ip).digest('hex') : null;
+
+        await prisma.$transaction(async (tx) => {
+          for (const item of orderForWriteoff.items) {
+            if (!item.productId) continue
+            const inv = await tx.shopInventoryItem.upsert({
+              where: { productId: item.productId },
+              create: { productId: item.productId, unit: 'pcs', quantity: 0, minThreshold: 0 },
+              update: {},
+            })
+
+            const nextQty = Number(inv.quantity) - item.quantity
+            await tx.shopInventoryItem.update({
+              where: { id: inv.id },
+              data: { quantity: nextQty },
+            })
+
+            await tx.shopProduct.update({
+              where: { id: item.productId },
+              data: { stock: Math.max(0, Math.trunc(nextQty)) },
+            })
+
+            const unitCostKopeks = inv.lastPurchaseUnitCostKopeks ?? null
+            const totalCostKopeks = unitCostKopeks == null ? null : unitCostKopeks * item.quantity
+
+            await tx.shopWarehouseLog.create({
+              data: {
+                actorUserId: null,
+                actorRole: 'system',
+                actionType: 'writeoff',
+                reason: 'sale',
+                productId: item.productId,
+                sku: item.sku || null,
+                productName: item.productName,
+                quantityDelta: -item.quantity,
+                unit: 'pcs',
+                unitCostKopeks,
+                totalCostKopeks,
+                shopOrderId: resolvedPayment.orderId,
+                serviceOrderId: null,
+                supplier: null,
+                documentNo: null,
+                comment: `Автосписание по оплате заказа #${orderForWriteoff.orderNo}`,
+                ipHash,
+                userAgent,
+              },
+            })
+          }
+        })
+      }
+    }
+
+    const existing = await prisma.cashEntry.findUnique({ where: { shopPaymentId: resolvedPayment.id }, select: { id: true } });
+    if (!existing) {
+      const account = await prisma.cashAccount.findUnique({ where: { code: 'online' }, select: { id: true } });
+      if (account) {
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
+        const userAgent = request.headers.get('user-agent')?.slice(0, 500) || null;
+        const ipHash = ip ? crypto.createHash('sha256').update(ip).digest('hex') : null;
+
+        await prisma.cashEntry.create({
+          data: {
+            accountId: account.id,
+            direction: 'income',
+            entryType: 'order_payment',
+            amountKopeks: resolvedPayment.amountKopeks,
+            currency: 'RUB',
+            description: `Оплата заказа ${orderNo || ''}`.trim(),
+            status: 'confirmed',
+            shopOrderId: resolvedPayment.orderId,
+            shopPaymentId: resolvedPayment.id,
+            warehouseLogId: null,
+            createdByUserId: null,
+            ipHash,
+            userAgent,
+          },
+        });
+      }
+    }
   } else if (nextStatus === 'failed') {
     await prisma.shopOrder.update({
       where: { id: resolvedPayment.orderId },

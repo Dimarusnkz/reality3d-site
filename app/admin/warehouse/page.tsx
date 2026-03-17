@@ -1,12 +1,14 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getPrisma } from "@/lib/prisma";
+import { hasPermission } from "@/lib/access";
 import { WarehouseClient } from "./warehouse-client";
 
 export default async function AdminWarehousePage() {
   const session = await getSession();
   if (!session?.userId) redirect("/login");
-  if (!["admin", "manager", "warehouse", "engineer"].includes(session.role)) redirect("/admin");
+  const allowed = await hasPermission(parseInt(session.userId, 10), session.role, "warehouse.view");
+  if (!allowed) redirect("/admin");
 
   const prisma = getPrisma();
 
@@ -44,4 +46,3 @@ export default async function AdminWarehousePage() {
     </div>
   );
 }
-

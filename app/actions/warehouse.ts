@@ -1,13 +1,13 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { getSession } from '@/lib/session'
 import { getPrisma } from '@/lib/prisma'
 import { assertCsrfTokenValue } from '@/lib/csrf'
 import { z } from 'zod'
 import { getLogMeta } from '@/lib/shop/log-meta'
 import { sendEmailViaSendGrid } from '@/lib/notifications/sendgrid'
 import { logAudit } from '@/lib/audit'
+import { hasPermission, getUserAccessContext } from '@/lib/access'
 
 type Unit = 'pcs' | 'm' | 'kg'
 
@@ -29,14 +29,6 @@ function parseQuantity(input: string) {
   const value = Number(normalized)
   if (!Number.isFinite(value) || value <= 0) return null
   return value
-}
-
-function requireWarehouseAccess(session: { userId?: string; role?: string } | null) {
-  if (!session?.userId) return { ok: false as const, error: 'Unauthorized' }
-  if (!session.role || !['admin', 'manager', 'warehouse', 'engineer'].includes(session.role)) {
-    return { ok: false as const, error: 'Unauthorized' }
-  }
-  return { ok: true as const, userId: parseInt(session.userId, 10), role: session.role }
 }
 
 async function notifyLowStock(input: {
@@ -67,12 +59,21 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
   const csrf = await assertCsrfTokenValue(csrfToken || null)
   if (!csrf.ok) return { ok: false as const, error: csrf.error }
 
-  const session = await getSession()
-  const access = requireWarehouseAccess(session)
-  if (!access.ok) return access
+  const access = await getUserAccessContext()
+  if (!access) return { ok: false as const, error: 'Unauthorized' }
 
   const parsed = movementSchema.safeParse(input)
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
+
+  const permissionKey =
+    parsed.data.actionType === 'receipt'
+      ? 'warehouse.receipt'
+      : parsed.data.actionType === 'writeoff'
+        ? 'warehouse.writeoff'
+        : 'warehouse.transfer'
+
+  const permitted = await hasPermission(access.userId, access.role, permissionKey)
+  if (!permitted) return { ok: false as const, error: 'Unauthorized' }
 
   const qty = parseQuantity(parsed.data.quantity)
   if (!qty) return { ok: false as const, error: 'Некорректное количество' }
@@ -86,7 +87,7 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
 
   const product = await prisma.shopProduct.findUnique({
     where: { id: parsed.data.productId },
-    select: { id: true, name: true, sku: true },
+    select: { id: true, name: true, sku: true, purchasePriceKopeks: true },
   })
   if (!product) return { ok: false as const, error: 'Товар не найден' }
 
@@ -111,7 +112,12 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
 
       const updated = await tx.shopInventoryItem.update({
         where: { id: item.id },
-        data: { quantity: next },
+        data: {
+          quantity: next,
+          ...(parsed.data.actionType === 'receipt' && product.purchasePriceKopeks != null
+            ? { lastPurchaseUnitCostKopeks: product.purchasePriceKopeks }
+            : {}),
+        },
       })
 
       if (unit === 'pcs') {
@@ -132,6 +138,8 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
           productName: product.name,
           quantityDelta: delta,
           unit,
+          unitCostKopeks: null,
+          totalCostKopeks: null,
           shopOrderId: parsed.data.shopOrderId || null,
           serviceOrderId: parsed.data.serviceOrderId || null,
           supplier: parsed.data.supplier || null,
@@ -185,9 +193,10 @@ export async function updateInventorySettings(input: unknown, csrfToken: string)
   const csrf = await assertCsrfTokenValue(csrfToken || null)
   if (!csrf.ok) return { ok: false as const, error: csrf.error }
 
-  const session = await getSession()
-  const access = requireWarehouseAccess(session)
-  if (!access.ok) return access
+  const access = await getUserAccessContext()
+  if (!access) return { ok: false as const, error: 'Unauthorized' }
+  const permitted = await hasPermission(access.userId, access.role, 'warehouse.threshold.edit')
+  if (!permitted) return { ok: false as const, error: 'Unauthorized' }
 
   const parsed = inventorySettingsSchema.safeParse(input)
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
@@ -232,4 +241,3 @@ export async function updateInventorySettings(input: unknown, csrfToken: string)
     return { ok: false as const, error: 'Не удалось сохранить настройки' }
   }
 }
-

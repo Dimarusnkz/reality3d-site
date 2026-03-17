@@ -34,6 +34,11 @@ model User {
   shopOrders   ShopOrder[]
   shopWarehouseLogs ShopWarehouseLog[]
   shopClientLogs ShopClientLog[]
+  cashEntries  CashEntry[]
+  cashReconciliations CashReconciliation[]
+  accessGroups UserAccessGroup[]
+  accessPermissions UserAccessPermission[]
+  createdGroups AccessGroup[] @relation("AccessGroupCreator")
 }
 
 model Session {
@@ -177,6 +182,7 @@ model ShopProduct {
   description      String?
   shortDescription String?
   priceKopeks      Int
+  purchasePriceKopeks Int?
   compareAtKopeks  Int?
   stock            Int                @default(0)
   isActive         Boolean            @default(true)
@@ -266,6 +272,7 @@ model ShopOrder {
   payments           ShopPayment[]
   warehouseLogs      ShopWarehouseLog[]
   clientLogs         ShopClientLog[]
+  cashEntries        CashEntry[]
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
@@ -314,6 +321,7 @@ model ShopInventoryItem {
   unit         String     @default("pcs")
   quantity     Decimal    @default(0) @db.Decimal(18, 3)
   minThreshold Decimal    @default(0) @db.Decimal(18, 3)
+  lastPurchaseUnitCostKopeks Int?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
@@ -335,6 +343,8 @@ model ShopWarehouseLog {
   productName   String?
   quantityDelta Decimal     @db.Decimal(18, 3)
   unit          String
+  unitCostKopeks Int?
+  totalCostKopeks Int?
   shopOrderId   String?
   shopOrder     ShopOrder?  @relation(fields: [shopOrderId], references: [id])
   serviceOrderId Int?
@@ -350,6 +360,7 @@ model ShopWarehouseLog {
   @@index([actionType, createdAt])
   @@index([productId, createdAt])
   @@index([shopOrderId])
+  cashEntries CashEntry[]
 }
 
 model ShopClientLog {
@@ -374,4 +385,130 @@ model ShopClientLog {
   @@index([userId, createdAt])
   @@index([productId, createdAt])
   @@index([shopOrderId, createdAt])
+}
+
+model Permission {
+  key         String  @id
+  description String?
+  rolePermissions RolePermission[]
+  groupPermissions AccessGroupPermission[]
+  userPermissions UserAccessPermission[]
+}
+
+model RolePermission {
+  id            Int        @id @default(autoincrement())
+  roleName      String
+  permissionKey String
+  permission    Permission @relation(fields: [permissionKey], references: [key])
+  createdAt     DateTime   @default(now())
+
+  @@unique([roleName, permissionKey])
+  @@index([roleName])
+}
+
+model AccessGroup {
+  id              Int        @id @default(autoincrement())
+  name            String     @unique
+  description     String?
+  createdByUserId Int?
+  createdBy       User?      @relation("AccessGroupCreator", fields: [createdByUserId], references: [id])
+  createdAt       DateTime   @default(now())
+  permissions     AccessGroupPermission[]
+  members         UserAccessGroup[]
+}
+
+model AccessGroupPermission {
+  id            Int        @id @default(autoincrement())
+  groupId       Int
+  group         AccessGroup @relation(fields: [groupId], references: [id])
+  permissionKey String
+  permission    Permission @relation(fields: [permissionKey], references: [key])
+  createdAt     DateTime   @default(now())
+
+  @@unique([groupId, permissionKey])
+  @@index([permissionKey])
+}
+
+model UserAccessGroup {
+  id        Int        @id @default(autoincrement())
+  userId    Int
+  user      User       @relation(fields: [userId], references: [id])
+  groupId   Int
+  group     AccessGroup @relation(fields: [groupId], references: [id])
+  createdAt DateTime   @default(now())
+
+  @@unique([userId, groupId])
+  @@index([groupId])
+}
+
+model UserAccessPermission {
+  id            Int        @id @default(autoincrement())
+  userId        Int
+  user          User       @relation(fields: [userId], references: [id])
+  permissionKey String
+  permission    Permission @relation(fields: [permissionKey], references: [key])
+  allow         Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+
+  @@unique([userId, permissionKey])
+  @@index([permissionKey, allow])
+}
+
+model CashAccount {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  name      String
+  type      String
+  currency  String   @default("RUB")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  entries   CashEntry[]
+  reconciliations CashReconciliation[]
+}
+
+model CashEntry {
+  id               String    @id @default(uuid())
+  accountId        Int
+  account          CashAccount @relation(fields: [accountId], references: [id])
+  direction        String
+  entryType        String
+  amountKopeks     Int
+  currency         String    @default("RUB")
+  description      String?
+  status           String    @default("confirmed")
+  shopOrderId      String?
+  shopOrder        ShopOrder? @relation(fields: [shopOrderId], references: [id])
+  shopPaymentId    String?   @unique
+  warehouseLogId   String?
+  warehouseLog     ShopWarehouseLog? @relation(fields: [warehouseLogId], references: [id])
+  createdByUserId  Int?
+  createdBy        User?     @relation(fields: [createdByUserId], references: [id])
+  ipHash           String?
+  userAgent        String?
+  createdAt        DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([accountId, createdAt])
+  @@index([direction, createdAt])
+  @@index([entryType, createdAt])
+  @@index([shopOrderId])
+}
+
+model CashReconciliation {
+  id              String   @id @default(uuid())
+  accountId       Int
+  account         CashAccount @relation(fields: [accountId], references: [id])
+  day             DateTime
+  openingKopeks   Int      @default(0)
+  expectedKopeks  Int
+  actualKopeks    Int
+  diffKopeks      Int
+  createdByUserId Int?
+  createdBy       User?    @relation(fields: [createdByUserId], references: [id])
+  note            String?
+  createdAt       DateTime @default(now())
+
+  @@unique([accountId, day])
+  @@index([day])
 }

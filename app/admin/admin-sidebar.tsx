@@ -18,7 +18,9 @@ import {
   Send,
   Star,
   Box,
-  Database
+  Database,
+  Wallet,
+  KeyRound
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logout } from "@/app/actions/auth";
@@ -28,8 +30,10 @@ const ADMIN_NAV_ITEMS = [
   { href: "/admin", label: "Обзор", icon: LayoutDashboard, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery'] },
   { href: "/admin/orders", label: "Заказы", icon: ShoppingBag, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery'] },
   { href: "/admin/shop", label: "Магазин", icon: Box, roles: ['admin', 'manager'] },
-  { href: "/admin/warehouse", label: "Склад", icon: Database, roles: ['admin', 'manager', 'warehouse', 'engineer'] },
-  { href: "/admin/logs", label: "Логи", icon: FileText, roles: ['admin', 'manager'] },
+  { href: "/admin/warehouse", label: "Склад", icon: Database, roles: ['admin', 'manager', 'warehouse', 'engineer', 'accountant'] },
+  { href: "/admin/logs", label: "Логи", icon: FileText, roles: ['admin', 'manager', 'accountant'] },
+  { href: "/admin/finance", label: "Касса", icon: Wallet, roles: ['admin', 'manager', 'accountant'] },
+  { href: "/admin/roles", label: "Роли", icon: KeyRound, roles: ['admin'] },
   { href: "/admin/chat", label: "Чат с клиентами", icon: MessageSquare, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery'] },
   { href: "/admin/clients", label: "Клиенты", icon: Users, roles: ['admin', 'manager'] },
   { href: "/admin/reviews", label: "Отзывы", icon: Star, roles: ['admin', 'manager'] },
@@ -51,6 +55,7 @@ const ROLE_LABELS: Record<string, string> = {
   engineer: 'Инженер',
   warehouse: 'Склад',
   delivery: 'Доставка',
+  accountant: 'Бухгалтер',
   user: 'Клиент',
   client: 'Клиент'
 };
