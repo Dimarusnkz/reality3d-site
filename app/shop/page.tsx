@@ -141,14 +141,18 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
                         <div className="text-white font-semibold line-clamp-2">{p.name}</div>
                         <div className="text-sm text-gray-400">{formatRub(p.priceKopeks)}</div>
                         {p.stock <= 0 ? (
-                          <div className="text-xs text-yellow-500">Под заказ</div>
+                          p.allowPreorder ? (
+                            <div className="text-xs text-yellow-500">Под заказ</div>
+                          ) : (
+                            <div className="text-xs text-red-400">Нет в наличии</div>
+                          )
                         ) : (
                           <div className="text-xs text-green-500">В наличии: {p.stock}</div>
                         )}
                       </div>
                     </Link>
                     <div className="p-4 pt-0">
-                      <AddToCartButton productId={p.id} />
+                      <AddToCartButton productId={p.id} disabled={!p.allowPreorder && p.stock <= 0} />
                     </div>
                   </div>
                 );
@@ -160,4 +164,3 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
     </div>
   );
 }
-

@@ -70,12 +70,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <div className="text-sm">
             {product.stock > 0 ? (
               <span className="text-green-500">В наличии: {product.stock}</span>
-            ) : (
+            ) : product.allowPreorder ? (
               <span className="text-yellow-500">Под заказ</span>
+            ) : (
+              <span className="text-red-400">Нет в наличии</span>
             )}
           </div>
 
-          <AddToCartButton productId={product.id} />
+          <AddToCartButton productId={product.id} disabled={!product.allowPreorder && product.stock <= 0} />
 
           {product.shortDescription ? <p className="text-gray-300">{product.shortDescription}</p> : null}
 
@@ -93,4 +95,3 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     </div>
   );
 }
-

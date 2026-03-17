@@ -33,6 +33,7 @@ export default async function AdminWarehouseEditProductPage({ params }: { params
         purchasePriceKopeks: true,
         compareAtKopeks: true,
         stock: true,
+        allowPreorder: true,
         isActive: true,
         categoryId: true,
       },
@@ -63,4 +64,3 @@ export default async function AdminWarehouseEditProductPage({ params }: { params
     </div>
   );
 }
-

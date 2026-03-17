@@ -37,20 +37,32 @@ export async function addToCart(productId: number, quantity: number, csrfToken: 
 
   const product = await prisma.shopProduct.findUnique({
     where: { id: productId },
-    select: { id: true, isActive: true, stock: true, priceKopeks: true },
+    select: { id: true, isActive: true, stock: true, priceKopeks: true, allowPreorder: true },
   })
 
   if (!product || !product.isActive) return { ok: false as const, error: 'Товар недоступен' }
+  if (!product.allowPreorder && product.stock <= 0) return { ok: false as const, error: 'Нет в наличии' }
 
   const qty = clampInt(quantity, 1, 99)
-  const allowed = product.stock > 0 ? Math.min(qty, product.stock) : qty
 
   const cartId = await getOrCreateCartId(prisma, userId)
 
+  const existing = await prisma.shopCartItem.findUnique({
+    where: { cartId_productId: { cartId, productId: product.id } },
+    select: { quantity: true },
+  })
+  const current = existing?.quantity ?? 0
+  const nextWanted = current + qty
+  const nextQty = product.allowPreorder ? nextWanted : Math.min(nextWanted, Math.max(0, product.stock))
+
+  if (!product.allowPreorder && nextQty <= current) {
+    return { ok: false as const, error: `Недостаточно товара. Доступно ${product.stock} шт.` }
+  }
+
   await prisma.shopCartItem.upsert({
     where: { cartId_productId: { cartId, productId: product.id } },
-    create: { cartId, productId: product.id, quantity: allowed, unitPriceKopeks: product.priceKopeks },
-    update: { quantity: { increment: allowed }, unitPriceKopeks: product.priceKopeks },
+    create: { cartId, productId: product.id, quantity: nextQty, unitPriceKopeks: product.priceKopeks },
+    update: { quantity: nextQty, unitPriceKopeks: product.priceKopeks },
   })
 
   await prisma.shopClientLog.create({
@@ -58,11 +70,11 @@ export async function addToCart(productId: number, quantity: number, csrfToken: 
       userId,
       actionType: 'cart_add',
       productId: product.id,
-      quantity: allowed,
+      quantity: nextQty - current,
       unit: 'pcs',
       ipHash: meta.ipHash,
       userAgent: meta.userAgent,
-      message: `Добавил в корзину: ${product.id} (+${allowed})`,
+      message: `Добавил в корзину: ${product.id} (+${nextQty - current})`,
     },
   })
 
@@ -86,7 +98,7 @@ export async function setCartItemQuantity(productId: number, quantity: number, c
 
   const product = await prisma.shopProduct.findUnique({
     where: { id: productId },
-    select: { id: true, stock: true, priceKopeks: true, isActive: true },
+    select: { id: true, stock: true, priceKopeks: true, isActive: true, allowPreorder: true },
   })
   if (!product || !product.isActive) {
     await prisma.shopCartItem.deleteMany({ where: { cartId: cart.id, productId } })
@@ -101,7 +113,13 @@ export async function setCartItemQuantity(productId: number, quantity: number, c
     return { ok: true as const }
   }
 
-  const allowed = product.stock > 0 ? Math.min(qty, product.stock) : qty
+  if (!product.allowPreorder && product.stock <= 0) {
+    await prisma.shopCartItem.deleteMany({ where: { cartId: cart.id, productId } })
+    revalidatePath('/cart')
+    return { ok: true as const }
+  }
+
+  const allowed = product.allowPreorder ? qty : Math.min(qty, product.stock)
 
   await prisma.shopCartItem.updateMany({
     where: { cartId: cart.id, productId },
@@ -160,7 +178,14 @@ export async function createShopOrder(data: {
 
   const cart = await prisma.shopCart.findUnique({
     where: { userId },
-    select: { id: true, items: { include: { product: { select: { id: true, name: true, sku: true, priceKopeks: true, isActive: true, stock: true } } } } },
+    select: {
+      id: true,
+      items: {
+        include: {
+          product: { select: { id: true, name: true, sku: true, priceKopeks: true, isActive: true, stock: true, allowPreorder: true } },
+        },
+      },
+    },
   })
   if (!cart || cart.items.length === 0) return { ok: false as const, error: 'Корзина пуста' }
 
@@ -168,47 +193,101 @@ export async function createShopOrder(data: {
     .filter((i) => i.product && i.product.isActive)
     .map((i) => {
       const unit = i.product!.priceKopeks
-      const qty = i.product!.stock > 0 ? Math.min(i.quantity, i.product!.stock) : i.quantity
       return {
         productId: i.product!.id,
         productName: i.product!.name,
         sku: i.product!.sku,
-        quantity: qty,
+        quantity: i.quantity,
         unitPriceKopeks: unit,
-        totalKopeks: unit * qty,
+        totalKopeks: unit * i.quantity,
+        allowPreorder: i.product!.allowPreorder,
+        freeStock: i.product!.stock,
       }
     })
 
   if (items.length === 0) return { ok: false as const, error: 'Товары недоступны' }
+  for (const i of items) {
+    if (!i.allowPreorder && (i.freeStock <= 0 || i.quantity > i.freeStock)) {
+      return { ok: false as const, error: `Недостаточно товара. Доступно ${Math.max(0, i.freeStock)} шт.` }
+    }
+  }
 
   const shippingCostKopeks = calcShippingCostKopeks(data.shippingMethod)
   const subtotal = items.reduce((sum, i) => sum + i.totalKopeks, 0)
   const totalKopeks = subtotal + shippingCostKopeks
 
-  const order = await prisma.shopOrder.create({
-    data: {
-      userId,
-      status: 'pending',
-      paymentStatus: 'unpaid',
-      paymentProvider: data.paymentProvider,
-      shippingMethod: data.shippingMethod,
-      shippingCostKopeks,
-      totalKopeks,
-      contactName: data.contactName,
-      contactPhone: data.contactPhone,
-      contactEmail: data.contactEmail,
-      deliveryCity: data.deliveryCity || null,
-      deliveryAddress: data.deliveryAddress || null,
-      deliveryPostalCode: data.deliveryPostalCode || null,
-      comment: data.comment || null,
-      items: {
-        create: items,
+  const order = await prisma.$transaction(async (tx) => {
+    const created = await tx.shopOrder.create({
+      data: {
+        userId,
+        status: 'pending',
+        paymentStatus: 'unpaid',
+        paymentProvider: data.paymentProvider,
+        shippingMethod: data.shippingMethod,
+        shippingCostKopeks,
+        totalKopeks,
+        contactName: data.contactName,
+        contactPhone: data.contactPhone,
+        contactEmail: data.contactEmail,
+        deliveryCity: data.deliveryCity || null,
+        deliveryAddress: data.deliveryAddress || null,
+        deliveryPostalCode: data.deliveryPostalCode || null,
+        comment: data.comment || null,
+        items: {
+          create: items.map((i) => ({
+            productId: i.productId,
+            productName: i.productName,
+            sku: i.sku,
+            quantity: i.quantity,
+            unitPriceKopeks: i.unitPriceKopeks,
+            totalKopeks: i.totalKopeks,
+          })),
+        },
       },
-    },
-    select: { id: true, orderNo: true },
+      select: { id: true, orderNo: true },
+    })
+
+    for (const i of items) {
+      if (i.allowPreorder) continue
+      const inv = await tx.shopInventoryItem.upsert({
+        where: { productId: i.productId },
+        create: { productId: i.productId, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
+        update: {},
+      })
+      const qty = Number(inv.quantity)
+      const reserved = Number((inv as any).reserved ?? 0)
+      const free = qty - reserved
+      if (free < i.quantity) throw new Error('OUT_OF_STOCK')
+      const nextReserved = reserved + i.quantity
+      await tx.shopInventoryItem.update({ where: { id: inv.id }, data: { reserved: nextReserved } })
+      await tx.shopProduct.update({ where: { id: i.productId }, data: { stock: Math.max(0, Math.trunc(qty - nextReserved)) } })
+      await tx.shopWarehouseLog.create({
+        data: {
+          actorUserId: userId,
+          actorRole: 'user',
+          actionType: 'reserve',
+          reason: 'sale',
+          productId: i.productId,
+          sku: i.sku || null,
+          productName: i.productName,
+          quantityDelta: i.quantity,
+          unit: 'pcs',
+          shopOrderId: created.id,
+          comment: `Резерв под заказ #${created.orderNo}`,
+          ipHash: meta.ipHash,
+          userAgent: meta.userAgent,
+        },
+      })
+    }
+
+    await tx.shopCartItem.deleteMany({ where: { cartId: cart.id } })
+    return created
+  }).catch((e) => {
+    if (e instanceof Error && e.message === 'OUT_OF_STOCK') return null
+    throw e
   })
 
-  await prisma.shopCartItem.deleteMany({ where: { cartId: cart.id } })
+  if (!order) return { ok: false as const, error: 'Недостаточно товара' }
 
   await logAudit({
     actorUserId: userId,

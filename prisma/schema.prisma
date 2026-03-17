@@ -185,6 +185,7 @@ model ShopProduct {
   purchasePriceKopeks Int?
   compareAtKopeks  Int?
   stock            Int                @default(0)
+  allowPreorder    Boolean            @default(false)
   isActive         Boolean            @default(true)
   categoryId       Int?
   category         ShopCategory?      @relation(fields: [categoryId], references: [id])
@@ -320,6 +321,7 @@ model ShopInventoryItem {
   product      ShopProduct @relation(fields: [productId], references: [id])
   unit         String     @default("pcs")
   quantity     Decimal    @default(0) @db.Decimal(18, 3)
+  reserved     Decimal    @default(0) @db.Decimal(18, 3)
   minThreshold Decimal    @default(0) @db.Decimal(18, 3)
   lastPurchaseUnitCostKopeks Int?
   createdAt    DateTime   @default(now())

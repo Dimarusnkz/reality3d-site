@@ -73,6 +73,7 @@ const productSchema = z.object({
   purchasePriceRub: z.number().min(0).optional().nullable(),
   compareAtRub: z.number().min(0).optional().nullable(),
   stock: z.number().int().min(0).max(100000),
+  allowPreorder: z.boolean().optional().nullable(),
   isActive: z.boolean(),
   categoryId: z.number().int().positive().optional().nullable(),
   imageUrls: z.array(z.string().url()).max(10).optional().nullable(),
@@ -95,6 +96,9 @@ export async function createShopProduct(input: unknown, csrfToken: string) {
 
   const parsed = productSchema.safeParse(input)
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
+  if (parsed.data.isActive && !parsed.data.allowPreorder && parsed.data.stock <= 0) {
+    return { ok: false as const, error: 'Нельзя публиковать товар без остатков (включите предзаказ или поставьте остаток > 0)' }
+  }
 
   try {
     const canEditPurchase = await hasPermission(admin.userId, session!.role, 'products.purchase_price.edit')
@@ -109,6 +113,7 @@ export async function createShopProduct(input: unknown, csrfToken: string) {
         purchasePriceKopeks: canEditPurchase && parsed.data.purchasePriceRub != null ? toKopeks(parsed.data.purchasePriceRub) : null,
         compareAtKopeks: parsed.data.compareAtRub == null ? null : toKopeks(parsed.data.compareAtRub),
         stock: parsed.data.stock,
+        allowPreorder: Boolean(parsed.data.allowPreorder),
         isActive: parsed.data.isActive,
         categoryId: parsed.data.categoryId ?? null,
         images:
@@ -144,6 +149,9 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
 
   const parsed = productSchema.safeParse(input)
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
+  if (parsed.data.isActive && !parsed.data.allowPreorder && parsed.data.stock <= 0) {
+    return { ok: false as const, error: 'Нельзя публиковать товар без остатков (включите предзаказ или поставьте остаток > 0)' }
+  }
 
   try {
     const canEditPurchase = await hasPermission(admin.userId, session!.role, 'products.purchase_price.edit')
@@ -161,6 +169,7 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
           : {}),
         compareAtKopeks: parsed.data.compareAtRub == null ? null : toKopeks(parsed.data.compareAtRub),
         stock: parsed.data.stock,
+        allowPreorder: Boolean(parsed.data.allowPreorder),
         isActive: parsed.data.isActive,
         categoryId: parsed.data.categoryId ?? null,
       },

@@ -99,7 +99,7 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
     const result = await prisma.$transaction(async (tx) => {
       const item = await tx.shopInventoryItem.upsert({
         where: { productId: product.id },
-        create: { productId: product.id, unit, quantity: 0, minThreshold: 0 },
+        create: { productId: product.id, unit, quantity: 0, reserved: 0, minThreshold: 0 },
         update: {},
       })
 
@@ -107,8 +107,13 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
         return { ok: false as const, error: `Единица товара на складе: ${item.unit}. Нельзя провести операцию в ${unit}` }
       }
 
-      const next = Number(item.quantity) + delta
+      const currentQty = Number(item.quantity)
+      const currentReserved = Number((item as any).reserved ?? 0)
+      const next = currentQty + delta
       if (next < 0) return { ok: false as const, error: 'Недостаточно остатка' }
+      if (parsed.data.actionType !== 'receipt' && next < currentReserved) {
+        return { ok: false as const, error: 'Нельзя списать ниже резерва' }
+      }
 
       const updated = await tx.shopInventoryItem.update({
         where: { id: item.id },
@@ -123,7 +128,7 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
       if (unit === 'pcs') {
         await tx.shopProduct.update({
           where: { id: product.id },
-          data: { stock: Math.max(0, Math.trunc(next)) },
+          data: { stock: Math.max(0, Math.trunc(next - currentReserved)) },
         })
       }
 
@@ -214,7 +219,7 @@ export async function updateInventorySettings(input: unknown, csrfToken: string)
     await prisma.$transaction(async (tx) => {
       const item = await tx.shopInventoryItem.upsert({
         where: { productId: product.id },
-        create: { productId: product.id, unit, quantity: 0, minThreshold: min },
+        create: { productId: product.id, unit, quantity: 0, reserved: 0, minThreshold: min },
         update: { unit, minThreshold: min },
       })
 

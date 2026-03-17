@@ -92,20 +92,22 @@ export async function POST(request: Request) {
             if (!item.productId) continue
             const inv = await tx.shopInventoryItem.upsert({
               where: { productId: item.productId },
-              create: { productId: item.productId, unit: 'pcs', quantity: 0, minThreshold: 0 },
+              create: { productId: item.productId, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
               update: {},
             })
 
             const currentQty = Number(inv.quantity)
+            const currentReserved = Number((inv as any).reserved ?? 0)
             const nextQty = Math.max(0, currentQty - item.quantity)
+            const nextReserved = Math.max(0, currentReserved - item.quantity)
             await tx.shopInventoryItem.update({
               where: { id: inv.id },
-              data: { quantity: nextQty },
+              data: { quantity: nextQty, reserved: nextReserved },
             })
 
             await tx.shopProduct.update({
               where: { id: item.productId },
-              data: { stock: Math.max(0, Math.trunc(nextQty)) },
+              data: { stock: Math.max(0, Math.trunc(nextQty - nextReserved)) },
             })
 
             const unitCostKopeks = inv.lastPurchaseUnitCostKopeks ?? null
@@ -173,6 +175,48 @@ export async function POST(request: Request) {
       where: { id: resolvedPayment.orderId },
       data: { paymentStatus: 'failed' },
     });
+
+    const orderForUnreserve = await prisma.shopOrder.findUnique({
+      where: { id: resolvedPayment.orderId },
+      include: { items: true },
+    })
+    if (orderForUnreserve) {
+      const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
+      const userAgent = request.headers.get('user-agent')?.slice(0, 500) || null;
+      const ipHash = ip ? crypto.createHash('sha256').update(ip).digest('hex') : null;
+
+      await prisma.$transaction(async (tx) => {
+        for (const item of orderForUnreserve.items) {
+          if (!item.productId) continue
+          const inv = await tx.shopInventoryItem.findUnique({ where: { productId: item.productId } })
+          if (!inv) continue
+          const currentQty = Number(inv.quantity)
+          const currentReserved = Number((inv as any).reserved ?? 0)
+          const nextReserved = Math.max(0, currentReserved - item.quantity)
+          if (nextReserved === currentReserved) continue
+
+          await tx.shopInventoryItem.update({ where: { id: inv.id }, data: { reserved: nextReserved } })
+          await tx.shopProduct.update({ where: { id: item.productId }, data: { stock: Math.max(0, Math.trunc(currentQty - nextReserved)) } })
+          await tx.shopWarehouseLog.create({
+            data: {
+              actorUserId: null,
+              actorRole: 'system',
+              actionType: 'unreserve',
+              reason: 'sale',
+              productId: item.productId,
+              sku: item.sku || null,
+              productName: item.productName,
+              quantityDelta: -item.quantity,
+              unit: 'pcs',
+              shopOrderId: resolvedPayment.orderId,
+              comment: `Снятие резерва (оплата не прошла) по заказу #${orderForUnreserve.orderNo}`,
+              ipHash,
+              userAgent,
+            },
+          })
+        }
+      })
+    }
   }
 
   const order = await prisma.shopOrder.findUnique({ where: { id: resolvedPayment.orderId }, select: { orderNo: true } });

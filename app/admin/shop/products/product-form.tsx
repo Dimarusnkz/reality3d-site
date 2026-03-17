@@ -23,6 +23,7 @@ type ProductInput = {
   purchasePriceRub: number | null;
   compareAtRub: number | null;
   stock: number;
+  allowPreorder: boolean;
   isActive: boolean;
   categoryId: number | null;
   imageUrls: string[];
@@ -45,6 +46,7 @@ export function ProductForm({
     purchasePriceKopeks: number | null;
     compareAtKopeks: number | null;
     stock: number;
+    allowPreorder: boolean;
     isActive: boolean;
     categoryId: number | null;
   };
@@ -61,6 +63,7 @@ export function ProductForm({
       purchasePriceRub: product?.purchasePriceKopeks == null ? null : product.purchasePriceKopeks / 100,
       compareAtRub: product?.compareAtKopeks == null ? null : product.compareAtKopeks / 100,
       stock: product?.stock ?? 0,
+      allowPreorder: product?.allowPreorder ?? false,
       isActive: product?.isActive ?? true,
       categoryId: product?.categoryId ?? null,
       imageUrls: [],
@@ -137,6 +140,7 @@ export function ProductForm({
         purchasePriceRub: canEditPurchasePrice ? (form.purchasePriceRub == null ? null : Number(form.purchasePriceRub)) : null,
         compareAtRub: form.compareAtRub == null ? null : Number(form.compareAtRub),
         stock: Number(form.stock),
+        allowPreorder: Boolean(form.allowPreorder),
         isActive: Boolean(form.isActive),
         categoryId: form.categoryId == null ? null : Number(form.categoryId),
         imageUrls: form.imageUrls,
@@ -252,6 +256,18 @@ export function ProductForm({
             onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
           />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-400 ml-1">Предзаказ</label>
+          <select
+            value={form.allowPreorder ? "yes" : "no"}
+            onChange={(e) => setForm({ ...form, allowPreorder: e.target.value === "yes" })}
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+          >
+            <option value="no">Запрещён</option>
+            <option value="yes">Разрешён</option>
+          </select>
         </div>
 
         <div className="space-y-2">
