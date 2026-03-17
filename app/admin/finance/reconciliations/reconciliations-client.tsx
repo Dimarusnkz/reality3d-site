@@ -42,13 +42,14 @@ export function ReconciliationsClient({ accounts, rows, today }: { accounts: Acc
   const snapshot = async (withActual: boolean) => {
     setIsBusy(true);
     try {
-      const actual = withActual ? Number(actualRub.replace(",", ".")) : null;
-      if (withActual && (!Number.isFinite(actual) || actual < 0)) {
+      const parsedActual = Number(actualRub.replace(",", "."));
+      if (withActual && (!Number.isFinite(parsedActual) || parsedActual < 0)) {
         alert("Некорректный факт");
         return;
       }
+      const actual = withActual ? parsedActual : null;
       const res = await upsertCashReconciliation(
-        { accountCode, day, actualRub: withActual ? actual : null, note: note || null },
+        { accountCode, day, actualRub: actual, note: note || null },
         getCsrfToken()
       );
       if (!res.ok) alert(res.error || "Ошибка");
@@ -167,4 +168,3 @@ export function ReconciliationsClient({ accounts, rows, today }: { accounts: Acc
     </div>
   );
 }
-
