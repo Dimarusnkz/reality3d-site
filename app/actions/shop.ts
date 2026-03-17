@@ -268,5 +268,13 @@ export async function startTbankPayment(orderId: string, csrfToken: string) {
     metadata: { orderId: order.id, paymentId: payment.id, externalPaymentId: payment.externalPaymentId },
   })
 
+  if (!payment.paymentUrl) {
+    await prisma.shopPayment.update({
+      where: { id: payment.id },
+      data: { status: 'failed' },
+    })
+    return { ok: false as const, error: 'Ошибка создания ссылки оплаты' }
+  }
+
   return { ok: true as const, paymentUrl: payment.paymentUrl }
 }
