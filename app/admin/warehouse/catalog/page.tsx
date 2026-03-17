@@ -13,7 +13,7 @@ export default async function AdminWarehouseCatalogPage() {
 
   const prisma = getPrisma();
   const products = await prisma.shopProduct.findMany({
-    include: { category: true, images: { orderBy: { sortOrder: "asc" }, take: 1 } },
+    include: { category: true, images: { orderBy: { sortOrder: "asc" }, take: 1 }, inventoryItem: true },
     orderBy: { createdAt: "desc" },
     take: 500,
   });
@@ -38,6 +38,12 @@ export default async function AdminWarehouseCatalogPage() {
           >
             Категории
           </Link>
+          <Link
+            href="/admin/warehouse/receipts"
+            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+          >
+            Приходы
+          </Link>
         </div>
       </div>
 
@@ -45,4 +51,3 @@ export default async function AdminWarehouseCatalogPage() {
     </div>
   );
 }
-

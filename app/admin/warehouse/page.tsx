@@ -20,7 +20,7 @@ export default async function AdminWarehousePage() {
       take: 1000,
     }),
     prisma.shopInventoryItem.findMany({
-      select: { productId: true, unit: true, quantity: true, minThreshold: true },
+      select: { productId: true, unit: true, quantity: true, reserved: true, minThreshold: true },
       orderBy: { updatedAt: "desc" },
       take: 2000,
     }),
@@ -30,10 +30,11 @@ export default async function AdminWarehousePage() {
     productId: i.productId,
     unit: i.unit,
     quantity: i.quantity.toString(),
+    reserved: i.reserved.toString(),
     minThreshold: i.minThreshold.toString(),
   }));
 
-  const low = inv.filter((i) => Number(i.minThreshold) > 0 && Number(i.quantity) <= Number(i.minThreshold)).length;
+  const low = inv.filter((i) => Number(i.minThreshold) > 0 && Number(i.quantity) - Number(i.reserved) <= Number(i.minThreshold)).length;
 
   return (
     <div className="space-y-6">
@@ -56,6 +57,18 @@ export default async function AdminWarehousePage() {
             className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
           >
             Категории
+          </Link>
+          <Link
+            href="/admin/warehouse/receipts"
+            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+          >
+            Приходы
+          </Link>
+          <Link
+            href="/admin/warehouse/suppliers"
+            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+          >
+            Поставщики
           </Link>
         </div>
       </div>

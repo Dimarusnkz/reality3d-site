@@ -39,6 +39,8 @@ model User {
   accessGroups UserAccessGroup[]
   accessPermissions UserAccessPermission[]
   createdGroups AccessGroup[] @relation("AccessGroupCreator")
+  warehouseReceiptsCreated WarehouseReceipt[] @relation("WarehouseReceiptCreator")
+  warehouseReceiptsPosted  WarehouseReceipt[] @relation("WarehouseReceiptPoster")
 }
 
 model Session {
@@ -196,6 +198,7 @@ model ShopProduct {
   inventoryItem    ShopInventoryItem?
   warehouseLogs    ShopWarehouseLog[]
   clientLogs       ShopClientLog[]
+  receiptItems     WarehouseReceiptItem[]
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
@@ -387,6 +390,61 @@ model ShopClientLog {
   @@index([userId, createdAt])
   @@index([productId, createdAt])
   @@index([shopOrderId, createdAt])
+}
+
+model WarehouseSupplier {
+  id             Int               @id @default(autoincrement())
+  name           String            @unique
+  contact        String?
+  phone          String?
+  email          String?
+  contractNumber String?
+  isActive       Boolean           @default(true)
+  receipts       WarehouseReceipt[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model WarehouseReceipt {
+  id             String              @id @default(uuid())
+  supplierId     Int?
+  supplier       WarehouseSupplier?  @relation(fields: [supplierId], references: [id])
+  documentNo     String
+  receivedAt     DateTime            @default(now())
+  status         String              @default("draft")
+  attachmentUrl  String?
+  comment        String?
+  currency       String              @default("RUB")
+  createdByUserId Int?
+  createdBy      User?               @relation("WarehouseReceiptCreator", fields: [createdByUserId], references: [id])
+  postedAt       DateTime?
+  postedByUserId Int?
+  postedBy       User?               @relation("WarehouseReceiptPoster", fields: [postedByUserId], references: [id])
+  items          WarehouseReceiptItem[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([receivedAt])
+  @@index([status, receivedAt])
+  @@index([supplierId, receivedAt])
+}
+
+model WarehouseReceiptItem {
+  id             String          @id @default(uuid())
+  receiptId      String
+  receipt        WarehouseReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  productId      Int?
+  product        ShopProduct?    @relation(fields: [productId], references: [id])
+  sku            String?
+  productName    String
+  quantity       Decimal         @db.Decimal(18, 3)
+  unit           String
+  unitCostKopeks Int
+  totalCostKopeks Int
+  createdAt      DateTime        @default(now())
+
+  @@index([receiptId])
+  @@index([productId])
 }
 
 model Permission {

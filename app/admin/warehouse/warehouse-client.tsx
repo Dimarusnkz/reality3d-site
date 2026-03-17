@@ -12,7 +12,7 @@ function getCsrfToken() {
 }
 
 type Product = { id: number; name: string; sku: string | null; stock: number };
-type Inventory = { productId: number; unit: string; quantity: string; minThreshold: string };
+type Inventory = { productId: number; unit: string; quantity: string; reserved: string; minThreshold: string };
 
 export function WarehouseClient({
   products,
@@ -213,10 +213,17 @@ export function WarehouseClient({
         <div className="text-white font-semibold text-lg">Настройки товара</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div className="text-sm text-gray-400">
-            Текущий остаток:{" "}
+            Остаток:{" "}
             <span className="text-white font-semibold">
               {selectedInventory ? `${selectedInventory.quantity} ${selectedInventory.unit}` : "—"}
             </span>
+            {selectedInventory ? (
+              <span className="text-gray-500">
+                {" "}
+                / резерв {selectedInventory.reserved} {selectedInventory.unit} / свободно{" "}
+                {String(Math.max(0, Number(selectedInventory.quantity) - Number(selectedInventory.reserved)))} {selectedInventory.unit}
+              </span>
+            ) : null}
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-400 ml-1">Мин. порог</label>
@@ -238,4 +245,3 @@ export function WarehouseClient({
     </div>
   );
 }
-

@@ -34,7 +34,9 @@ export default function CatalogProductsTable({ initialProducts }: { initialProdu
             <th className="text-left p-4 text-gray-400 font-medium">Товар</th>
             <th className="text-left p-4 text-gray-400 font-medium">Категория</th>
             <th className="text-left p-4 text-gray-400 font-medium">Цена</th>
-            <th className="text-left p-4 text-gray-400 font-medium">Остаток</th>
+            <th className="text-left p-4 text-gray-400 font-medium">Свободно</th>
+            <th className="text-left p-4 text-gray-400 font-medium">Резерв</th>
+            <th className="text-left p-4 text-gray-400 font-medium">Всего</th>
             <th className="text-left p-4 text-gray-400 font-medium">Статус</th>
             <th className="text-right p-4 text-gray-400 font-medium">Действия</th>
           </tr>
@@ -57,6 +59,8 @@ export default function CatalogProductsTable({ initialProducts }: { initialProdu
               <td className="p-4 text-gray-300">{p.category?.name || "—"}</td>
               <td className="p-4 text-gray-300">{formatRub(p.priceKopeks)}</td>
               <td className="p-4 text-gray-300">{p.stock}</td>
+              <td className="p-4 text-gray-300">{p.inventoryItem ? Number(p.inventoryItem.reserved || 0) : 0}</td>
+              <td className="p-4 text-gray-300">{p.inventoryItem ? Number(p.inventoryItem.quantity || 0) : 0}</td>
               <td className="p-4">
                 {p.isActive ? (
                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-xs">
@@ -108,4 +112,3 @@ export default function CatalogProductsTable({ initialProducts }: { initialProdu
     </div>
   );
 }
-
