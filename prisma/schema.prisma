@@ -500,10 +500,12 @@ model CashReconciliation {
   accountId       Int
   account         CashAccount @relation(fields: [accountId], references: [id])
   day             DateTime
+  cutoffAt        DateTime @default(now())
   openingKopeks   Int      @default(0)
   expectedKopeks  Int
-  actualKopeks    Int
-  diffKopeks      Int
+  actualKopeks    Int?
+  diffKopeks      Int?
+  status          String   @default("pending")
   createdByUserId Int?
   createdBy       User?    @relation(fields: [createdByUserId], references: [id])
   note            String?

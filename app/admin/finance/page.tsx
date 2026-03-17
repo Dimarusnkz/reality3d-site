@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getPrisma } from "@/lib/prisma";
@@ -30,7 +31,17 @@ export default async function AdminFinancePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-white">Касса</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-white">Касса</h1>
+        <div className="flex items-center gap-3">
+          <Link href="/admin/finance/reconciliations" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+            Сверки
+          </Link>
+          <Link href="/admin/finance/reports" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+            Отчёты
+          </Link>
+        </div>
+      </div>
       <FinanceClient
         accounts={accounts as any}
         entries={entries.map((e) => ({
@@ -46,4 +57,3 @@ export default async function AdminFinancePage() {
     </div>
   );
 }
-
