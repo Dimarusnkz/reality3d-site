@@ -27,8 +27,8 @@ import { logout } from "@/app/actions/auth";
 import { CsrfTokenField } from "@/components/ui/csrf-token-field";
 
 const ADMIN_NAV_ITEMS = [
-  { href: "/admin", label: "Обзор", icon: LayoutDashboard, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery'] },
-  { href: "/admin/orders", label: "Заказы", icon: ShoppingBag, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery'] },
+  { href: "/admin", label: "Обзор", icon: LayoutDashboard, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery', 'accountant'] },
+  { href: "/admin/orders", label: "Заказы", icon: ShoppingBag, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery', 'accountant'] },
   { href: "/admin/shop", label: "Магазин", icon: Box, roles: ['admin', 'manager'] },
   { href: "/admin/warehouse", label: "Склад", icon: Database, roles: ['admin', 'manager', 'warehouse', 'engineer', 'accountant'] },
   { href: "/admin/logs", label: "Логи", icon: FileText, roles: ['admin', 'manager', 'accountant'] },
@@ -46,7 +46,7 @@ const ADMIN_NAV_ITEMS = [
   { href: "/admin/databases", label: "Базы данных", icon: Database, roles: ['admin'] },
   { href: "/admin/telegram", label: "Телеграм", icon: Send, roles: ['admin', 'manager'] },
   { href: "/admin/max", label: "MAX", icon: Box, roles: ['admin', 'manager'] },
-  { href: "/admin/settings", label: "Настройки", icon: Settings, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery'] },
+  { href: "/admin/settings", label: "Настройки", icon: Settings, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery', 'accountant'] },
 ];
 
 const ROLE_LABELS: Record<string, string> = {

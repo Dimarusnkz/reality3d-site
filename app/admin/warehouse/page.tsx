@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getPrisma } from "@/lib/prisma";
@@ -37,9 +38,25 @@ export default async function AdminWarehousePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Склад</h1>
-        <div className="text-sm text-gray-400">
-          Низкий остаток: <span className="text-white font-semibold">{low}</span>
+        <div>
+          <h1 className="text-2xl font-bold text-white">Склад</h1>
+          <div className="text-sm text-gray-400 mt-1">
+            Низкий остаток: <span className="text-white font-semibold">{low}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/warehouse/catalog"
+            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+          >
+            Каталог
+          </Link>
+          <Link
+            href="/admin/warehouse/categories"
+            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+          >
+            Категории
+          </Link>
         </div>
       </div>
       <WarehouseClient products={products} inventory={inv} />

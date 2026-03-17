@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Menu, X, User, LogOut, Send } from "lucide-react";
+import { Menu, X, User, LogOut, Send, ShoppingCart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { logout } from "@/app/actions/auth";
 import { CsrfTokenField } from "@/components/ui/csrf-token-field";
@@ -17,6 +17,7 @@ interface SiteHeaderProps {
 export function SiteHeader({ user }: SiteHeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [cartQty, setCartQty] = useState(0);
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
@@ -36,6 +37,29 @@ export function SiteHeader({ user }: SiteHeaderProps) {
     : (user?.role && ['manager', 'engineer', 'warehouse', 'delivery'].includes(user.role) 
       ? 'Сотрудник' 
       : 'Кабинет');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const res = await fetch("/api/cart/count", { cache: "no-store" });
+        const data = (await res.json().catch(() => null)) as { ok?: boolean; quantity?: number } | null;
+        if (!cancelled && data?.ok) {
+          setCartQty(typeof data.quantity === "number" ? data.quantity : 0);
+        }
+      } catch {}
+    };
+
+    load();
+
+    const handler = () => load();
+    window.addEventListener("cart:changed", handler as any);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("cart:changed", handler as any);
+    };
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-black/80 backdrop-blur-md">
@@ -80,6 +104,18 @@ export function SiteHeader({ user }: SiteHeaderProps) {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-4">
+          <Link
+            href="/cart"
+            className="relative inline-flex h-9 w-9 items-center justify-center rounded-md bg-slate-900 border border-slate-800 hover:bg-slate-800 transition-colors"
+            title="Корзина"
+          >
+            <ShoppingCart className="w-4 h-4 text-gray-200" />
+            {cartQty > 0 ? (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-[11px] font-bold flex items-center justify-center">
+                {cartQty > 99 ? "99+" : cartQty}
+              </span>
+            ) : null}
+          </Link>
           {user ? (
             <div className="relative">
               <button 
@@ -159,6 +195,18 @@ export function SiteHeader({ user }: SiteHeaderProps) {
             className="md:hidden border-t border-slate-800 bg-black/95 backdrop-blur-xl overflow-hidden"
           >
             <div className="container mx-auto px-4 py-6 flex flex-col space-y-4">
+              <Link
+                href="/cart"
+                className="text-lg font-medium text-gray-200 hover:text-primary transition-colors py-2 flex items-center justify-between"
+                onClick={() => setIsOpen(false)}
+              >
+                <span>Корзина</span>
+                {cartQty > 0 ? (
+                  <span className="min-w-[22px] h-[22px] px-2 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
+                    {cartQty > 99 ? "99+" : cartQty}
+                  </span>
+                ) : null}
+              </Link>
               {menuItems.map((item) => (
                 <Link
                   key={item.href}

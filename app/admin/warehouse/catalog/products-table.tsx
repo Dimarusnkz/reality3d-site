@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { deleteShopProduct } from "@/app/actions/shop-admin";
-import { Edit2, Trash2, Eye, CheckCircle, XCircle } from "lucide-react";
+import { Edit2, Trash2, Eye, CheckCircle, XCircle, Image } from "lucide-react";
+import { formatRub } from "@/lib/shop/money";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -12,7 +13,7 @@ function getCsrfToken() {
   return parts.pop()?.split(";").shift() || "";
 }
 
-export default function ShopProductsTable({ initialProducts }: { initialProducts: any[] }) {
+export default function CatalogProductsTable({ initialProducts }: { initialProducts: any[] }) {
   const [products, setProducts] = useState(initialProducts);
 
   const remove = async (id: number) => {
@@ -31,6 +32,9 @@ export default function ShopProductsTable({ initialProducts }: { initialProducts
         <thead className="bg-slate-950 border-b border-slate-800">
           <tr>
             <th className="text-left p-4 text-gray-400 font-medium">Товар</th>
+            <th className="text-left p-4 text-gray-400 font-medium">Категория</th>
+            <th className="text-left p-4 text-gray-400 font-medium">Цена</th>
+            <th className="text-left p-4 text-gray-400 font-medium">Остаток</th>
             <th className="text-left p-4 text-gray-400 font-medium">Статус</th>
             <th className="text-right p-4 text-gray-400 font-medium">Действия</th>
           </tr>
@@ -50,6 +54,9 @@ export default function ShopProductsTable({ initialProducts }: { initialProducts
                   </div>
                 </div>
               </td>
+              <td className="p-4 text-gray-300">{p.category?.name || "—"}</td>
+              <td className="p-4 text-gray-300">{formatRub(p.priceKopeks)}</td>
+              <td className="p-4 text-gray-300">{p.stock}</td>
               <td className="p-4">
                 {p.isActive ? (
                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-xs">
@@ -72,8 +79,15 @@ export default function ShopProductsTable({ initialProducts }: { initialProducts
                 </Link>
                 <Link
                   href={`/admin/shop/products/${p.id}`}
-                  className="inline-flex p-2 text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-colors"
+                  className="inline-flex p-2 text-purple-300 hover:text-purple-200 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg transition-colors"
                   title="Оформление карточки"
+                >
+                  <Image className="w-4 h-4" />
+                </Link>
+                <Link
+                  href={`/admin/warehouse/catalog/${p.id}`}
+                  className="inline-flex p-2 text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-colors"
+                  title="Редактировать"
                 >
                   <Edit2 className="w-4 h-4" />
                 </Link>
@@ -94,3 +108,4 @@ export default function ShopProductsTable({ initialProducts }: { initialProducts
     </div>
   );
 }
+

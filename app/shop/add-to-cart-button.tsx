@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { addToCart } from "@/app/actions/shop";
-import { ShoppingCart, Loader2 } from "lucide-react";
+import { ShoppingCart, Loader2, Check } from "lucide-react";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -13,6 +13,13 @@ function getCsrfToken() {
 
 export function AddToCartButton({ productId, disabled }: { productId: number; disabled?: boolean }) {
   const [isLoading, setIsLoading] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
+
+  useEffect(() => {
+    if (!justAdded) return;
+    const t = setTimeout(() => setJustAdded(false), 1400);
+    return () => clearTimeout(t);
+  }, [justAdded]);
 
   const handleClick = async () => {
     setIsLoading(true);
@@ -20,7 +27,10 @@ export function AddToCartButton({ productId, disabled }: { productId: number; di
       const res = await addToCart(productId, 1, getCsrfToken());
       if (!res.ok) {
         alert(res.error || "Не удалось добавить в корзину");
+        return;
       }
+      setJustAdded(true);
+      window.dispatchEvent(new CustomEvent("cart:changed"));
     } finally {
       setIsLoading(false);
     }
@@ -32,9 +42,14 @@ export function AddToCartButton({ productId, disabled }: { productId: number; di
       disabled={disabled || isLoading}
       className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white shadow-[0_0_15px_rgba(255,94,0,0.3)] hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
-      В корзину
+      {isLoading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : justAdded ? (
+        <Check className="w-4 h-4 mr-2" />
+      ) : (
+        <ShoppingCart className="w-4 h-4 mr-2" />
+      )}
+      {justAdded ? "Добавлено" : "В корзину"}
     </button>
   );
 }
-

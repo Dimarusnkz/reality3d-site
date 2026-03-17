@@ -45,6 +45,7 @@ export function CartClient({ initialItems }: { initialItems: CartItem[] }) {
           .map((i) => (i.productId === productId ? { ...i, quantity: nextQty } : i))
           .filter((i) => i.quantity > 0)
       );
+      window.dispatchEvent(new CustomEvent("cart:changed"));
     } finally {
       setBusy(null);
     }
@@ -60,6 +61,7 @@ export function CartClient({ initialItems }: { initialItems: CartItem[] }) {
         return;
       }
       setItems([]);
+      window.dispatchEvent(new CustomEvent("cart:changed"));
     } finally {
       setBusy(null);
     }
@@ -172,4 +174,3 @@ export function CartClient({ initialItems }: { initialItems: CartItem[] }) {
     </div>
   );
 }
-

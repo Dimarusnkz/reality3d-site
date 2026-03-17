@@ -4,13 +4,8 @@ export default function AdminShopPage() {
   const cards = [
     {
       href: "/admin/shop/products",
-      title: "Товары",
-      desc: "Каталог, цены, остатки, фото",
-    },
-    {
-      href: "/admin/shop/categories",
-      title: "Категории",
-      desc: "Структура каталога",
+      title: "Карточки товаров",
+      desc: "Фото, описание, оформление",
     },
     {
       href: "/admin/shop/orders",
@@ -23,9 +18,9 @@ export default function AdminShopPage() {
       desc: "ТБанк/ЮKassa и прочие способы",
     },
     {
-      href: "/admin/shop/reports",
-      title: "Отчёты",
-      desc: "Выручка и аналитика",
+      href: "/admin/warehouse/catalog",
+      title: "Каталог (склад)",
+      desc: "Товары, цены, остатки, категории",
     },
   ];
 
@@ -57,4 +52,3 @@ export default function AdminShopPage() {
     </div>
   );
 }
-

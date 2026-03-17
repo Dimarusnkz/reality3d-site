@@ -78,6 +78,12 @@ const productSchema = z.object({
   imageUrls: z.array(z.string().url()).max(10).optional().nullable(),
 })
 
+const productCardSchema = z.object({
+  shortDescription: z.string().trim().max(400).optional().nullable(),
+  description: z.string().trim().max(10000).optional().nullable(),
+  imageUrls: z.array(z.string().url()).max(10).optional().nullable(),
+})
+
 export async function createShopProduct(input: unknown, csrfToken: string) {
   const prisma = getPrisma()
   const csrf = await assertCsrfTokenValue(csrfToken || null)
@@ -166,6 +172,45 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
     return { ok: true as const }
   } catch (e) {
     return { ok: false as const, error: 'Не удалось обновить товар' }
+  }
+}
+
+export async function updateShopProductCard(id: number, input: unknown, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { ok: false as const, error: csrf.error }
+
+  const session = await getSession()
+  const admin = requireAdmin(session)
+  if (!admin.ok) return admin
+
+  const parsed = productCardSchema.safeParse(input)
+  if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.shopProduct.update({
+        where: { id },
+        data: {
+          shortDescription: parsed.data.shortDescription || null,
+          description: parsed.data.description || null,
+        },
+      })
+
+      if (parsed.data.imageUrls) {
+        await tx.shopProductImage.deleteMany({ where: { productId: id } })
+        await tx.shopProductImage.createMany({
+          data: parsed.data.imageUrls.map((url, idx) => ({ productId: id, url, sortOrder: idx })),
+        })
+      }
+    })
+
+    await logAudit({ actorUserId: admin.userId, action: 'shop.product.card.update', target: String(id) })
+    revalidatePath('/admin/shop/products')
+    revalidatePath('/shop')
+    return { ok: true as const }
+  } catch {
+    return { ok: false as const, error: 'Не удалось обновить карточку' }
   }
 }
 

@@ -1,50 +1,40 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getPrisma } from "@/lib/prisma";
-import { ProductForm } from "../product-form";
 import { getSession } from "@/lib/session";
-import { hasPermission } from "@/lib/access";
+import { ProductCardForm } from "../product-card-form";
 
 export default async function EditShopProductPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
+  if (!session?.userId) redirect("/login");
+  if (!["admin", "manager"].includes(session.role)) redirect("/admin");
+
   const prisma = getPrisma();
   const { id } = await params;
   const productId = parseInt(id, 10);
   if (!Number.isFinite(productId)) notFound();
 
-  const [product, categories] = await Promise.all([
-    prisma.shopProduct.findUnique({
-      where: { id: productId },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        sku: true,
-        shortDescription: true,
-        description: true,
-        priceKopeks: true,
-        purchasePriceKopeks: true,
-        compareAtKopeks: true,
-        stock: true,
-        isActive: true,
-        categoryId: true,
-      },
-    }),
-    prisma.shopCategory.findMany({
-      select: { id: true, name: true, slug: true },
-      orderBy: { name: "asc" },
-    }),
-  ]);
+  const product = await prisma.shopProduct.findUnique({
+    where: { id: productId },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      shortDescription: true,
+      description: true,
+      images: { orderBy: { sortOrder: "asc" }, select: { url: true } },
+    },
+  });
 
   if (!product) notFound();
-  const canEditPurchasePrice = session?.userId
-    ? await hasPermission(parseInt(session.userId, 10), session.role, "products.purchase_price.edit")
-    : false;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Редактирование товара</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-white">Оформление карточки</h1>
+          <div className="text-sm text-gray-400 mt-1">/{product.slug}</div>
+        </div>
         <Link
           href="/admin/shop/products"
           className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
@@ -54,7 +44,16 @@ export default async function EditShopProductPage({ params }: { params: Promise<
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-        <ProductForm categories={categories} product={product} canEditPurchasePrice={canEditPurchasePrice} />
+        <ProductCardForm
+          product={{
+            id: product.id,
+            name: product.name,
+            slug: product.slug,
+            shortDescription: product.shortDescription,
+            description: product.description,
+            imageUrls: product.images.map((i) => i.url),
+          }}
+        />
       </div>
     </div>
   );

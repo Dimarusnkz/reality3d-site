@@ -15,7 +15,7 @@ export default async function AdminLayout({
   }
 
   // Ensure only employees can access
-  const allowedRoles = ['admin', 'manager', 'engineer', 'warehouse', 'delivery'];
+  const allowedRoles = ['admin', 'manager', 'engineer', 'warehouse', 'delivery', 'accountant'];
   if (!allowedRoles.includes(session.role)) {
     redirect('/lk');
   }
