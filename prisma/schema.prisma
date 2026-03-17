@@ -32,6 +32,8 @@ model User {
   shopWishlistItems ShopWishlistItem[]
   shopCart     ShopCart?
   shopOrders   ShopOrder[]
+  shopWarehouseLogs ShopWarehouseLog[]
+  shopClientLogs ShopClientLog[]
 }
 
 model Session {
@@ -297,4 +299,73 @@ model ShopPayment {
 
   @@index([provider, status, createdAt])
   @@index([externalPaymentId])
+}
+
+model ShopInventoryItem {
+  id           Int        @id @default(autoincrement())
+  productId    Int        @unique
+  product      ShopProduct @relation(fields: [productId], references: [id])
+  unit         String     @default("pcs")
+  quantity     Decimal    @default(0) @db.Decimal(18, 3)
+  minThreshold Decimal    @default(0) @db.Decimal(18, 3)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([unit])
+  @@index([quantity])
+}
+
+model ShopWarehouseLog {
+  id            String      @id @default(uuid())
+  createdAt     DateTime    @default(now())
+  actorUserId   Int?
+  actor         User?       @relation(fields: [actorUserId], references: [id])
+  actorRole     String?
+  actionType    String
+  reason        String?
+  productId     Int?
+  product       ShopProduct? @relation(fields: [productId], references: [id])
+  sku           String?
+  productName   String?
+  quantityDelta Decimal     @db.Decimal(18, 3)
+  unit          String
+  shopOrderId   String?
+  shopOrder     ShopOrder?  @relation(fields: [shopOrderId], references: [id])
+  serviceOrderId Int?
+  serviceOrder  Order?      @relation(fields: [serviceOrderId], references: [id])
+  supplier      String?
+  documentNo    String?
+  comment       String?
+  ipHash        String?
+  userAgent     String?
+
+  @@index([createdAt])
+  @@index([actorRole, createdAt])
+  @@index([actionType, createdAt])
+  @@index([productId, createdAt])
+  @@index([shopOrderId])
+}
+
+model ShopClientLog {
+  id         String      @id @default(uuid())
+  createdAt  DateTime    @default(now())
+  userId     Int?
+  user       User?       @relation(fields: [userId], references: [id])
+  actionType String
+  productId  Int?
+  product    ShopProduct? @relation(fields: [productId], references: [id])
+  shopOrderId String?
+  shopOrder  ShopOrder?  @relation(fields: [shopOrderId], references: [id])
+  quantity   Decimal?    @db.Decimal(18, 3)
+  unit       String?
+  orderStatus String?
+  ipHash     String?
+  userAgent  String?
+  message    String?
+
+  @@index([createdAt])
+  @@index([actionType, createdAt])
+  @@index([userId, createdAt])
+  @@index([productId, createdAt])
+  @@index([shopOrderId, createdAt])
 }

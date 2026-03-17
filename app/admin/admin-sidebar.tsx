@@ -28,6 +28,8 @@ const ADMIN_NAV_ITEMS = [
   { href: "/admin", label: "Обзор", icon: LayoutDashboard, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery'] },
   { href: "/admin/orders", label: "Заказы", icon: ShoppingBag, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery'] },
   { href: "/admin/shop", label: "Магазин", icon: Box, roles: ['admin', 'manager'] },
+  { href: "/admin/warehouse", label: "Склад", icon: Database, roles: ['admin', 'manager', 'warehouse', 'engineer'] },
+  { href: "/admin/logs", label: "Логи", icon: FileText, roles: ['admin', 'manager'] },
   { href: "/admin/chat", label: "Чат с клиентами", icon: MessageSquare, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery'] },
   { href: "/admin/clients", label: "Клиенты", icon: Users, roles: ['admin', 'manager'] },
   { href: "/admin/reviews", label: "Отзывы", icon: Star, roles: ['admin', 'manager'] },

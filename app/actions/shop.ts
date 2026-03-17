@@ -9,6 +9,7 @@ import { clampInt } from '@/lib/shop/money'
 import { calcShippingCostKopeks, ShippingMethod } from '@/lib/shop/shipping'
 import { logAudit } from '@/lib/audit'
 import { makeTbankToken, tbankInit } from '@/lib/shop/tbank'
+import { getLogMeta } from '@/lib/shop/log-meta'
 
 async function requireUserId() {
   const session = await getSession()
@@ -32,6 +33,7 @@ export async function addToCart(productId: number, quantity: number, csrfToken: 
   if (!csrf.ok) return { ok: false as const, error: csrf.error }
 
   const { userId } = await requireUserId()
+  const meta = await getLogMeta()
 
   const product = await prisma.shopProduct.findUnique({
     where: { id: productId },
@@ -51,6 +53,19 @@ export async function addToCart(productId: number, quantity: number, csrfToken: 
     update: { quantity: { increment: allowed }, unitPriceKopeks: product.priceKopeks },
   })
 
+  await prisma.shopClientLog.create({
+    data: {
+      userId,
+      actionType: 'cart_add',
+      productId: product.id,
+      quantity: allowed,
+      unit: 'pcs',
+      ipHash: meta.ipHash,
+      userAgent: meta.userAgent,
+      message: `Добавил в корзину: ${product.id} (+${allowed})`,
+    },
+  })
+
   revalidatePath('/cart')
   return { ok: true as const }
 }
@@ -61,6 +76,7 @@ export async function setCartItemQuantity(productId: number, quantity: number, c
   if (!csrf.ok) return { ok: false as const, error: csrf.error }
 
   const { userId } = await requireUserId()
+  const meta = await getLogMeta()
 
   const cart = await prisma.shopCart.findUnique({
     where: { userId },
@@ -90,6 +106,19 @@ export async function setCartItemQuantity(productId: number, quantity: number, c
   await prisma.shopCartItem.updateMany({
     where: { cartId: cart.id, productId },
     data: { quantity: allowed, unitPriceKopeks: product.priceKopeks },
+  })
+
+  await prisma.shopClientLog.create({
+    data: {
+      userId,
+      actionType: 'cart_update',
+      productId: product.id,
+      quantity: allowed,
+      unit: 'pcs',
+      ipHash: meta.ipHash,
+      userAgent: meta.userAgent,
+      message: `Изменил количество в корзине: ${product.id} (=${allowed})`,
+    },
   })
 
   revalidatePath('/cart')
@@ -127,6 +156,7 @@ export async function createShopOrder(data: {
   if (!csrf.ok) return { ok: false as const, error: csrf.error }
 
   const { userId } = await requireUserId()
+  const meta = await getLogMeta()
 
   const cart = await prisma.shopCart.findUnique({
     where: { userId },
@@ -187,6 +217,18 @@ export async function createShopOrder(data: {
     metadata: { orderId: order.id, totalKopeks, shippingMethod: data.shippingMethod, provider: data.paymentProvider },
   })
 
+  await prisma.shopClientLog.create({
+    data: {
+      userId,
+      actionType: 'checkout_create',
+      shopOrderId: order.id,
+      orderStatus: 'pending',
+      ipHash: meta.ipHash,
+      userAgent: meta.userAgent,
+      message: `Создал заказ #${order.orderNo}`,
+    },
+  })
+
   revalidatePath('/cart')
   revalidatePath('/checkout')
   return { ok: true as const, orderId: order.id, orderNo: order.orderNo }
@@ -198,6 +240,7 @@ export async function startTbankPayment(orderId: string, csrfToken: string) {
   if (!csrf.ok) return { ok: false as const, error: csrf.error }
 
   const { userId, role } = await requireUserId()
+  const meta = await getLogMeta()
 
   const order = await prisma.shopOrder.findUnique({
     where: { id: orderId },
@@ -266,6 +309,18 @@ export async function startTbankPayment(orderId: string, csrfToken: string) {
     action: 'shop.payment.tbank.init',
     target: String(order.orderNo),
     metadata: { orderId: order.id, paymentId: payment.id, externalPaymentId: payment.externalPaymentId },
+  })
+
+  await prisma.shopClientLog.create({
+    data: {
+      userId: order.userId || userId,
+      actionType: 'payment_init',
+      shopOrderId: order.id,
+      orderStatus: order.paymentStatus,
+      ipHash: meta.ipHash,
+      userAgent: meta.userAgent,
+      message: `Перешёл к оплате ТБанк: заказ #${order.orderNo}`,
+    },
   })
 
   if (!payment.paymentUrl) {
