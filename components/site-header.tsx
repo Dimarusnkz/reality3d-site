@@ -6,7 +6,6 @@ import { Menu, X, User, LogOut, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { logout } from "@/app/actions/auth";
 import { CsrfTokenField } from "@/components/ui/csrf-token-field";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 interface SiteHeaderProps {
   user?: {
@@ -81,7 +80,6 @@ export function SiteHeader({ user }: SiteHeaderProps) {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-4">
-          <ThemeToggle />
           {user ? (
             <div className="relative">
               <button 
@@ -161,10 +159,6 @@ export function SiteHeader({ user }: SiteHeaderProps) {
             className="md:hidden border-t border-slate-800 bg-black/95 backdrop-blur-xl overflow-hidden"
           >
             <div className="container mx-auto px-4 py-6 flex flex-col space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-medium text-gray-400">Тема</div>
-                <ThemeToggle />
-              </div>
               {menuItems.map((item) => (
                 <Link
                   key={item.href}

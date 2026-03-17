@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
@@ -65,20 +64,8 @@ export default async function RootLayout({
   const session = await getSession();
   
   return (
-    <html lang="ru" suppressHydrationWarning>
+    <html lang="ru" className="dark">
       <body className={cn(inter.className, "min-h-screen bg-black text-slate-200 flex flex-col")}>
-        <Script id="theme-init" strategy="beforeInteractive">
-          {`(() => {
-  const storageKey = 'theme';
-  const doc = document.documentElement;
-  const saved = localStorage.getItem(storageKey);
-  const theme = saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'system';
-  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
-  doc.classList.toggle('dark', isDark);
-  doc.dataset.theme = theme;
-})();`}
-        </Script>
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-lg focus:bg-slate-900 focus:px-4 focus:py-2 focus:text-white focus:ring-2 focus:ring-primary"
