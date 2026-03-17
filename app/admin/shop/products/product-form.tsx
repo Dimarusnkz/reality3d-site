@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { createShopProduct, updateShopProduct } from "@/app/actions/shop-admin";
-import { Loader2 } from "lucide-react";
+import { Loader2, ImagePlus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -24,7 +24,7 @@ type ProductInput = {
   stock: number;
   isActive: boolean;
   categoryId: number | null;
-  imageUrl: string;
+  imageUrls: string[];
 };
 
 export function ProductForm({
@@ -58,13 +58,66 @@ export function ProductForm({
       stock: product?.stock ?? 0,
       isActive: product?.isActive ?? true,
       categoryId: product?.categoryId ?? null,
-      imageUrl: "",
+      imageUrls: [],
     }),
     [product]
   );
 
   const [form, setForm] = useState<ProductInput>(initial);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const uploadFile = async (file: File) => {
+    const csrf = getCsrfToken();
+    const body = new FormData();
+    body.set("file", file);
+    body.set("csrf_token", csrf);
+
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body,
+      headers: { "x-csrf-token": csrf },
+    });
+
+    const json = (await res.json().catch(() => null)) as { url?: string; error?: string } | null;
+    if (!res.ok || !json?.url) {
+      throw new Error(json?.error || "Ошибка загрузки");
+    }
+    return json.url;
+  };
+
+  const onSelectFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    try {
+      const selected = Array.from(files).slice(0, 10 - form.imageUrls.length);
+      const uploaded: string[] = [];
+      for (const f of selected) {
+        uploaded.push(await uploadFile(f));
+      }
+      setForm((prev) => ({ ...prev, imageUrls: [...prev.imageUrls, ...uploaded] }));
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Ошибка загрузки");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeImage = (idx: number) => {
+    setForm((prev) => ({ ...prev, imageUrls: prev.imageUrls.filter((_, i) => i !== idx) }));
+  };
+
+  const moveImage = (from: number, dir: -1 | 1) => {
+    setForm((prev) => {
+      const to = from + dir;
+      if (to < 0 || to >= prev.imageUrls.length) return prev;
+      const next = prev.imageUrls.slice();
+      const temp = next[from];
+      next[from] = next[to];
+      next[to] = temp;
+      return { ...prev, imageUrls: next };
+    });
+  };
 
   const submit = async () => {
     setIsSaving(true);
@@ -80,7 +133,7 @@ export function ProductForm({
         stock: Number(form.stock),
         isActive: Boolean(form.isActive),
         categoryId: form.categoryId == null ? null : Number(form.categoryId),
-        imageUrl: form.imageUrl || null,
+        imageUrls: form.imageUrls,
       };
 
       const csrf = getCsrfToken();
@@ -94,7 +147,7 @@ export function ProductForm({
       }
 
       if (!product) {
-        setForm({ ...form, imageUrl: "" });
+        setForm({ ...form, imageUrls: [] });
       }
       window.location.href = "/admin/shop/products";
     } finally {
@@ -195,14 +248,65 @@ export function ProductForm({
         </div>
 
         {!product ? (
-          <div className="md:col-span-2 space-y-2">
-            <label className="text-sm font-medium text-gray-400 ml-1">URL изображения (первое)</label>
-            <input
-              value={form.imageUrl}
-              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-              placeholder="https://..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-            />
+          <div className="md:col-span-2 space-y-3">
+            <label className="text-sm font-medium text-gray-400 ml-1">Фотографии товара</label>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <label className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white px-4 text-sm font-medium transition-colors cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => onSelectFiles(e.target.files)}
+                  disabled={isUploading || form.imageUrls.length >= 10}
+                />
+                {isUploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ImagePlus className="w-4 h-4 mr-2" />}
+                Добавить фото
+              </label>
+              <div className="text-xs text-gray-500">
+                JPG/PNG/WebP, до 5MB, максимум 10 фото. Хранение на сервере.
+              </div>
+            </div>
+
+            {form.imageUrls.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {form.imageUrls.map((url, idx) => (
+                  <div key={`${url}-${idx}`} className="relative bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+                    <img src={url} alt="" className="w-full h-28 object-cover" />
+                    <div className="absolute inset-x-0 bottom-0 p-2 flex items-center justify-between gap-2 bg-black/60">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => moveImage(idx, -1)}
+                          disabled={idx === 0}
+                          className="p-1 rounded bg-slate-800/60 hover:bg-slate-700/70 text-white disabled:opacity-50"
+                          title="Влево"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveImage(idx, 1)}
+                          disabled={idx === form.imageUrls.length - 1}
+                          className="p-1 rounded bg-slate-800/60 hover:bg-slate-700/70 text-white disabled:opacity-50"
+                          title="Вправо"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="p-1 rounded bg-red-500/20 hover:bg-red-500/30 text-red-200"
+                        title="Удалить"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -236,4 +340,3 @@ export function ProductForm({
     </div>
   );
 }
-

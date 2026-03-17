@@ -73,7 +73,7 @@ const productSchema = z.object({
   stock: z.number().int().min(0).max(100000),
   isActive: z.boolean(),
   categoryId: z.number().int().positive().optional().nullable(),
-  imageUrl: z.string().url().optional().nullable(),
+  imageUrls: z.array(z.string().url()).max(10).optional().nullable(),
 })
 
 export async function createShopProduct(input: unknown, csrfToken: string) {
@@ -101,14 +101,15 @@ export async function createShopProduct(input: unknown, csrfToken: string) {
         stock: parsed.data.stock,
         isActive: parsed.data.isActive,
         categoryId: parsed.data.categoryId ?? null,
-        images: parsed.data.imageUrl
-          ? {
-              create: {
-                url: parsed.data.imageUrl,
-                sortOrder: 0,
-              },
-            }
-          : undefined,
+        images:
+          parsed.data.imageUrls && parsed.data.imageUrls.length > 0
+            ? {
+                create: parsed.data.imageUrls.map((url, idx) => ({
+                  url,
+                  sortOrder: idx,
+                })),
+              }
+            : undefined,
       },
       select: { id: true, name: true, slug: true },
     })
@@ -180,4 +181,3 @@ export async function deleteShopProduct(id: number, csrfToken: string) {
     return { ok: false as const, error: 'Не удалось удалить товар' }
   }
 }
-
