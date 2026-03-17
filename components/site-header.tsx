@@ -23,6 +23,7 @@ export function SiteHeader({ user }: SiteHeaderProps) {
 
   const menuItems = [
     { href: "/services", label: "Услуги" },
+    { href: "/shop", label: "Магазин" },
     { href: "/portfolio", label: "Портфолио" },
     { href: "/blog", label: "Блог" },
     { href: "/materials", label: "Материалы" },

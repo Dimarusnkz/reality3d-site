@@ -150,3 +150,148 @@ model MaxSubscriber {
   name      String?
   createdAt DateTime @default(now())
 }
+
+model ShopCategory {
+  id        Int            @id @default(autoincrement())
+  name      String
+  slug      String         @unique
+  parentId  Int?
+  parent    ShopCategory?  @relation("ShopCategoryParent", fields: [parentId], references: [id])
+  children  ShopCategory[] @relation("ShopCategoryParent")
+  products  ShopProduct[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model ShopProduct {
+  id               Int                @id @default(autoincrement())
+  name             String
+  slug             String             @unique
+  sku              String?
+  description      String?
+  shortDescription String?
+  priceKopeks      Int
+  compareAtKopeks  Int?
+  stock            Int                @default(0)
+  isActive         Boolean            @default(true)
+  categoryId       Int?
+  category         ShopCategory?      @relation(fields: [categoryId], references: [id])
+  images           ShopProductImage[]
+  wishlistItems    ShopWishlistItem[]
+  cartItems        ShopCartItem[]
+  orderItems       ShopOrderItem[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([isActive, priceKopeks])
+  @@index([categoryId])
+}
+
+model ShopProductImage {
+  id        Int         @id @default(autoincrement())
+  productId Int
+  product   ShopProduct @relation(fields: [productId], references: [id])
+  url       String
+  alt       String?
+  sortOrder Int         @default(0)
+  createdAt DateTime    @default(now())
+
+  @@index([productId, sortOrder])
+}
+
+model ShopWishlistItem {
+  id        Int         @id @default(autoincrement())
+  userId    Int
+  user      User        @relation(fields: [userId], references: [id])
+  productId Int
+  product   ShopProduct @relation(fields: [productId], references: [id])
+  createdAt DateTime    @default(now())
+
+  @@unique([userId, productId])
+  @@index([productId])
+}
+
+model ShopCart {
+  id        String         @id @default(uuid())
+  userId    Int            @unique
+  user      User           @relation(fields: [userId], references: [id])
+  items     ShopCartItem[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model ShopCartItem {
+  id              String      @id @default(uuid())
+  cartId          String
+  cart            ShopCart    @relation(fields: [cartId], references: [id])
+  productId       Int
+  product         ShopProduct @relation(fields: [productId], references: [id])
+  quantity        Int         @default(1)
+  unitPriceKopeks Int
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@unique([cartId, productId])
+  @@index([productId])
+}
+
+model ShopOrder {
+  id                 String          @id @default(uuid())
+  orderNo            Int             @unique @default(autoincrement())
+  userId             Int?
+  user               User?           @relation(fields: [userId], references: [id])
+  status             String          @default("pending")
+  paymentStatus      String          @default("unpaid")
+  paymentProvider    String?
+  shippingMethod     String          @default("pickup")
+  shippingCostKopeks Int             @default(0)
+  totalKopeks        Int             @default(0)
+  contactName        String?
+  contactPhone       String?
+  contactEmail       String?
+  deliveryCity       String?
+  deliveryAddress    String?
+  deliveryPostalCode String?
+  comment            String?
+  items              ShopOrderItem[]
+  payments           ShopPayment[]
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+model ShopOrderItem {
+  id              String      @id @default(uuid())
+  orderId         String
+  order           ShopOrder   @relation(fields: [orderId], references: [id])
+  productId       Int?
+  product         ShopProduct? @relation(fields: [productId], references: [id])
+  productName     String
+  sku             String?
+  quantity        Int
+  unitPriceKopeks Int
+  totalKopeks     Int
+  createdAt       DateTime    @default(now())
+
+  @@index([orderId])
+}
+
+model ShopPayment {
+  id                String    @id @default(uuid())
+  orderId           String
+  order             ShopOrder @relation(fields: [orderId], references: [id])
+  provider          String
+  status            String    @default("pending")
+  amountKopeks      Int
+  currency          String    @default("RUB")
+  externalPaymentId String?
+  paymentUrl        String?
+  rawPayload        String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([provider, status, createdAt])
+  @@index([externalPaymentId])
+}
