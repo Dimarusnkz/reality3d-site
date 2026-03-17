@@ -23,7 +23,7 @@ type Review = {
 };
 
 export default function ReviewsClient({ initialReviews, user }: { initialReviews: Review[], user: any }) {
-  const [reviews, setReviews] = useState(initialReviews);
+  const [reviews] = useState(initialReviews);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -235,7 +235,6 @@ export default function ReviewsClient({ initialReviews, user }: { initialReviews
           >
             <X className="w-8 h-8" />
           </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src={`/api/public/${selectedPhoto}`} 
             alt="Full screen review" 
@@ -290,7 +289,6 @@ export default function ReviewsClient({ initialReviews, user }: { initialReviews
                            className="relative w-24 h-24 rounded-lg overflow-hidden bg-slate-950 border border-slate-800 cursor-zoom-in"
                            onClick={() => setSelectedPhoto(photo)}
                         >
-                           {/* eslint-disable-next-line @next/next/no-img-element */}
                            <img 
                              src={`/api/public/${photo}`} 
                              alt="Review attachment" 

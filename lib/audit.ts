@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { getPrisma } from '@/lib/prisma';
 
 export type AuditLogInput = {
   actorUserId: number | null;
@@ -8,6 +8,7 @@ export type AuditLogInput = {
 };
 
 export async function logAudit(input: AuditLogInput) {
+  const prisma = getPrisma();
   await prisma.auditEvent.create({
     data: {
       actorUserId: input.actorUserId,

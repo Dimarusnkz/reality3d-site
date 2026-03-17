@@ -3,11 +3,12 @@
 import bcrypt from 'bcryptjs'
 import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/session'
-import { prisma } from '@/lib/prisma'
+import { getPrisma } from '@/lib/prisma'
 import { assertCsrf } from '@/lib/csrf'
 import { logAudit } from '@/lib/audit'
 
 export async function createUser(formData: FormData) {
+  const prisma = getPrisma()
   const csrf = await assertCsrf(formData)
   if (!csrf.ok) {
     return { error: csrf.error }
@@ -50,6 +51,7 @@ export async function createUser(formData: FormData) {
 }
 
 export async function deleteUser(userId: number, csrfToken: string) {
+  const prisma = getPrisma()
   const fd = new FormData()
   fd.set('csrf_token', csrfToken)
   const csrf = await assertCsrf(fd)
@@ -77,6 +79,7 @@ export async function deleteUser(userId: number, csrfToken: string) {
 }
 
 export async function updateUser(userId: number, formData: FormData) {
+    const prisma = getPrisma()
     const csrf = await assertCsrf(formData)
     if (!csrf.ok) {
       return { error: csrf.error }

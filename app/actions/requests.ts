@@ -3,7 +3,7 @@
 import { sendTelegramMessage } from '@/lib/telegram'
 import { sendMaxMessage } from '@/lib/max'
 import bcrypt from 'bcryptjs'
-import { prisma } from '@/lib/prisma'
+import { getPrisma } from '@/lib/prisma'
 import { assertCsrf } from '@/lib/csrf'
 import { getClientIp } from '@/lib/request'
 import { rateLimit } from '@/lib/rate-limit'
@@ -26,6 +26,7 @@ const requestSchema = z.object({
 });
 
 export async function submitRequest(formData: FormData) {
+  const prisma = getPrisma()
   const csrf = await assertCsrf(formData)
   if (!csrf.ok) {
     return { error: csrf.error }

@@ -1,6 +1,6 @@
-import { getArticles, deleteArticle } from "@/app/actions/blog";
+import { getArticles } from "@/app/actions/blog";
 import Link from "next/link";
-import { Plus, Edit2, Trash2, Eye } from "lucide-react";
+import { Plus } from "lucide-react";
 import BlogListClient from "./blog-list-client";
 
 export default async function AdminBlogPage() {

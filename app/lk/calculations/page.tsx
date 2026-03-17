@@ -1,7 +1,6 @@
 "use client";
 
 import { Search, Download, ShoppingCart } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 const MOCK_CALCULATIONS = [
   { id: 1, date: '28.01.2026', tech: 'FDM', material: 'PLA (Белый)', weight: '120г', cost: 1500 },

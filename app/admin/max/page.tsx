@@ -1,11 +1,11 @@
 import MaxSettings from "./max-settings";
 
 export default function MaxPage() {
-  const botToken = process.env.MAX_BOT_TOKEN || "Not Set";
+  const isConfigured = !!process.env.MAX_BOT_TOKEN;
 
   return (
     <div className="container mx-auto max-w-5xl">
-       <MaxSettings botToken={botToken} />
+       <MaxSettings isConfigured={isConfigured} />
     </div>
   );
 }

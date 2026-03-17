@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    env:
+      SESSION_SECRET: test_secret
+      TURNSTILE_ENABLED: "false"
+      DATABASE_URL: postgresql://user:pass@localhost:5432/testdb?schema=public
+      DATABASE_URL_SQLITE: file:./dev.db
+      DATABASE_URL_MYSQL: mysql://user:pass@localhost:3306/testdb
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:coverage
+      - run: npm run build
+

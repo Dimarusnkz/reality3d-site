@@ -1,0 +1,141 @@
+PRAGMA foreign_keys=ON;
+
+CREATE TABLE "User" (
+  "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  "email" TEXT NOT NULL,
+  "password" TEXT NOT NULL,
+  "name" TEXT,
+  "role" TEXT NOT NULL DEFAULT 'user',
+  "phone" TEXT,
+  "address" TEXT,
+  "tokenVersion" INTEGER NOT NULL DEFAULT 0,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+CREATE TABLE "Session" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "userId" INTEGER NOT NULL,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "lastUsedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "expiresAt" DATETIME NOT NULL,
+  "revokedAt" DATETIME,
+  "ipHash" TEXT,
+  "userAgent" TEXT,
+  FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE INDEX "Session_userId_revokedAt_idx" ON "Session"("userId", "revokedAt");
+CREATE INDEX "Session_expiresAt_idx" ON "Session"("expiresAt");
+
+CREATE TABLE "AuditEvent" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "actorUserId" INTEGER,
+  "action" TEXT NOT NULL,
+  "target" TEXT,
+  "metadata" TEXT,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY ("actorUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE INDEX "AuditEvent_createdAt_idx" ON "AuditEvent"("createdAt");
+CREATE INDEX "AuditEvent_actorUserId_createdAt_idx" ON "AuditEvent"("actorUserId", "createdAt");
+
+CREATE TABLE "Article" (
+  "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  "title" TEXT NOT NULL,
+  "slug" TEXT NOT NULL,
+  "excerpt" TEXT,
+  "content" TEXT NOT NULL,
+  "coverImage" TEXT,
+  "published" INTEGER NOT NULL DEFAULT 0,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "authorId" INTEGER NOT NULL,
+  FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX "Article_slug_key" ON "Article"("slug");
+
+CREATE TABLE "Review" (
+  "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  "userId" INTEGER NOT NULL,
+  "rating" INTEGER NOT NULL,
+  "text" TEXT NOT NULL,
+  "photos" TEXT,
+  "status" TEXT NOT NULL DEFAULT 'pending',
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE "Order" (
+  "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  "userId" INTEGER NOT NULL,
+  "title" TEXT,
+  "status" TEXT NOT NULL DEFAULT 'pending',
+  "details" TEXT,
+  "price" REAL,
+  "deadline" DATETIME,
+  "assignedToId" INTEGER,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  FOREIGN KEY ("assignedToId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE TABLE "OrderComment" (
+  "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  "orderId" INTEGER NOT NULL,
+  "userId" INTEGER NOT NULL,
+  "text" TEXT NOT NULL,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE "ChatSession" (
+  "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  "userId" INTEGER NOT NULL,
+  "orderId" INTEGER,
+  "status" TEXT NOT NULL DEFAULT 'active',
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX "ChatSession_orderId_key" ON "ChatSession"("orderId");
+
+CREATE TABLE "ChatMessage" (
+  "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  "sessionId" INTEGER NOT NULL,
+  "senderId" INTEGER,
+  "content" TEXT NOT NULL,
+  "isInternal" INTEGER NOT NULL DEFAULT 0,
+  "attachments" TEXT,
+  "read" INTEGER NOT NULL DEFAULT 0,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY ("sessionId") REFERENCES "ChatSession"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  FOREIGN KEY ("senderId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE TABLE "TelegramSubscriber" (
+  "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  "chatId" TEXT NOT NULL,
+  "name" TEXT,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX "TelegramSubscriber_chatId_key" ON "TelegramSubscriber"("chatId");
+
+CREATE TABLE "MaxSubscriber" (
+  "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  "chatId" TEXT NOT NULL,
+  "name" TEXT,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX "MaxSubscriber_chatId_key" ON "MaxSubscriber"("chatId");
+

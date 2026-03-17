@@ -1,6 +1,7 @@
 import { getArticles } from "@/app/actions/blog";
 import Link from "next/link";
 import { Calendar, User } from "lucide-react";
+import Image from "next/image";
 
 export const metadata = {
   title: "Блог о 3D печати",
@@ -27,11 +28,12 @@ export default async function BlogPage() {
             className="group bg-slate-900 border border-slate-800 rounded-xl overflow-hidden hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/10 flex flex-col"
           >
             <div className="aspect-video relative bg-slate-800 overflow-hidden">
-              {/* Placeholder for image if real image handling is added later */}
-              <img 
-                src={article.coverImage || "https://placehold.co/600x400/1e293b/ffffff?text=No+Image"} 
+              <Image
+                src={article.coverImage || "https://placehold.co/600x400/1e293b/ffffff?text=No+Image"}
                 alt={article.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                className="object-cover group-hover:scale-105 transition-transform duration-500"
               />
             </div>
             <div className="p-6 flex flex-col flex-1">

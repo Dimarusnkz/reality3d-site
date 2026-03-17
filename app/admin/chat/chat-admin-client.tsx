@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import { useChat } from "@/app/components/chat/chat-provider";
 import { ChatWindow } from "@/app/components/chat/chat-window";
-import { Search, Filter, MessageSquare, Clock, User } from "lucide-react";
+import { Search, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function AdminChatClient() {
-  const { sessions, selectSession, currentSessionId, role } = useChat();
+  const { sessions, selectSession, currentSessionId } = useChat();
   const [filter, setFilter] = React.useState("all"); // all, unread, active
   const [searchTerm, setSearchTerm] = React.useState("");
 

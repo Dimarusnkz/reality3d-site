@@ -5,6 +5,14 @@ import { useRouter } from "next/navigation";
 import { createArticle, updateArticle } from "@/app/actions/blog";
 import { Save, ArrowLeft, Loader2, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
+
+function getCsrfToken() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length !== 2) return "";
+  return parts.pop()?.split(";").shift() || "";
+}
 
 export default function ArticleForm({ article }: { article?: any }) {
   const router = useRouter();
@@ -32,6 +40,9 @@ export default function ArticleForm({ article }: { article?: any }) {
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: data,
+        headers: {
+          'x-csrf-token': getCsrfToken(),
+        },
       });
 
       if (!res.ok) throw new Error('Upload failed');
@@ -202,7 +213,13 @@ export default function ArticleForm({ article }: { article?: any }) {
               </div>
               {formData.coverImage && (
                 <div className="mt-2 aspect-video rounded-lg overflow-hidden border border-slate-800 relative bg-black/50">
-                    <img src={formData.coverImage} alt="Preview" className="w-full h-full object-contain" />
+                    <Image
+                      src={formData.coverImage}
+                      alt="Preview"
+                      fill
+                      sizes="100vw"
+                      className="object-contain"
+                    />
                 </div>
               )}
             </div>

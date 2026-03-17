@@ -9,13 +9,27 @@
 }
 
 :root {
-  /* Force Dark Mode by default */
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  
-  /* Additional custom vars if needed */
-  --card-bg: #171717;
-  --border-color: #333333;
+  --bg: #ffffff;
+  --bg-elevated: #f6f7f9;
+  --text: #0a0a0a;
+  --text-muted: #475569;
+  --border: #e2e8f0;
+  --primary: #ff5e00;
+  --primary-contrast: #ffffff;
+  --danger: #ef4444;
+  --focus: rgba(255, 94, 0, 0.55);
+}
+
+html.dark {
+  --bg: #0a0a0a;
+  --bg-elevated: #111827;
+  --text: #ededed;
+  --text-muted: #94a3b8;
+  --border: #1f2937;
+  --primary: #ff5e00;
+  --primary-contrast: #ffffff;
+  --danger: #f87171;
+  --focus: rgba(255, 94, 0, 0.55);
 }
 
 html {
@@ -23,10 +37,29 @@ html {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--text);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   overflow-x: hidden;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Custom Utilities for Neon Glow */

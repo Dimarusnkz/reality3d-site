@@ -3,7 +3,6 @@
 import { useActionState, useState, useRef, useEffect } from 'react'
 import { updateProfile, updatePassword, ProfileState } from '@/app/actions/profile'
 import { Eye, EyeOff, Lock, User as UserIcon, Mail, Phone, MapPin, ShieldCheck } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { CsrfTokenField } from '@/components/ui/csrf-token-field'
 
 const initialState: ProfileState = {

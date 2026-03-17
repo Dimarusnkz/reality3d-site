@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/session'
 import { sendTelegramMessage } from '@/lib/telegram'
-import { prisma } from '@/lib/prisma'
+import { getPrisma } from '@/lib/prisma'
 import { assertCsrfTokenValue } from '@/lib/csrf'
 
 function escapeHtml(value: string) {
@@ -23,6 +23,7 @@ export async function createOrder(data: {
   price?: number;
   csrfToken: string;
 }) {
+  const prisma = getPrisma()
   const csrf = await assertCsrfTokenValue(data.csrfToken || null)
   if (!csrf.ok) {
     return { error: csrf.error }
@@ -76,6 +77,7 @@ export async function createOrder(data: {
 }
 
 export async function getClientOrders() {
+  const prisma = getPrisma()
   const session = await getSession()
   if (!session || !session.userId) {
     return []
@@ -92,6 +94,7 @@ export async function getClientOrders() {
 // --- Admin/Employee Actions ---
 
 export async function getOrders() {
+  const prisma = getPrisma()
   const session = await getSession()
   if (!session || !['admin', 'manager', 'engineer', 'warehouse', 'delivery'].includes(session.role)) {
     return []
@@ -114,6 +117,7 @@ export async function getOrders() {
 }
 
 export async function getOrderDetails(orderId: number) {
+  const prisma = getPrisma()
   const session = await getSession()
   if (!session) return null
 
@@ -144,6 +148,7 @@ export async function getOrderDetails(orderId: number) {
 }
 
 export async function updateOrderStatus(orderId: number, status: string, csrfToken: string) {
+  const prisma = getPrisma()
   const csrf = await assertCsrfTokenValue(csrfToken || null)
   if (!csrf.ok) {
     return { error: csrf.error }
@@ -172,6 +177,7 @@ export async function updateOrderStatus(orderId: number, status: string, csrfTok
 }
 
 export async function updateOrderPrice(orderId: number, price: number, csrfToken: string) {
+  const prisma = getPrisma()
   const csrf = await assertCsrfTokenValue(csrfToken || null)
   if (!csrf.ok) {
     return { error: csrf.error }
@@ -197,6 +203,7 @@ export async function updateOrderPrice(orderId: number, price: number, csrfToken
 }
 
 export async function assignOrder(orderId: number, employeeId: number | null, csrfToken: string) {
+  const prisma = getPrisma()
   const csrf = await assertCsrfTokenValue(csrfToken || null)
   if (!csrf.ok) {
     return { error: csrf.error }
@@ -221,6 +228,7 @@ export async function assignOrder(orderId: number, employeeId: number | null, cs
 }
 
 export async function updateOrderDeadline(orderId: number, deadline: Date | null, csrfToken: string) {
+  const prisma = getPrisma()
     const csrf = await assertCsrfTokenValue(csrfToken || null)
     if (!csrf.ok) {
       return { error: csrf.error }
@@ -245,6 +253,7 @@ export async function updateOrderDeadline(orderId: number, deadline: Date | null
 }
 
 export async function addOrderComment(orderId: number, text: string, csrfToken: string) {
+  const prisma = getPrisma()
   const csrf = await assertCsrfTokenValue(csrfToken || null)
   if (!csrf.ok) {
     return { error: csrf.error }
@@ -273,6 +282,7 @@ export async function addOrderComment(orderId: number, text: string, csrfToken: 
 }
 
 export async function deleteOrder(orderId: number, csrfToken: string) {
+  const prisma = getPrisma()
   const csrf = await assertCsrfTokenValue(csrfToken || null)
   if (!csrf.ok) {
     return { error: csrf.error }
@@ -307,6 +317,7 @@ export async function deleteOrder(orderId: number, csrfToken: string) {
 }
 
 export async function updateOrderDetails(orderId: number, data: { title: string, details: any }, csrfToken: string) {
+  const prisma = getPrisma()
   const csrf = await assertCsrfTokenValue(csrfToken || null)
   if (!csrf.ok) {
     return { error: csrf.error }
@@ -336,6 +347,7 @@ export async function updateOrderDetails(orderId: number, data: { title: string,
 
 // Helper to get employees for assignment dropdown
 export async function getEmployees() {
+  const prisma = getPrisma()
     const session = await getSession()
     if (!session || !['admin', 'manager'].includes(session.role)) {
         return []

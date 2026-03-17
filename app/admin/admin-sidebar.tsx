@@ -17,7 +17,8 @@ import {
   MessageSquare,
   Send,
   Star,
-  Box
+  Box,
+  Database
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logout } from "@/app/actions/auth";
@@ -35,6 +36,7 @@ const ADMIN_NAV_ITEMS = [
   { href: "/admin/blog", label: "Блог", icon: PenTool, roles: ['admin', 'manager'] },
   { href: "/admin/portfolio", label: "Портфолио", icon: ImageIcon, roles: ['admin', 'manager'] },
   { href: "/admin/analytics", label: "Аналитика", icon: BarChart3, roles: ['admin'] },
+  { href: "/admin/databases", label: "Базы данных", icon: Database, roles: ['admin'] },
   { href: "/admin/telegram", label: "Телеграм", icon: Send, roles: ['admin', 'manager'] },
   { href: "/admin/max", label: "MAX", icon: Box, roles: ['admin', 'manager'] },
   { href: "/admin/settings", label: "Настройки", icon: Settings, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery'] },

@@ -1,7 +1,7 @@
 'use server'
 
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
+import { getPrisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import bcrypt from 'bcryptjs';
@@ -74,6 +74,7 @@ const registerSchema = z.object({
 });
 
 export async function login(prevState: any, formData: FormData) {
+  const prisma = getPrisma();
   const csrf = await assertCsrf(formData);
   if (!csrf.ok) {
     return { errors: { csrf_token: [csrf.error] } };
@@ -144,6 +145,7 @@ export async function login(prevState: any, formData: FormData) {
 }
 
 export async function register(prevState: any, formData: FormData) {
+  const prisma = getPrisma();
   const csrf = await assertCsrf(formData);
   if (!csrf.ok) {
     return { errors: { csrf_token: [csrf.error] } };

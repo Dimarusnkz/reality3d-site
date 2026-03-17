@@ -79,7 +79,7 @@ export function ClientOrderDetailsModal({ orderId, onClose }: ClientOrderDetails
     try {
       const details = JSON.parse(order.details || "{}");
       return details.files || [];
-    } catch (e) {
+    } catch {
       return [];
     }
   };

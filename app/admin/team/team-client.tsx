@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Shield, User, Wrench, X, Mail, Lock, Ban, CheckCircle, Truck, Package } from "lucide-react";
+import { Plus, Shield, User, Wrench, X, Truck, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createUser, updateUser, deleteUser } from "@/app/actions/admin";
+import { createUser, updateUser } from "@/app/actions/admin";
 import { useRouter } from "next/navigation";
 
 function getCsrfToken() {
@@ -12,8 +12,6 @@ function getCsrfToken() {
   if (parts.length !== 2) return '';
   return parts.pop()?.split(';').shift() || '';
 }
-
-type Role = 'admin' | 'manager' | 'engineer' | 'warehouse' | 'delivery' | 'user';
 
 interface UserType {
   id: number;

@@ -32,7 +32,14 @@ const ROLE_LABELS: Record<string, string> = {
   client: 'Клиент'
 };
 
-export function LkSidebar({ user }: { user: any }) {
+type LkSidebarUser = {
+  id: number;
+  email: string;
+  name: string | null;
+  role: string;
+};
+
+export function LkSidebar({ user }: { user: LkSidebarUser }) {
   const pathname = usePathname();
   const roleLabel = ROLE_LABELS[user.role as string] || 'Клиент';
 

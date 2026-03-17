@@ -2,8 +2,16 @@
 
 import { useState } from 'react';
 import { updateReviewStatus, deleteReview } from '@/app/actions/reviews';
-import { Check, X, Trash2, Eye, Star, Filter, Loader2 } from 'lucide-react';
+import { Check, X, Trash2, Star, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
+
+function getCsrfToken() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length !== 2) return "";
+  return parts.pop()?.split(";").shift() || "";
+}
 
 type Review = {
   id: number;
@@ -25,7 +33,7 @@ export default function ReviewsAdminClient({ initialReviews }: { initialReviews:
   const handleStatusUpdate = async (id: number, status: 'approved' | 'rejected') => {
     setLoadingId(id);
     try {
-      const result = await updateReviewStatus(id, status);
+      const result = await updateReviewStatus(id, status, getCsrfToken());
       if (result.success) {
         setReviews(prev => prev.map(r => r.id === id ? { ...r, status } : r));
       }
@@ -41,7 +49,7 @@ export default function ReviewsAdminClient({ initialReviews }: { initialReviews:
     
     setLoadingId(id);
     try {
-      const result = await deleteReview(id);
+      const result = await deleteReview(id, getCsrfToken());
       if (result.success) {
         setReviews(prev => prev.filter(r => r.id !== id));
       }
@@ -118,9 +126,14 @@ export default function ReviewsAdminClient({ initialReviews }: { initialReviews:
                         {review.photos.length > 0 ? (
                            <div className="flex -space-x-2">
                               {review.photos.map((photo, i) => (
-                                 <div key={i} className="w-8 h-8 rounded-full border border-slate-800 overflow-hidden bg-slate-950">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={`/api/public/${photo}`} alt="" className="w-full h-full object-cover" />
+                                 <div key={i} className="relative w-8 h-8 rounded-full border border-slate-800 overflow-hidden bg-slate-950">
+                                    <Image
+                                      src={`/api/public/${photo}`}
+                                      alt=""
+                                      fill
+                                      sizes="32px"
+                                      className="object-cover"
+                                    />
                                  </div>
                               ))}
                            </div>

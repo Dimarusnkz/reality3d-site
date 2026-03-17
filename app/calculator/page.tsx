@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createOrder } from "@/app/actions/orders";
-import { Upload, FileBox, Calculator, Info, Check, Zap, Layers, Cpu } from "lucide-react";
+import { Upload, FileBox, Check, Zap, Layers, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function getCsrfToken() {

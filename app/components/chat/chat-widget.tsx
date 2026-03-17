@@ -8,7 +8,7 @@ import { ChatWindow } from "./chat-window";
 import { cn } from "@/lib/utils";
 
 export function ChatWidget() {
-  const { isOpen, toggleChat, role, sessions, currentSessionId } = useChat();
+  const { isOpen, toggleChat, sessions, currentSessionId } = useChat();
   const pathname = usePathname();
 
   // Don't show floating widget on admin pages, as they have a dedicated dashboard

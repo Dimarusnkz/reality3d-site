@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
 export default async function AdminSecurityPage() {
@@ -7,6 +7,8 @@ export default async function AdminSecurityPage() {
   if (!session?.userId || session.role !== "admin") {
     redirect("/login");
   }
+
+  const prisma = getPrisma();
 
   const events = await prisma.auditEvent.findMany({
     orderBy: { createdAt: "desc" },
@@ -35,6 +37,7 @@ export default async function AdminSecurityPage() {
                 <th className="py-3 pr-4 font-medium">Актор</th>
                 <th className="py-3 pr-4 font-medium">Действие</th>
                 <th className="py-3 pr-4 font-medium">Цель</th>
+                <th className="py-3 pr-4 font-medium">Детали</th>
               </tr>
             </thead>
             <tbody>
@@ -49,6 +52,9 @@ export default async function AdminSecurityPage() {
                   </td>
                   <td className="py-3 pr-4 text-gray-200">{e.action}</td>
                   <td className="py-3 pr-4 text-gray-400 max-w-[420px] truncate">{e.target || "—"}</td>
+                  <td className="py-3 pr-4 text-gray-500 max-w-[520px] truncate">
+                    {e.metadata || "—"}
+                  </td>
                 </tr>
               ))}
             </tbody>

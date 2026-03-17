@@ -1,9 +1,10 @@
 'use server'
 
 import bcrypt from 'bcryptjs'
-import { prisma } from '@/lib/prisma'
+import { getPrisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { revalidatePath } from 'next/cache'
+import { assertCsrfTokenValue } from '@/lib/csrf'
 
 export type ClientWithStats = {
   id: number
@@ -18,6 +19,7 @@ export type ClientWithStats = {
 }
 
 export async function getClients(): Promise<ClientWithStats[]> {
+  const prisma = getPrisma()
   const session = await getSession()
   if (!session || (session.role !== 'admin' && session.role !== 'manager')) {
     return []
@@ -64,7 +66,13 @@ export async function getClients(): Promise<ClientWithStats[]> {
   }))
 }
 
-export async function deleteClient(id: number) {
+export async function deleteClient(id: number, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || session.role !== 'admin') {
     return { error: 'Unauthorized' }
@@ -128,7 +136,17 @@ export async function deleteClient(id: number) {
   }
 }
 
-export async function updateClient(id: number, data: { name: string; phone: string; email: string; address: string; password?: string }) {
+export async function updateClient(
+  id: number,
+  data: { name: string; phone: string; email: string; address: string; password?: string },
+  csrfToken: string
+) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || session.role !== 'admin') {
     return { error: 'Unauthorized' }

@@ -6,9 +6,11 @@ import { v4 as uuidv4 } from 'uuid'
 import { getSession } from '@/lib/session'
 import { assertCsrf } from '@/lib/csrf'
 
-const PUBLIC_UPLOAD_DIR = process.platform === 'win32' 
+const DEFAULT_PUBLIC_UPLOAD_DIR = process.platform === 'win32'
   ? 'C:\\Users\\Dmitry\\Desktop\\reality3d-uploads\\public' // Local dev
   : '/var/www/reality3d-uploads/public' // Production
+
+const PUBLIC_UPLOAD_DIR = process.env.PUBLIC_UPLOAD_DIR || DEFAULT_PUBLIC_UPLOAD_DIR
 
 const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -50,7 +52,7 @@ export async function uploadPublicFile(formData: FormData) {
     // Ensure dir exists
     try { 
       await mkdir(PUBLIC_UPLOAD_DIR, { recursive: true }) 
-    } catch (e) {
+    } catch {
       // Ignore if exists
     }
     

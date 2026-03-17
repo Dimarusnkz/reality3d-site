@@ -1,10 +1,9 @@
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { getPrisma } from '@/lib/prisma';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 export async function sendTelegramMessage(message: string) {
+  const prisma = getPrisma()
   if (!TELEGRAM_BOT_TOKEN) {
     console.warn('Telegram bot token not set');
     return false;
@@ -17,7 +16,7 @@ export async function sendTelegramMessage(message: string) {
     // Если в базе нет подписчиков, используем .env как запасной вариант (для обратной совместимости)
     let chatIds: string[] = [];
     if (subscribers.length > 0) {
-      chatIds = subscribers.map(sub => sub.chatId);
+      chatIds = subscribers.map((sub: { chatId: string }) => sub.chatId);
     } else if (process.env.TELEGRAM_CHAT_ID) {
       chatIds = process.env.TELEGRAM_CHAT_ID.split(',').map(id => id.trim()).filter(id => id);
     }
@@ -47,7 +46,7 @@ export async function sendTelegramMessage(message: string) {
       return true;
     }));
 
-    return results.some(result => result);
+    return results.some((result: boolean) => result);
   } catch (error) {
     console.error('Error sending Telegram message:', error);
     return false;

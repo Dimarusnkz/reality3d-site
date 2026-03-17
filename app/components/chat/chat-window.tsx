@@ -2,8 +2,10 @@
 
 import React, { useRef, useEffect } from "react";
 import { Send, X, Paperclip, MessageSquare } from "lucide-react";
-import { useChat, Message } from "./chat-provider";
+import { useChat, type Message } from "./chat-provider";
 import { cn } from "@/lib/utils";
+
+const EMPTY_MESSAGES: Message[] = [];
 
 interface ChatWindowProps {
   className?: string;
@@ -17,14 +19,13 @@ export function ChatWindow({ className, embedded = false }: ChatWindowProps) {
     role, 
     sendMessage, 
     closeChat, 
-    currentUserRole 
   } = useChat();
 
   const [input, setInput] = React.useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const currentSession = sessions.find(s => s.id === currentSessionId);
-  const messages = currentSession?.messages || [];
+  const messages = currentSession?.messages ?? EMPTY_MESSAGES;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

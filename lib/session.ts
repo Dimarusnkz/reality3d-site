@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
+import { getPrisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
@@ -12,7 +12,7 @@ const key = new TextEncoder().encode(process.env.SESSION_SECRET || 'secret');
 
 const cookie = {
   name: 'session',
-  options: { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' },
+  options: { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, path: '/' },
   duration: 24 * 60 * 60 * 1000,
 };
 
@@ -46,6 +46,7 @@ export async function decrypt(session: string | undefined = '') {
 }
 
 export async function createSession(userId: string, role: string) {
+  const prisma = getPrisma();
   const expires = new Date(Date.now() + cookie.duration);
   const sessionDb = await prisma.session.create({
     data: {
@@ -66,6 +67,7 @@ export async function createSession(userId: string, role: string) {
 }
 
 export async function verifySession() {
+  const prisma = getPrisma();
   const cookieStore = await cookies();
   const session = cookieStore.get(cookie.name)?.value;
   const payload = await decrypt(session);
@@ -99,6 +101,7 @@ export async function verifySession() {
 }
 
 export async function deleteSession() {
+  const prisma = getPrisma();
   const cookieStore = await cookies();
   const session = cookieStore.get(cookie.name)?.value;
   const payload = await decrypt(session);
@@ -115,6 +118,7 @@ export async function deleteSession() {
 }
 
 export async function getSession() {
+  const prisma = getPrisma();
   const cookieStore = await cookies();
   const session = cookieStore.get(cookie.name)?.value;
   const payload = await decrypt(session);

@@ -2,12 +2,24 @@ import { PrismaClient as PostgresClient } from '@prisma/client';
 import { PrismaClient as SqliteClient } from '../generated/sqlite-client';
 import { PrismaClient as MysqlClient } from '../generated/mysql-client';
 
-type AnyClient = PostgresClient | SqliteClient | MysqlClient;
+type AnyClient = PostgresClient;
 
-const globalForPrisma = global as unknown as { prisma: AnyClient | undefined };
+const globalForDb = global as unknown as { __dbProvider?: string };
+const globalForClients = global as unknown as { __prismaClients?: Record<string, AnyClient> };
 
-function makeClient() {
-  const provider = (process.env.DB_PROVIDER || 'postgres').toLowerCase();
+export function getDbProvider() {
+  return (globalForDb.__dbProvider || process.env.DB_PROVIDER || 'postgres').toLowerCase();
+}
+
+export function setDbProvider(provider: string) {
+  globalForDb.__dbProvider = provider.toLowerCase();
+  if (globalForClients.__prismaClients) {
+    delete globalForClients.__prismaClients[globalForDb.__dbProvider];
+  }
+}
+
+function makeClient(): AnyClient {
+  const provider = getDbProvider();
   const url =
     provider === 'sqlite'
       ? process.env.DATABASE_URL_SQLITE
@@ -15,11 +27,30 @@ function makeClient() {
         ? process.env.DATABASE_URL_MYSQL
         : process.env.DATABASE_URL;
 
-  const Client = provider === 'sqlite' ? SqliteClient : provider === 'mysql' ? MysqlClient : PostgresClient;
-  if (!url) return new Client() as AnyClient;
-  return new Client({ datasources: { db: { url } } }) as AnyClient;
+  if (provider === 'sqlite') {
+    const client = url ? new SqliteClient({ datasources: { db: { url } } }) : new SqliteClient();
+    return client as unknown as AnyClient;
+  }
+
+  if (provider === 'mysql') {
+    const client = url ? new MysqlClient({ datasources: { db: { url } } }) : new MysqlClient();
+    return client as unknown as AnyClient;
+  }
+
+  const client = url ? new PostgresClient({ datasources: { db: { url } } }) : new PostgresClient();
+  return client;
 }
 
-export const prisma = globalForPrisma.prisma || makeClient();
+export function getPrisma(): AnyClient {
+  const provider = getDbProvider();
+  if (!globalForClients.__prismaClients) {
+    globalForClients.__prismaClients = {};
+  }
+  const existing = globalForClients.__prismaClients[provider];
+  if (existing) return existing;
+  const created = makeClient();
+  globalForClients.__prismaClients[provider] = created;
+  return created;
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+export const prisma: AnyClient = getPrisma();

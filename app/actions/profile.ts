@@ -1,6 +1,6 @@
 'use server'
 
-import { prisma } from '@/lib/prisma'
+import { getPrisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { revalidatePath } from 'next/cache'
 import bcrypt from 'bcryptjs'
@@ -15,6 +15,7 @@ export type ProfileState = {
 }
 
 export async function updateProfile(prevState: ProfileState, formData: FormData): Promise<ProfileState> {
+  const prisma = getPrisma()
   const csrf = await assertCsrf(formData)
   if (!csrf.ok) {
     return { error: csrf.error, success: false }
@@ -64,6 +65,7 @@ export async function updateProfile(prevState: ProfileState, formData: FormData)
 }
 
 export async function updatePassword(prevState: ProfileState, formData: FormData): Promise<ProfileState> {
+  const prisma = getPrisma()
   const csrf = await assertCsrf(formData)
   if (!csrf.ok) {
     return { error: csrf.error, success: false }

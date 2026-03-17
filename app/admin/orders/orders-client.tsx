@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Eye, Search, Filter, MessageSquare, X, Save, Clock, CheckCircle, Truck, DollarSign, Calendar, User, FileText, Trash2, Edit2, Download, ArrowLeft } from "lucide-react";
+import { Search, MessageSquare, X, Save, Calendar, User, FileText, Trash2, Edit2, Download, ArrowLeft } from "lucide-react";
 import { getOrderDetails, updateOrderStatus, updateOrderPrice, addOrderComment, assignOrder, getEmployees, deleteOrder, updateOrderDetails } from "@/app/actions/orders";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -81,12 +81,6 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
         });
     }
     setIsLoadingDetails(false);
-    setIsEditing(false);
-  };
-
-  const handleCloseModal = () => {
-    setSelectedOrder(null);
-    setCommentText("");
     setIsEditing(false);
   };
 

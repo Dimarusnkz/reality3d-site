@@ -4,6 +4,13 @@ import { useState, useEffect } from "react";
 import { Plus, Trash2, Send, Activity } from "lucide-react";
 import { addTelegramSubscriber, deleteTelegramSubscriber, getTelegramSubscribers, sendTestTelegramMessage } from "@/app/actions/telegram";
 
+function getCsrfToken() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length !== 2) return "";
+  return parts.pop()?.split(";").shift() || "";
+}
+
 type Subscriber = {
   id: number;
   chatId: string;
@@ -12,11 +19,11 @@ type Subscriber = {
 };
 
 interface TelegramSettingsProps {
-  botToken: string;
-  envChatId: string;
+  isBotTokenConfigured: boolean;
+  isEnvChatIdConfigured: boolean;
 }
 
-export default function TelegramSettings({ botToken, envChatId }: TelegramSettingsProps) {
+export default function TelegramSettings({ isBotTokenConfigured, isEnvChatIdConfigured }: TelegramSettingsProps) {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [newChatId, setNewChatId] = useState("");
   const [newName, setNewName] = useState("");
@@ -35,7 +42,7 @@ export default function TelegramSettings({ botToken, envChatId }: TelegramSettin
   const handleAdd = async () => {
     if (!newChatId) return;
     setLoading(true);
-    const result = await addTelegramSubscriber(newChatId, newName);
+    const result = await addTelegramSubscriber(newChatId, getCsrfToken(), newName);
     if (result.success) {
       setNewChatId("");
       setNewName("");
@@ -48,7 +55,7 @@ export default function TelegramSettings({ botToken, envChatId }: TelegramSettin
 
   const handleDelete = async (id: number) => {
     if (!confirm("Удалить этого получателя?")) return;
-    const result = await deleteTelegramSubscriber(id);
+    const result = await deleteTelegramSubscriber(id, getCsrfToken());
     if (result.success) {
       fetchSubscribers();
     } else {
@@ -58,7 +65,7 @@ export default function TelegramSettings({ botToken, envChatId }: TelegramSettin
 
   const handleTestBot = async () => {
     setTestLoading(true);
-    const result = await sendTestTelegramMessage();
+    const result = await sendTestTelegramMessage(getCsrfToken());
     if (result.success) {
       alert("Тестовое сообщение отправлено успешно!");
     } else {
@@ -151,10 +158,12 @@ export default function TelegramSettings({ botToken, envChatId }: TelegramSettin
         <h3 className="text-lg font-bold text-yellow-500">Debug Info (Server Env)</h3>
         <div className="space-y-1">
           <p className="text-gray-300 break-all">
-            <span className="text-gray-500">Bot Token:</span> <code className="bg-black/50 px-2 py-1 rounded text-sm">{botToken}</code>
+            <span className="text-gray-500">Bot Token:</span>{' '}
+            <code className="bg-black/50 px-2 py-1 rounded text-sm">{isBotTokenConfigured ? 'Задан' : 'Не задан'}</code>
           </p>
           <p className="text-gray-300 break-all">
-            <span className="text-gray-500">Env Chat ID:</span> <code className="bg-black/50 px-2 py-1 rounded text-sm">{envChatId}</code>
+            <span className="text-gray-500">Env Chat ID:</span>{' '}
+            <code className="bg-black/50 px-2 py-1 rounded text-sm">{isEnvChatIdConfigured ? 'Задан' : 'Не задан'}</code>
           </p>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { LkSidebar } from "@/components/lk-sidebar";
@@ -15,7 +15,17 @@ export default async function LkLayout({
      redirect('/login');
   }
 
-  const user = await prisma.user.findUnique({ where: { id: parseInt(session.userId) } });
+  const prisma = getPrisma();
+
+  const user = await prisma.user.findUnique({
+    where: { id: parseInt(session.userId) },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+    },
+  });
   
   if (!user) {
     redirect('/login');

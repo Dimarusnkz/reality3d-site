@@ -1,6 +1,6 @@
 'use server'
 
-import { prisma } from '@/lib/prisma';
+import { getPrisma } from '@/lib/prisma';
 import { decrypt, deleteSession, getSession } from '@/lib/session';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -8,6 +8,7 @@ import { logAudit } from '@/lib/audit';
 import { assertCsrf } from '@/lib/csrf';
 
 export async function revokeSession(prevState: unknown, formData: FormData) {
+  const prisma = getPrisma();
   const csrf = await assertCsrf(formData);
   if (!csrf.ok) {
     return { ok: false, error: csrf.error };
@@ -52,6 +53,7 @@ export async function revokeSession(prevState: unknown, formData: FormData) {
 }
 
 export async function revokeAllMySessions(formData: FormData) {
+  const prisma = getPrisma();
   const csrf = await assertCsrf(formData);
   if (!csrf.ok) {
     redirect('/login');
