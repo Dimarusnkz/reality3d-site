@@ -1,11 +1,14 @@
 'use server'
 
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
+import { getPrisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { createSession, deleteSession } from '@/lib/session';
+import { assertCsrf } from '@/lib/csrf';
+import { getClientIp } from '@/lib/request';
+import { rateLimit } from '@/lib/rate-limit';
 
 async function verifyTurnstile(token: string) {
   if (process.env.TURNSTILE_ENABLED !== 'true') {
@@ -71,6 +74,19 @@ const registerSchema = z.object({
 });
 
 export async function login(prevState: any, formData: FormData) {
+  const prisma = getPrisma();
+  const csrf = await assertCsrf(formData);
+  if (!csrf.ok) {
+    return { errors: { csrf_token: [csrf.error] } };
+  }
+
+  const ip = await getClientIp();
+  const emailKey = typeof formData.get('email') === 'string' ? (formData.get('email') as string) : '';
+  const rl = rateLimit(`auth:login:${ip}:${emailKey}`, 5, 60_000);
+  if (!rl.ok) {
+    return { errors: { email: ['Слишком много попыток. Подожди минуту и попробуй снова.'] } };
+  }
+
   const result = loginSchema.safeParse(Object.fromEntries(formData));
 
   if (!result.success) {
@@ -129,6 +145,19 @@ export async function login(prevState: any, formData: FormData) {
 }
 
 export async function register(prevState: any, formData: FormData) {
+  const prisma = getPrisma();
+  const csrf = await assertCsrf(formData);
+  if (!csrf.ok) {
+    return { errors: { csrf_token: [csrf.error] } };
+  }
+
+  const ip = await getClientIp();
+  const emailKey = typeof formData.get('email') === 'string' ? (formData.get('email') as string) : '';
+  const rl = rateLimit(`auth:register:${ip}:${emailKey}`, 3, 5 * 60_000);
+  if (!rl.ok) {
+    return { errors: { email: ['Слишком много попыток регистрации. Подожди 5 минут.'] } };
+  }
+
   const result = registerSchema.safeParse(Object.fromEntries(formData));
 
   if (!result.success) {
@@ -191,7 +220,12 @@ export async function register(prevState: any, formData: FormData) {
   }
 }
 
-export async function logout() {
+export async function logout(formData: FormData) {
+  const csrf = await assertCsrf(formData);
+  if (!csrf.ok) {
+    redirect('/login');
+  }
+
   await deleteSession();
   redirect('/login');
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Image as ImageIcon, Trash2, X, ExternalLink, Edit } from "lucide-react";
+import { Plus, Image as ImageIcon, Trash2, X, Edit } from "lucide-react";
+import Image from "next/image";
 import { usePortfolio } from "@/app/context/portfolio-context";
 import { cn } from "@/lib/utils";
 
@@ -96,11 +97,12 @@ export default function AdminPortfolioPage() {
         {projects.map((project) => (
           <div key={project.id} className="group relative bg-slate-900 rounded-xl overflow-hidden border border-slate-800 hover:border-primary/50 transition-all">
             <div className="aspect-video relative overflow-hidden bg-slate-950">
-               {/* Use img tag for simplicity or Next Image if configured */}
-               <img 
-                 src={project.imageUrl} 
-                 alt={project.title} 
-                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+               <Image
+                 src={project.imageUrl}
+                 alt={project.title}
+                 fill
+                 sizes="(max-width: 768px) 100vw, 33vw"
+                 className="object-cover transition-transform duration-500 group-hover:scale-110"
                />
                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
                
@@ -217,7 +219,13 @@ export default function AdminPortfolioPage() {
 
                   {formData.imageUrl && (
                     <div className="relative w-full h-32 rounded-lg overflow-hidden border border-slate-800">
-                      <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <Image
+                        src={formData.imageUrl}
+                        alt="Preview"
+                        fill
+                        sizes="100vw"
+                        className="object-cover"
+                      />
                       <button 
                         type="button"
                         onClick={() => setFormData({...formData, imageUrl: ""})}

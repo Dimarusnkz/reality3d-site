@@ -1,9 +1,12 @@
 'use server'
 
-import { prisma } from '@/lib/prisma'
+import { getPrisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { revalidatePath } from 'next/cache'
 import bcrypt from 'bcryptjs'
+import { assertCsrf } from '@/lib/csrf'
+import { getClientIp } from '@/lib/request'
+import { rateLimit } from '@/lib/rate-limit'
 
 export type ProfileState = {
   success?: boolean
@@ -12,6 +15,12 @@ export type ProfileState = {
 }
 
 export async function updateProfile(prevState: ProfileState, formData: FormData): Promise<ProfileState> {
+  const prisma = getPrisma()
+  const csrf = await assertCsrf(formData)
+  if (!csrf.ok) {
+    return { error: csrf.error, success: false }
+  }
+
   const session = await getSession()
   if (!session || !session.userId) {
     return { error: 'Unauthorized', success: false }
@@ -56,12 +65,23 @@ export async function updateProfile(prevState: ProfileState, formData: FormData)
 }
 
 export async function updatePassword(prevState: ProfileState, formData: FormData): Promise<ProfileState> {
+  const prisma = getPrisma()
+  const csrf = await assertCsrf(formData)
+  if (!csrf.ok) {
+    return { error: csrf.error, success: false }
+  }
+
   const session = await getSession()
   if (!session || !session.userId) {
     return { error: 'Unauthorized', success: false }
   }
 
   const userId = parseInt(session.userId)
+  const ip = await getClientIp()
+  const rl = rateLimit(`auth:password_change:${ip}:${userId}`, 5, 10 * 60_000)
+  if (!rl.ok) {
+    return { error: 'Слишком много попыток. Подожди и попробуй снова.', success: false }
+  }
   const currentPassword = formData.get('currentPassword') as string
   const newPassword = formData.get('newPassword') as string
   const confirmPassword = formData.get('confirmPassword') as string

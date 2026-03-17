@@ -4,6 +4,13 @@ import { useState, useEffect } from "react";
 import { Plus, Trash2, Send, Activity, Box } from "lucide-react";
 import { addMaxSubscriber, deleteMaxSubscriber, getMaxSubscribers, sendTestMaxMessage } from "@/app/actions/max";
 
+function getCsrfToken() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length !== 2) return "";
+  return parts.pop()?.split(";").shift() || "";
+}
+
 type Subscriber = {
   id: number;
   chatId: string;
@@ -12,10 +19,10 @@ type Subscriber = {
 };
 
 interface MaxSettingsProps {
-  botToken: string;
+  isConfigured: boolean;
 }
 
-export default function MaxSettings({ botToken }: MaxSettingsProps) {
+export default function MaxSettings({ isConfigured }: MaxSettingsProps) {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [newChatId, setNewChatId] = useState("");
   const [newName, setNewName] = useState("");
@@ -34,7 +41,7 @@ export default function MaxSettings({ botToken }: MaxSettingsProps) {
   const handleAdd = async () => {
     if (!newChatId) return;
     setLoading(true);
-    const result = await addMaxSubscriber(newChatId, newName);
+    const result = await addMaxSubscriber(newChatId, getCsrfToken(), newName);
     if (result.success) {
       setNewChatId("");
       setNewName("");
@@ -47,7 +54,7 @@ export default function MaxSettings({ botToken }: MaxSettingsProps) {
 
   const handleDelete = async (id: number) => {
     if (!confirm("Удалить этого получателя?")) return;
-    const result = await deleteMaxSubscriber(id);
+    const result = await deleteMaxSubscriber(id, getCsrfToken());
     if (result.success) {
       fetchSubscribers();
     } else {
@@ -57,7 +64,7 @@ export default function MaxSettings({ botToken }: MaxSettingsProps) {
 
   const handleTestBot = async () => {
     setTestLoading(true);
-    const result = await sendTestMaxMessage();
+    const result = await sendTestMaxMessage(getCsrfToken());
     if (result.success) {
       alert("MAX Bot успешно протестирован!");
     } else {
@@ -158,7 +165,7 @@ export default function MaxSettings({ botToken }: MaxSettingsProps) {
           Информация о боте
         </h4>
         <p className="mb-2">
-          Текущий токен бота: <span className="font-mono bg-slate-950 px-2 py-1 rounded text-purple-300">{botToken ? `${botToken.substring(0, 10)}...` : 'Не задан'}</span>
+          Токен бота: <span className="font-mono bg-slate-950 px-2 py-1 rounded text-purple-300">{isConfigured ? 'Задан' : 'Не задан'}</span>
         </p>
         <p>
           Для получения Chat ID, напишите боту команду <code>/start</code> или посмотрите в документации MAX API.

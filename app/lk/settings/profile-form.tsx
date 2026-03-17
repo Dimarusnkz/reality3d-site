@@ -3,7 +3,7 @@
 import { useActionState, useState, useRef, useEffect } from 'react'
 import { updateProfile, updatePassword, ProfileState } from '@/app/actions/profile'
 import { Eye, EyeOff, Lock, User as UserIcon, Mail, Phone, MapPin, ShieldCheck } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { CsrfTokenField } from '@/components/ui/csrf-token-field'
 
 const initialState: ProfileState = {
   message: '',
@@ -44,6 +44,7 @@ export function ProfileForm({ user }: { user: UserData }) {
         </div>
         
         <form action={profileAction} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <CsrfTokenField />
            <div className="space-y-2">
               <label className="text-sm font-medium text-gray-400 ml-1">Имя</label>
               <div className="relative">
@@ -132,6 +133,7 @@ export function ProfileForm({ user }: { user: UserData }) {
         </div>
         
         <form ref={passwordFormRef} action={passwordAction} className="max-w-md space-y-5">
+           <CsrfTokenField />
            <div className="space-y-2">
               <label className="text-sm font-medium text-gray-400 ml-1">Текущий пароль</label>
               <div className="relative">

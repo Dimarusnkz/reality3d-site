@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import { useCallback, useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +18,7 @@ const Captcha = forwardRef<CaptchaRef, CaptchaProps>(({ onValidate, className },
   const [userInput, setUserInput] = useState("");
   const [status, setStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
 
-  const generateCaptcha = () => {
+  const generateCaptcha = useCallback(() => {
     // Generate a 5-character alphanumeric string
     // Exclude confusing characters like I, l, 1, O, 0
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -30,11 +30,11 @@ const Captcha = forwardRef<CaptchaRef, CaptchaProps>(({ onValidate, className },
     setUserInput("");
     setStatus('idle');
     onValidate(false);
-  };
+  }, [onValidate]);
 
   useEffect(() => {
     generateCaptcha();
-  }, []);
+  }, [generateCaptcha]);
 
   useImperativeHandle(ref, () => ({
     reset: generateCaptcha

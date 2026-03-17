@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { submitRequest } from "@/app/actions/requests";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { CsrfTokenField } from "@/components/ui/csrf-token-field";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -111,6 +112,7 @@ export default function RequestForm() {
        )}
 
        <form action={handleSubmit} className="space-y-4">
+          <CsrfTokenField />
           <div className="grid grid-cols-2 gap-4">
              <div>
                 <input 

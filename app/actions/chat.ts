@@ -1,10 +1,9 @@
 'use server'
 
-import { PrismaClient } from '@prisma/client'
+import { getPrisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { revalidatePath } from 'next/cache'
-
-const prisma = new PrismaClient()
+import { assertCsrfTokenValue } from '@/lib/csrf'
 
 // --- Types ---
 export type ChatSessionWithDetails = {
@@ -40,6 +39,7 @@ export type MessageWithSender = {
 // --- Actions ---
 
 export async function getChats(): Promise<ChatSessionWithDetails[]> {
+  const prisma = getPrisma()
   const session = await getSession()
   if (!session) return []
 
@@ -88,6 +88,7 @@ export async function getChats(): Promise<ChatSessionWithDetails[]> {
 }
 
 export async function getChatMessages(sessionId: number): Promise<MessageWithSender[]> {
+  const prisma = getPrisma()
   const session = await getSession()
   if (!session) return []
 
@@ -140,7 +141,19 @@ export async function getChatMessages(sessionId: number): Promise<MessageWithSen
   }))
 }
 
-export async function sendMessage(sessionId: number, content: string, isInternal: boolean = false, attachments: string[] = []) {
+export async function sendMessage(
+  sessionId: number,
+  content: string,
+  csrfToken: string,
+  isInternal: boolean = false,
+  attachments: string[] = []
+) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session) return { error: 'Unauthorized' }
 
@@ -161,6 +174,13 @@ export async function sendMessage(sessionId: number, content: string, isInternal
   // Clients cannot send internal messages
   if ((role === 'user' || role === 'client') && isInternal) {
     return { error: 'Forbidden' }
+  }
+
+  if (!content || content.trim().length === 0) {
+    return { error: 'Message is empty' }
+  }
+  if (content.length > 5000) {
+    return { error: 'Message too long' }
   }
 
   try {
@@ -188,7 +208,13 @@ export async function sendMessage(sessionId: number, content: string, isInternal
   }
 }
 
-export async function createChatSession(orderId?: number, targetUserId?: number) {
+export async function createChatSession(csrfToken: string, orderId?: number, targetUserId?: number) {
+    const prisma = getPrisma()
+    const csrf = await assertCsrfTokenValue(csrfToken)
+    if (!csrf.ok) {
+      return { error: csrf.error }
+    }
+
     const session = await getSession()
     if (!session) return { error: 'Unauthorized' }
 

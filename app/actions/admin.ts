@@ -1,13 +1,19 @@
 'use server'
 
-import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/session'
-
-const prisma = new PrismaClient()
+import { getPrisma } from '@/lib/prisma'
+import { assertCsrf } from '@/lib/csrf'
+import { logAudit } from '@/lib/audit'
 
 export async function createUser(formData: FormData) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrf(formData)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || session.role !== 'admin') {
     return { error: 'Unauthorized' }
@@ -34,6 +40,8 @@ export async function createUser(formData: FormData) {
       },
     })
 
+    await logAudit({ actorUserId: parseInt(session.userId, 10), action: 'admin.user.create', target: email, metadata: { role } })
+
     revalidatePath('/admin/team')
     return { success: true }
   } catch (error) {
@@ -42,7 +50,15 @@ export async function createUser(formData: FormData) {
   }
 }
 
-export async function deleteUser(userId: number) {
+export async function deleteUser(userId: number, csrfToken: string) {
+  const prisma = getPrisma()
+  const fd = new FormData()
+  fd.set('csrf_token', csrfToken)
+  const csrf = await assertCsrf(fd)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || session.role !== 'admin') {
     return { error: 'Unauthorized' }
@@ -52,6 +68,8 @@ export async function deleteUser(userId: number) {
     await prisma.user.delete({
       where: { id: userId },
     })
+
+    await logAudit({ actorUserId: parseInt(session.userId, 10), action: 'admin.user.delete', target: userId.toString() })
     revalidatePath('/admin/team')
     return { success: true }
   } catch (error) {
@@ -61,6 +79,12 @@ export async function deleteUser(userId: number) {
 }
 
 export async function updateUser(userId: number, formData: FormData) {
+    const prisma = getPrisma()
+    const csrf = await assertCsrf(formData)
+    if (!csrf.ok) {
+      return { error: csrf.error }
+    }
+
     const session = await getSession()
     if (!session || session.role !== 'admin') {
       return { error: 'Unauthorized' }
@@ -86,6 +110,7 @@ export async function updateUser(userId: number, formData: FormData) {
             where: { id: userId },
             data
         })
+        await logAudit({ actorUserId: parseInt(session.userId, 10), action: 'admin.user.update', target: userId.toString(), metadata: { role } })
         revalidatePath('/admin/team')
         return { success: true }
     } catch (error) {

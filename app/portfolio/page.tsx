@@ -48,11 +48,12 @@ export default function PortfolioPage() {
           {filteredProjects.map((project) => (
             <div key={project.id} className="group relative bg-slate-900 rounded-xl overflow-hidden border border-slate-800 hover:border-primary/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(255,165,0,0.15)]">
               <div className="aspect-square relative overflow-hidden bg-slate-950">
-                 {/* Use img for simplicity or Next Image */}
-                 <img 
-                   src={project.imageUrl} 
-                   alt={project.title} 
-                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                 <Image
+                   src={project.imageUrl}
+                   alt={project.title}
+                   fill
+                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                   className="object-cover transition-transform duration-700 group-hover:scale-110"
                  />
                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-6 text-center backdrop-blur-[2px]">
                    <h3 className="text-xl font-bold text-white mb-2 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">{project.title}</h3>

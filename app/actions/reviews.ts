@@ -1,10 +1,17 @@
 'use server'
 
-import { prisma } from '@/lib/prisma'
+import { getPrisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { revalidatePath } from 'next/cache'
+import { assertCsrfTokenValue } from '@/lib/csrf'
 
-export async function createReview(rating: number, text: string, photos: string[]) {
+export async function createReview(rating: number, text: string, photos: string[], csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || !session.userId) {
     return { error: 'Unauthorized' }
@@ -46,6 +53,7 @@ export async function createReview(rating: number, text: string, photos: string[
 }
 
 export async function getReviews() {
+  const prisma = getPrisma()
   // Public - only approved
   try {
     const reviews = await prisma.review.findMany({
@@ -69,6 +77,7 @@ export async function getReviews() {
 }
 
 export async function getAllReviews() {
+  const prisma = getPrisma()
   // Admin - all
   const session = await getSession()
   if (!session || session.role !== 'admin') {
@@ -95,7 +104,13 @@ export async function getAllReviews() {
   }
 }
 
-export async function updateReviewStatus(id: number, status: 'approved' | 'rejected') {
+export async function updateReviewStatus(id: number, status: 'approved' | 'rejected', csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || session.role !== 'admin') {
     return { error: 'Unauthorized' }
@@ -116,7 +131,13 @@ export async function updateReviewStatus(id: number, status: 'approved' | 'rejec
   }
 }
 
-export async function deleteReview(id: number) {
+export async function deleteReview(id: number, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || session.role !== 'admin') {
     return { error: 'Unauthorized' }

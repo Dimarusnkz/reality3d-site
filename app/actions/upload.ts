@@ -4,15 +4,23 @@ import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { getSession } from '@/lib/session'
+import { assertCsrf } from '@/lib/csrf'
 
-const UPLOAD_DIR = process.platform === 'win32' 
+const DEFAULT_UPLOAD_DIR = process.platform === 'win32'
   ? 'C:\\Users\\Dmitry\\Desktop\\reality3d-uploads' // Local dev
   : '/var/www/reality3d-uploads' // Production
+
+const UPLOAD_DIR = process.env.UPLOAD_DIR || DEFAULT_UPLOAD_DIR
 
 const ALLOWED_EXTENSIONS = ['stl', 'obj', 'step', 'stp']
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 
 export async function uploadFile(formData: FormData) {
+  const csrf = await assertCsrf(formData)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || !session.userId) {
     return { error: 'Unauthorized' }
@@ -44,7 +52,7 @@ export async function uploadFile(formData: FormData) {
     // Ensure dir exists
     try { 
       await mkdir(UPLOAD_DIR, { recursive: true }) 
-    } catch (e) {
+    } catch {
       // Ignore if exists, or log if permission error
       // console.error('Mkdir error:', e)
     }

@@ -1,11 +1,18 @@
 import { getSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "./profile-form";
+import { SessionsCard } from "./sessions-card";
 
 export default async function LkSettingsPage() {
   const session = await getSession();
-  const user = session?.userId ? await prisma.user.findUnique({ where: { id: parseInt(session.userId) } }) : null;
+  const prisma = getPrisma();
+  const user = session?.userId
+    ? await prisma.user.findUnique({
+        where: { id: parseInt(session.userId) },
+        select: { id: true, name: true, email: true, phone: true, address: true },
+      })
+    : null;
 
   if (!user) {
     redirect('/login');
@@ -19,9 +26,27 @@ export default async function LkSettingsPage() {
             name: user.name,
             email: user.email,
             phone: user.phone,
-            address: (user as any).address || null
+            address: user.address || null
         }} />
       </div>
+
+      <SessionsCard
+        currentSessionId={session?.sessionId || ""}
+        sessions={(
+          await prisma.session.findMany({
+            where: { userId: user.id },
+            orderBy: { lastUsedAt: 'desc' },
+            select: { id: true, createdAt: true, lastUsedAt: true, expiresAt: true, revokedAt: true, userAgent: true },
+          })
+        ).map((s) => ({
+          id: s.id,
+          createdAt: s.createdAt.toISOString(),
+          lastUsedAt: s.lastUsedAt.toISOString(),
+          expiresAt: s.expiresAt.toISOString(),
+          revokedAt: s.revokedAt ? s.revokedAt.toISOString() : null,
+          userAgent: s.userAgent,
+        }))}
+      />
     </div>
   );
 }

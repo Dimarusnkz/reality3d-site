@@ -5,6 +5,13 @@ import { X, MessageSquare, Loader2, RefreshCw } from "lucide-react";
 import { getOrderDetails, addOrderComment, createOrder } from "@/app/actions/orders";
 import { cn } from "@/lib/utils";
 
+function getCsrfToken() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length !== 2) return '';
+  return parts.pop()?.split(';').shift() || '';
+}
+
 interface ClientOrderDetailsModalProps {
   orderId: number | null;
   onClose: () => void;
@@ -36,7 +43,7 @@ export function ClientOrderDetailsModal({ orderId, onClose }: ClientOrderDetails
     if (!commentText.trim()) return;
 
     setIsSubmitting(true);
-    const res = await addOrderComment(orderId, commentText);
+    const res = await addOrderComment(orderId, commentText, getCsrfToken());
     if (res.success) {
       const updated = await getOrderDetails(orderId);
       setOrder(updated);
@@ -53,7 +60,8 @@ export function ClientOrderDetailsModal({ orderId, onClose }: ClientOrderDetails
       const details = JSON.parse(order.details || "{}");
       const res = await createOrder({
           title: order.title + " (Копия)",
-          details: details
+          details: details,
+          csrfToken: getCsrfToken(),
       });
       setIsRepeating(false);
 
@@ -71,7 +79,7 @@ export function ClientOrderDetailsModal({ orderId, onClose }: ClientOrderDetails
     try {
       const details = JSON.parse(order.details || "{}");
       return details.files || [];
-    } catch (e) {
+    } catch {
       return [];
     }
   };

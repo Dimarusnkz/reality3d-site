@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 
-const PUBLIC_UPLOAD_DIR = process.platform === 'win32' 
+const DEFAULT_PUBLIC_UPLOAD_DIR = process.platform === 'win32'
   ? 'C:\\Users\\Dmitry\\Desktop\\reality3d-uploads\\public'
   : '/var/www/reality3d-uploads/public'
+
+const PUBLIC_UPLOAD_DIR = process.env.PUBLIC_UPLOAD_DIR || DEFAULT_PUBLIC_UPLOAD_DIR
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ filename: string }> }) {
   // Public route, no auth check needed for reading images
@@ -34,7 +36,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ file
         'Cache-Control': 'public, max-age=31536000, immutable'
       }
     })
-  } catch (error) {
+  } catch {
     return new NextResponse('File not found', { status: 404 })
   }
 }

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logout } from "@/app/actions/auth";
+import { CsrfTokenField } from "@/components/ui/csrf-token-field";
 
 const NAV_ITEMS = [
   { href: "/lk", label: "Дашборд", icon: LayoutDashboard },
@@ -31,13 +32,16 @@ const ROLE_LABELS: Record<string, string> = {
   client: 'Клиент'
 };
 
-export function LkSidebar({ user }: { user: any }) {
+type LkSidebarUser = {
+  id: number;
+  email: string;
+  name: string | null;
+  role: string;
+};
+
+export function LkSidebar({ user }: { user: LkSidebarUser }) {
   const pathname = usePathname();
   const roleLabel = ROLE_LABELS[user.role as string] || 'Клиент';
-
-  const handleLogout = async () => {
-    await logout();
-  };
 
   const initials = user.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2) : 'U';
 
@@ -78,13 +82,16 @@ export function LkSidebar({ user }: { user: any }) {
               </div>
            </div>
            
-           <button 
-             onClick={handleLogout}
-             className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-500 hover:bg-red-500/10 w-full transition-colors"
-           >
-             <LogOut className="h-5 w-5" />
-             Выйти
-           </button>
+           <form action={logout} className="w-full">
+             <CsrfTokenField />
+             <button
+               type="submit"
+               className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-500 hover:bg-red-500/10 w-full transition-colors"
+             >
+               <LogOut className="h-5 w-5" />
+               Выйти
+             </button>
+           </form>
         </div>
       </aside>
   );

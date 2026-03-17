@@ -1,13 +1,17 @@
 'use server'
 
-import { PrismaClient } from '@prisma/client'
+import { getPrisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/session'
 import { sendMaxMessage, verifyMaxToken } from '@/lib/max'
+import { assertCsrfTokenValue } from '@/lib/csrf'
 
-const prisma = new PrismaClient()
+export async function sendTestMaxMessage(csrfToken: string) {
+  const csrf = await assertCsrfTokenValue(csrfToken)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
 
-export async function sendTestMaxMessage() {
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
     return { error: 'Unauthorized' }
@@ -31,6 +35,7 @@ export async function sendTestMaxMessage() {
 }
 
 export async function getMaxSubscribers() {
+  const prisma = getPrisma()
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
     return []
@@ -41,7 +46,13 @@ export async function getMaxSubscribers() {
   })
 }
 
-export async function addMaxSubscriber(chatId: string, name?: string) {
+export async function addMaxSubscriber(chatId: string, csrfToken: string, name?: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
     return { error: 'Unauthorized' }
@@ -67,7 +78,13 @@ export async function addMaxSubscriber(chatId: string, name?: string) {
   }
 }
 
-export async function deleteMaxSubscriber(id: number) {
+export async function deleteMaxSubscriber(id: number, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
     return { error: 'Unauthorized' }

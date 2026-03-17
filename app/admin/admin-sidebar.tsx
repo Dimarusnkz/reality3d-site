@@ -13,13 +13,16 @@ import {
   BarChart3,
   LogOut,
   Shield,
+  ShieldCheck,
   MessageSquare,
   Send,
   Star,
-  Box
+  Box,
+  Database
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logout } from "@/app/actions/auth";
+import { CsrfTokenField } from "@/components/ui/csrf-token-field";
 
 const ADMIN_NAV_ITEMS = [
   { href: "/admin", label: "Обзор", icon: LayoutDashboard, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery'] },
@@ -27,11 +30,13 @@ const ADMIN_NAV_ITEMS = [
   { href: "/admin/chat", label: "Чат с клиентами", icon: MessageSquare, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery'] },
   { href: "/admin/clients", label: "Клиенты", icon: Users, roles: ['admin', 'manager'] },
   { href: "/admin/reviews", label: "Отзывы", icon: Star, roles: ['admin', 'manager'] },
+  { href: "/admin/security", label: "Безопасность", icon: ShieldCheck, roles: ['admin'] },
   { href: "/admin/team", label: "Сотрудники", icon: Shield, roles: ['admin'] },
   { href: "/admin/content", label: "Контент", icon: FileText, roles: ['admin', 'manager'] },
   { href: "/admin/blog", label: "Блог", icon: PenTool, roles: ['admin', 'manager'] },
   { href: "/admin/portfolio", label: "Портфолио", icon: ImageIcon, roles: ['admin', 'manager'] },
   { href: "/admin/analytics", label: "Аналитика", icon: BarChart3, roles: ['admin'] },
+  { href: "/admin/databases", label: "Базы данных", icon: Database, roles: ['admin'] },
   { href: "/admin/telegram", label: "Телеграм", icon: Send, roles: ['admin', 'manager'] },
   { href: "/admin/max", label: "MAX", icon: Box, roles: ['admin', 'manager'] },
   { href: "/admin/settings", label: "Настройки", icon: Settings, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery'] },
@@ -92,13 +97,16 @@ export default function AdminSidebar({ user }: { user: any }) {
             </div>
          </div>
          
-         <button 
-           onClick={() => logout()}
-           className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-gray-400 hover:text-white hover:bg-slate-800 w-full transition-colors"
-         >
-           <LogOut className="h-4 w-4" />
-           Выйти из панели
-         </button>
+         <form action={logout} className="w-full">
+           <CsrfTokenField />
+           <button
+             type="submit"
+             className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-gray-400 hover:text-white hover:bg-slate-800 w-full transition-colors"
+           >
+             <LogOut className="h-4 w-4" />
+             Выйти из панели
+           </button>
+         </form>
       </div>
     </aside>
   );

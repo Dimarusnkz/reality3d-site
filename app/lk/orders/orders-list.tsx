@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Filter, Eye, Plus, Package } from "lucide-react";
+import { Search, Eye, Plus, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CreateOrderModal } from "./create-order-modal";
 import { ClientOrderDetailsModal } from "./client-order-details";
@@ -33,7 +33,7 @@ export default function OrdersList({ initialOrders }: { initialOrders: any[] }) 
 
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [orders, setOrders] = useState(initialOrders);
+  const [orders] = useState(initialOrders);
 
   const filteredOrders = orders.filter(order => 
     order.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 

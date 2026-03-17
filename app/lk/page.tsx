@@ -1,12 +1,14 @@
 import { getSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import Link from "next/link";
-import { ArrowRight, Package, Clock, Calculator, Plus, Upload, CheckCircle2, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ArrowRight, Package, Calculator, Plus, Upload, CheckCircle2 } from "lucide-react";
 
 export default async function LkDashboard() {
   const session = await getSession();
-  const user = session?.userId ? await prisma.user.findUnique({ where: { id: parseInt(session.userId) } }) : null;
+  const prisma = getPrisma();
+  const user = session?.userId
+    ? await prisma.user.findUnique({ where: { id: parseInt(session.userId) } })
+    : null;
   const name = user?.name || "Пользователь";
 
   return (

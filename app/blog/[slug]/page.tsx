@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Calendar, User, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Metadata } from "next";
+import Image from "next/image";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -42,10 +43,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       {/* Hero Header with Image */}
       <div className="relative h-[400px] w-full">
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
-        <img 
-          src={article.coverImage || "https://placehold.co/1200x600/1e293b/ffffff?text=Article"} 
+        <Image
+          src={article.coverImage || "https://placehold.co/1200x600/1e293b/ffffff?text=Article"}
           alt={article.title}
-          className="w-full h-full object-cover"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
         />
         <div className="absolute bottom-0 left-0 right-0 z-20 container mx-auto px-4 pb-12">
           <Link href="/blog" className="inline-flex items-center text-primary hover:text-white mb-6 transition-colors">

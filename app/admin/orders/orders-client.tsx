@@ -1,10 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Eye, Search, Filter, MessageSquare, X, Save, Clock, CheckCircle, Truck, DollarSign, Calendar, User, FileText, Trash2, Edit2, Download, ArrowLeft } from "lucide-react";
+import { Search, MessageSquare, X, Save, Calendar, User, FileText, Trash2, Edit2, Download, ArrowLeft } from "lucide-react";
 import { getOrderDetails, updateOrderStatus, updateOrderPrice, addOrderComment, assignOrder, getEmployees, deleteOrder, updateOrderDetails } from "@/app/actions/orders";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
+
+function getCsrfToken() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length !== 2) return '';
+  return parts.pop()?.split(';').shift() || '';
+}
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Ожидает", color: "text-yellow-500 bg-yellow-500/10" },
@@ -77,16 +84,10 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
     setIsEditing(false);
   };
 
-  const handleCloseModal = () => {
-    setSelectedOrder(null);
-    setCommentText("");
-    setIsEditing(false);
-  };
-
   const handleDeleteOrder = async () => {
     if (!selectedOrder || !confirm("Вы уверены, что хотите удалить этот заказ?")) return;
     
-    const res = await deleteOrder(selectedOrder.id);
+    const res = await deleteOrder(selectedOrder.id, getCsrfToken());
     if (res.success) {
       setOrders(orders.filter(o => o.id !== selectedOrder.id));
       setSelectedOrder(null);
@@ -108,10 +109,14 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
     const parsed = JSON.parse(selectedOrder.details || "{}");
     const newDetails = { ...parsed, description: editData.description, files: editData.files };
     
-    const res = await updateOrderDetails(selectedOrder.id, {
-      title: editData.title,
-      details: newDetails
-    });
+    const res = await updateOrderDetails(
+      selectedOrder.id,
+      {
+        title: editData.title,
+        details: newDetails,
+      },
+      getCsrfToken()
+    );
 
     if (res.success) {
       const updatedOrder = { 
@@ -129,7 +134,7 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
 
   const handleStatusChange = async (newStatus: string) => {
     if (!selectedOrder) return;
-    const res = await updateOrderStatus(selectedOrder.id, newStatus);
+    const res = await updateOrderStatus(selectedOrder.id, newStatus, getCsrfToken());
     if (res.success) {
       setSelectedOrder({ ...selectedOrder, status: newStatus });
       setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, status: newStatus } : o));
@@ -143,7 +148,7 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
     const price = parseFloat(editPrice);
     if (isNaN(price)) return;
 
-    const res = await updateOrderPrice(selectedOrder.id, price);
+    const res = await updateOrderPrice(selectedOrder.id, price, getCsrfToken());
     if (res.success) {
       setSelectedOrder({ ...selectedOrder, price: price });
       setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, price: price } : o));
@@ -156,7 +161,7 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
     if (!selectedOrder) return;
     const id = employeeId === "unassigned" ? null : parseInt(employeeId);
     
-    const res = await assignOrder(selectedOrder.id, id);
+    const res = await assignOrder(selectedOrder.id, id, getCsrfToken());
     if (res.success) {
         // Optimistically update
         const assignedEmployee = employees.find(e => e.id === id) || null;
@@ -172,7 +177,7 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
     if (!commentText.trim() || !selectedOrder) return;
     
     setIsSubmittingComment(true);
-    const res = await addOrderComment(selectedOrder.id, commentText);
+    const res = await addOrderComment(selectedOrder.id, commentText, getCsrfToken());
     if (res.success) {
         // Refresh details to get the new comment with user info
         const updatedDetails = await getOrderDetails(selectedOrder.id);

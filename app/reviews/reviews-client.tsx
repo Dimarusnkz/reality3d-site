@@ -6,6 +6,13 @@ import { uploadPublicFile } from '@/app/actions/upload-public';
 import { createReview } from '@/app/actions/reviews';
 import Link from 'next/link';
 
+function getCsrfToken() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length !== 2) return '';
+  return parts.pop()?.split(';').shift() || '';
+}
+
 type Review = {
   id: number;
   rating: number;
@@ -16,7 +23,7 @@ type Review = {
 };
 
 export default function ReviewsClient({ initialReviews, user }: { initialReviews: Review[], user: any }) {
-  const [reviews, setReviews] = useState(initialReviews);
+  const [reviews] = useState(initialReviews);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -45,10 +52,13 @@ export default function ReviewsClient({ initialReviews, user }: { initialReviews
     setIsSubmitting(true);
 
     try {
+      const csrfToken = getCsrfToken();
+
       // 1. Upload files
       const uploadedPhotoNames: string[] = [];
       for (const file of files) {
         const formData = new FormData();
+        formData.append('csrf_token', csrfToken);
         formData.append('file', file);
         const result = await uploadPublicFile(formData);
         
@@ -61,7 +71,7 @@ export default function ReviewsClient({ initialReviews, user }: { initialReviews
       }
 
       // 2. Create review
-      const result = await createReview(rating, text, uploadedPhotoNames);
+      const result = await createReview(rating, text, uploadedPhotoNames, csrfToken);
       
       if (result.error) {
         throw new Error(result.error);
@@ -225,7 +235,6 @@ export default function ReviewsClient({ initialReviews, user }: { initialReviews
           >
             <X className="w-8 h-8" />
           </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src={`/api/public/${selectedPhoto}`} 
             alt="Full screen review" 
@@ -280,7 +289,6 @@ export default function ReviewsClient({ initialReviews, user }: { initialReviews
                            className="relative w-24 h-24 rounded-lg overflow-hidden bg-slate-950 border border-slate-800 cursor-zoom-in"
                            onClick={() => setSelectedPhoto(photo)}
                         >
-                           {/* eslint-disable-next-line @next/next/no-img-element */}
                            <img 
                              src={`/api/public/${photo}`} 
                              alt="Review attachment" 

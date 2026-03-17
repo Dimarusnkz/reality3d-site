@@ -31,9 +31,35 @@ NEXT_PUBLIC_TURNSTILE_SITE_KEY="0x..."
 TURNSTILE_SECRET_KEY="0x..."
 ```
 
+## Environment Variables
+
+**Database**
+- `DB_PROVIDER`: `postgres` | `sqlite` | `mysql`
+- `DATABASE_URL`: Postgres connection string
+- `DATABASE_URL_SQLITE`: SQLite connection string
+- `DATABASE_URL_MYSQL`: MySQL/MariaDB connection string
+
+**Uploads**
+- `UPLOAD_DIR`: directory for private uploads (defaults to platform-specific path)
+- `PUBLIC_UPLOAD_DIR`: directory for public images (defaults to platform-specific path)
+
+## Security Notes
+
+- CSRF uses a double-submit cookie (`csrf_token`) set in middleware and must be sent for state-changing operations.
+- `/api/upload` requires same-origin requests and CSRF token via `x-csrf-token` header.
+
+## Project Plan
+
+See the implementation plan: `.trae/documents/PLAN_оптимизация-модернизация.md`.
+
 ## Production
 
-See [PRODUCTION.md](file:///c:/Users/Dmitry/Desktop/Reality3D-site(Проэкт)/docs/PRODUCTION.md).
+Build and run:
+
+```bash
+npm run build
+npm run start
+```
 
 ## Learn More
 

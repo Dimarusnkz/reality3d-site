@@ -1,8 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { usePathname } from "next/navigation";
-import { getChats, getChatMessages, sendMessage as serverSendMessage, createChatSession, ChatSessionWithDetails } from "@/app/actions/chat";
+import { getChats, getChatMessages, sendMessage as serverSendMessage, createChatSession } from "@/app/actions/chat";
+
+function getCsrfToken() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length !== 2) return "";
+  return parts.pop()?.split(";").shift() || "";
+}
 
 export type MessageType = "text" | "image";
 export type SenderRole = "client" | "manager" | "engineer" | "admin" | "warehouse" | "delivery" | "guest";
@@ -40,7 +46,6 @@ interface ChatContextType {
   currentUserRole: string;
   setRole: (role: string) => void; // Deprecated/Debug
   createNewChat: () => Promise<void>;
-  isLoading: boolean;
   refreshChats: () => Promise<void>;
 }
 
@@ -49,18 +54,14 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 export function ChatProvider({ 
   children, 
   initialRole = "guest",
-  userId 
 }: { 
   children: React.ReactNode;
   initialRole?: string;
-  userId?: string;
 }) {
-  const pathname = usePathname();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [role, setRole] = useState<string>(initialRole);
-  const [isLoading, setIsLoading] = useState(false);
 
   // Sync role if prop changes (e.g. login)
   useEffect(() => {
@@ -166,7 +167,7 @@ export function ChatProvider({
           alert("Пожалуйста, войдите или зарегистрируйтесь, чтобы начать чат.");
           return;
       }
-      const res = await createChatSession();
+      const res = await createChatSession(getCsrfToken());
       if (res.success && res.chatId) {
           setCurrentSessionId(res.chatId.toString());
           fetchChats();
@@ -202,14 +203,10 @@ export function ChatProvider({
     }));
 
     if (currentSessionId && role !== 'guest') {
-        await serverSendMessage(parseInt(currentSessionId), text, isInternal);
+        await serverSendMessage(parseInt(currentSessionId), text, getCsrfToken(), isInternal);
         // Refresh to get real ID and confirmed state
         fetchChats();
     }
-  };
-
-  const selectSession = (sessionId: string) => {
-    setCurrentSessionId(sessionId);
   };
 
   return (
@@ -226,7 +223,6 @@ export function ChatProvider({
       currentUserRole: role,
       setRole,
       createNewChat,
-      isLoading,
       refreshChats: fetchChats
     }}>
       {children}

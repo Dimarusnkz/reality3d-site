@@ -1,13 +1,17 @@
 'use server'
 
-import { PrismaClient } from '@prisma/client'
+import { getPrisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/session'
 import { sendTelegramMessage } from '@/lib/telegram'
+import { assertCsrfTokenValue } from '@/lib/csrf'
 
-const prisma = new PrismaClient()
+export async function sendTestTelegramMessage(csrfToken: string) {
+  const csrf = await assertCsrfTokenValue(csrfToken)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
 
-export async function sendTestTelegramMessage() {
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
     return { error: 'Unauthorized' }
@@ -28,6 +32,7 @@ export async function sendTestTelegramMessage() {
 }
 
 export async function getTelegramSubscribers() {
+  const prisma = getPrisma()
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
     return []
@@ -38,7 +43,13 @@ export async function getTelegramSubscribers() {
   })
 }
 
-export async function addTelegramSubscriber(chatId: string, name?: string) {
+export async function addTelegramSubscriber(chatId: string, csrfToken: string, name?: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
     return { error: 'Unauthorized' }
@@ -64,7 +75,13 @@ export async function addTelegramSubscriber(chatId: string, name?: string) {
   }
 }
 
-export async function deleteTelegramSubscriber(id: number) {
+export async function deleteTelegramSubscriber(id: number, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
     return { error: 'Unauthorized' }

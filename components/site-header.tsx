@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, User, LogOut, Send, Box, MessageCircle } from "lucide-react";
+import { Menu, X, User, LogOut, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { logout } from "@/app/actions/auth";
+import { CsrfTokenField } from "@/components/ui/csrf-token-field";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 interface SiteHeaderProps {
   user?: {
@@ -18,10 +20,6 @@ export function SiteHeader({ user }: SiteHeaderProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const toggleMenu = () => setIsOpen(!isOpen);
-
-  const handleLogout = async () => {
-    await logout();
-  };
 
   const menuItems = [
     { href: "/services", label: "Услуги" },
@@ -72,18 +70,17 @@ export function SiteHeader({ user }: SiteHeaderProps) {
            </a>
            {/* Max (Custom Logo) */}
            <a href="https://max.ru/join/4YSX3vkvUjYNPAqayBmTLJuEmr0pBy65drrrrOOm6qg" target="_blank" rel="noopener noreferrer" className="relative w-8 h-8 rounded-full overflow-hidden hover:scale-110 transition-transform shadow-[0_0_10px_rgba(147,51,234,0.4)]" title="Max">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/max-logo.png" alt="Max" className="w-full h-full object-cover" />
            </a>
            {/* VK */}
            <a href="https://vk.com/Reality3DSPB" target="_blank" rel="noopener noreferrer" className="relative w-8 h-8 rounded-full overflow-hidden hover:scale-110 transition-transform shadow-[0_0_10px_rgba(0,119,255,0.4)]" title="VK">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/vk-logo.png" alt="VK" className="w-full h-full object-cover" />
            </a>
         </div>
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-4">
+          <ThemeToggle />
           {user ? (
             <div className="relative">
               <button 
@@ -109,16 +106,20 @@ export function SiteHeader({ user }: SiteHeaderProps) {
                     >
                       {dashboardLabel}
                     </Link>
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setIsUserMenuOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-slate-800 hover:text-red-400 flex items-center gap-2"
+                    <form
+                      action={logout}
+                      onSubmit={() => setIsUserMenuOpen(false)}
+                      className="w-full"
                     >
-                      <LogOut className="w-4 h-4" />
-                      Выход
-                    </button>
+                      <CsrfTokenField />
+                      <button
+                        type="submit"
+                        className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-slate-800 hover:text-red-400 flex items-center gap-2"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Выход
+                      </button>
+                    </form>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -159,6 +160,10 @@ export function SiteHeader({ user }: SiteHeaderProps) {
             className="md:hidden border-t border-slate-800 bg-black/95 backdrop-blur-xl overflow-hidden"
           >
             <div className="container mx-auto px-4 py-6 flex flex-col space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-gray-400">Тема</div>
+                <ThemeToggle />
+              </div>
               {menuItems.map((item) => (
                 <Link
                   key={item.href}
@@ -180,16 +185,16 @@ export function SiteHeader({ user }: SiteHeaderProps) {
                     <User className="w-5 h-5" />
                     {dashboardLabel}
                   </Link>
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setIsOpen(false);
-                    }}
-                    className="text-lg font-medium text-red-500 hover:text-red-400 transition-colors py-2 flex items-center gap-2"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    Выход
-                  </button>
+                  <form action={logout} onSubmit={() => setIsOpen(false)} className="w-full">
+                    <CsrfTokenField />
+                    <button
+                      type="submit"
+                      className="w-full text-left text-lg font-medium text-red-500 hover:text-red-400 transition-colors py-2 flex items-center gap-2"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      Выход
+                    </button>
+                  </form>
                 </>
               ) : (
                 <Link

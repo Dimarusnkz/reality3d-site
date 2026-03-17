@@ -8,6 +8,13 @@ import { useChat } from "@/app/components/chat/chat-provider";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
+function getCsrfToken() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length !== 2) return "";
+  return parts.pop()?.split(";").shift() || "";
+}
+
 export default function ClientsTable({ currentUserRole }: { currentUserRole: string }) {
   const [clients, setClients] = useState<ClientWithStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -16,12 +23,8 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
   const [isSaving, setIsSaving] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', address: '', password: '' });
   
-  const { selectSession, openChat, refreshChats } = useChat();
+  const { selectSession, refreshChats } = useChat();
   const router = useRouter();
-
-  useEffect(() => {
-    loadClients();
-  }, []);
 
   const loadClients = async () => {
     setIsLoading(true);
@@ -29,6 +32,10 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
     setClients(data);
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    loadClients();
+  }, []);
 
   const handleEditClick = () => {
     if (!selectedClient) return;
@@ -50,7 +57,7 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
     const payload = { ...editForm };
     if (!payload.password) delete (payload as any).password;
     
-    const result = await updateClient(selectedClient.id, payload);
+    const result = await updateClient(selectedClient.id, payload, getCsrfToken());
     if (result.success) {
       // Update local state
       const updatedData = { ...editForm };
@@ -78,7 +85,7 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
     } else {
         // Create new chat session for this client
         try {
-            const res = await createChatSession(undefined, client.id);
+            const res = await createChatSession(getCsrfToken(), undefined, client.id);
             if (res.success && res.chatId) {
                 await refreshChats();
                 selectSession(res.chatId.toString());
@@ -96,7 +103,7 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
   const handleDelete = async (id: number) => {
     if (!confirm("Вы уверены, что хотите удалить этого клиента? Все данные, включая историю заказов и переписку, будут удалены безвозвратно.")) return;
     
-    const res = await deleteClient(id);
+    const res = await deleteClient(id, getCsrfToken());
     if (res.success) {
       loadClients();
     } else {
