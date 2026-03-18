@@ -283,6 +283,7 @@ model ShopOrder {
   contactName        String?
   contactPhone       String?
   contactEmail       String?
+  deliveryPhone      String?
   deliveryCity       String?
   deliveryAddress    String?
   deliveryPostalCode String?

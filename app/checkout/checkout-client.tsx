@@ -15,17 +15,24 @@ function getCsrfToken() {
 
 type CheckoutItem = { name: string; quantity: number; unitPriceKopeks: number };
 
-export function CheckoutClient({ items }: { items: CheckoutItem[] }) {
+export function CheckoutClient({
+  items,
+  initial,
+}: {
+  items: CheckoutItem[];
+  initial?: { contactName?: string; contactPhone?: string; contactEmail?: string; deliveryAddress?: string; deliveryPhone?: string };
+}) {
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("pickup");
   const [paymentProvider, setPaymentProvider] = useState<"tbank" | "yookassa" | "sber_online" | "tinkoff_online">(
     "tbank"
   );
-  const [contactName, setContactName] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
+  const [contactName, setContactName] = useState(initial?.contactName || "");
+  const [contactPhone, setContactPhone] = useState(initial?.contactPhone || "");
+  const [contactEmail, setContactEmail] = useState(initial?.contactEmail || "");
   const [deliveryCity, setDeliveryCity] = useState("");
-  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState(initial?.deliveryAddress || "");
   const [deliveryPostalCode, setDeliveryPostalCode] = useState("");
+  const [deliveryPhone, setDeliveryPhone] = useState(initial?.deliveryPhone || initial?.contactPhone || "");
   const [comment, setComment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -40,7 +47,7 @@ export function CheckoutClient({ items }: { items: CheckoutItem[] }) {
     contactName.trim() &&
     contactPhone.trim() &&
     contactEmail.trim() &&
-    (shippingMethod === "pickup" ? true : deliveryCity.trim() && deliveryAddress.trim());
+    (shippingMethod === "pickup" ? true : deliveryCity.trim() && deliveryAddress.trim() && deliveryPhone.trim());
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -52,6 +59,7 @@ export function CheckoutClient({ items }: { items: CheckoutItem[] }) {
         contactName,
         contactPhone,
         contactEmail,
+        deliveryPhone: shippingMethod === "pickup" ? undefined : deliveryPhone,
         deliveryCity: shippingMethod === "pickup" ? undefined : deliveryCity,
         deliveryAddress: shippingMethod === "pickup" ? undefined : deliveryAddress,
         deliveryPostalCode: shippingMethod === "pickup" ? undefined : deliveryPostalCode,
@@ -202,6 +210,15 @@ export function CheckoutClient({ items }: { items: CheckoutItem[] }) {
                   value={deliveryPostalCode}
                   onChange={(e) => setDeliveryPostalCode(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-400 mb-1">Телефон для доставки</label>
+                <input
+                  value={deliveryPhone}
+                  onChange={(e) => setDeliveryPhone(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  placeholder="+7..."
                 />
               </div>
               <div className="sm:col-span-2">

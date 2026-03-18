@@ -10,10 +10,13 @@ export default async function CheckoutPage() {
   const prisma = getPrisma();
   const userId = parseInt(session.userId, 10);
 
-  const cart = await prisma.shopCart.findUnique({
-    where: { userId },
-    include: { items: { include: { product: true } } },
-  });
+  const [cart, user] = await Promise.all([
+    prisma.shopCart.findUnique({
+      where: { userId },
+      include: { items: { include: { product: true } } },
+    }),
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true, phone: true, address: true } }),
+  ]);
 
   const items =
     cart?.items
@@ -29,8 +32,16 @@ export default async function CheckoutPage() {
   return (
     <div className="container mx-auto px-4 py-10 space-y-8">
       <h1 className="text-3xl font-bold text-white">Оформление заказа</h1>
-      <CheckoutClient items={items} />
+      <CheckoutClient
+        items={items}
+        initial={{
+          contactName: user?.name || "",
+          contactEmail: user?.email || "",
+          contactPhone: user?.phone || "",
+          deliveryAddress: user?.address || "",
+          deliveryPhone: user?.phone || "",
+        }}
+      />
     </div>
   );
 }
-

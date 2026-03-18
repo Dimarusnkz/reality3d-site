@@ -87,6 +87,7 @@ export default async function ShopOrderPage({ params, searchParams }: { params: 
                 <div>{order.deliveryCity || "—"}</div>
                 <div>{order.deliveryAddress || "—"}</div>
                 <div className="text-xs text-gray-500 mt-1">Индекс: {order.deliveryPostalCode || "—"}</div>
+                <div className="text-xs text-gray-500 mt-1">Телефон: {order.deliveryPhone || order.contactPhone || "—"}</div>
               </div>
             )}
           </div>

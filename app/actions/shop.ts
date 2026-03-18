@@ -163,6 +163,7 @@ export async function createShopOrder(data: {
   contactName: string
   contactPhone: string
   contactEmail: string
+  deliveryPhone?: string
   deliveryCity?: string
   deliveryAddress?: string
   deliveryPostalCode?: string
@@ -216,6 +217,12 @@ export async function createShopOrder(data: {
   const subtotal = items.reduce((sum, i) => sum + i.totalKopeks, 0)
   const totalKopeks = subtotal + shippingCostKopeks
 
+  if (data.shippingMethod !== 'pickup') {
+    if (!data.deliveryCity?.trim() || !data.deliveryAddress?.trim() || !data.deliveryPhone?.trim()) {
+      return { ok: false as const, error: 'Заполните город, адрес и телефон для доставки' }
+    }
+  }
+
   const order = await prisma.$transaction(async (tx) => {
     const created = await tx.shopOrder.create({
       data: {
@@ -229,6 +236,7 @@ export async function createShopOrder(data: {
         contactName: data.contactName,
         contactPhone: data.contactPhone,
         contactEmail: data.contactEmail,
+        deliveryPhone: data.deliveryPhone || null,
         deliveryCity: data.deliveryCity || null,
         deliveryAddress: data.deliveryAddress || null,
         deliveryPostalCode: data.deliveryPostalCode || null,
