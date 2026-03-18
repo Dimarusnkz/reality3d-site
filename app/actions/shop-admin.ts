@@ -67,6 +67,7 @@ const productSchema = z.object({
     .max(200)
     .regex(/^[a-z0-9-]+$/i),
   sku: z.string().trim().max(80).optional().nullable(),
+  itemType: z.enum(['product', 'material', 'packaging', 'consumable']).optional().nullable(),
   shortDescription: z.string().trim().max(400).optional().nullable(),
   description: z.string().trim().max(10000).optional().nullable(),
   priceRub: z.number().min(0),
@@ -96,6 +97,9 @@ export async function createShopProduct(input: unknown, csrfToken: string) {
 
   const parsed = productSchema.safeParse(input)
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
+  if (parsed.data.isActive && parsed.data.itemType && parsed.data.itemType !== 'product') {
+    return { ok: false as const, error: 'Материалы/упаковку нельзя публиковать в магазине' }
+  }
   if (parsed.data.isActive && !parsed.data.allowPreorder && parsed.data.stock <= 0) {
     return { ok: false as const, error: 'Нельзя публиковать товар без остатков (включите предзаказ или поставьте остаток > 0)' }
   }
@@ -107,6 +111,7 @@ export async function createShopProduct(input: unknown, csrfToken: string) {
         name: parsed.data.name,
         slug: parsed.data.slug,
         sku: parsed.data.sku || null,
+        itemType: parsed.data.itemType || 'product',
         shortDescription: parsed.data.shortDescription || null,
         description: parsed.data.description || null,
         priceKopeks: toKopeks(parsed.data.priceRub),
@@ -149,6 +154,9 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
 
   const parsed = productSchema.safeParse(input)
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
+  if (parsed.data.isActive && parsed.data.itemType && parsed.data.itemType !== 'product') {
+    return { ok: false as const, error: 'Материалы/упаковку нельзя публиковать в магазине' }
+  }
   if (parsed.data.isActive && !parsed.data.allowPreorder && parsed.data.stock <= 0) {
     return { ok: false as const, error: 'Нельзя публиковать товар без остатков (включите предзаказ или поставьте остаток > 0)' }
   }
@@ -161,6 +169,7 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
         name: parsed.data.name,
         slug: parsed.data.slug,
         sku: parsed.data.sku || null,
+        itemType: parsed.data.itemType || 'product',
         shortDescription: parsed.data.shortDescription || null,
         description: parsed.data.description || null,
         priceKopeks: toKopeks(parsed.data.priceRub),

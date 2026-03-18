@@ -13,7 +13,7 @@ export default async function AdminWarehouseLowStockPage() {
 
   const prisma = getPrisma();
   const items = await prisma.shopInventoryItem.findMany({
-    where: { minThreshold: { gt: 0 } },
+    where: { warehouseId: 1, minThreshold: { gt: 0 } },
     select: {
       productId: true,
       unit: true,
@@ -98,4 +98,3 @@ export default async function AdminWarehouseLowStockPage() {
     </div>
   );
 }
-

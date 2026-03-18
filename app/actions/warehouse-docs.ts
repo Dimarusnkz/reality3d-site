@@ -141,6 +141,7 @@ export async function createWarehouseReceipt(input: unknown, csrfToken: string) 
   try {
     const rec = await prisma.warehouseReceipt.create({
       data: {
+        warehouseId: 1,
         supplierId: parsed.data.supplierId ?? null,
         documentNo: parsed.data.documentNo,
         receivedAt,
@@ -235,6 +236,7 @@ export async function addWarehouseReceiptItem(receiptId: string, input: unknown,
             name: parsed.data.productName,
             slug,
             sku,
+            itemType: 'material',
             shortDescription: null,
             description: null,
             priceKopeks: 0,
@@ -275,6 +277,7 @@ export async function addWarehouseReceiptItem(receiptId: string, input: unknown,
           actionType: 'receipt_draft',
           reason: 'purchase',
           productId,
+          warehouseId: 1,
           sku,
           productName: parsed.data.productName,
           quantityDelta: qty,
@@ -352,8 +355,17 @@ export async function postWarehouseReceipt(receiptId: string, csrfToken: string)
       for (const it of receipt.items) {
         if (!it.productId) continue
         const inv = await tx.shopInventoryItem.upsert({
-          where: { productId: it.productId },
-          create: { productId: it.productId, unit: it.unit, quantity: 0, reserved: 0, minThreshold: 0, lastPurchaseUnitCostKopeks: it.unitCostKopeks },
+          where: { productId_warehouseId: { productId: it.productId, warehouseId: receipt.warehouseId } },
+          create: {
+            productId: it.productId,
+            warehouseId: receipt.warehouseId,
+            locationId: receipt.locationId,
+            unit: it.unit,
+            quantity: 0,
+            reserved: 0,
+            minThreshold: 0,
+            lastPurchaseUnitCostKopeks: it.unitCostKopeks,
+          },
           update: {},
         })
 
@@ -383,6 +395,8 @@ export async function postWarehouseReceipt(receiptId: string, csrfToken: string)
             actionType: 'receipt',
             reason: 'purchase',
             productId: it.productId,
+            warehouseId: receipt.warehouseId,
+            locationId: receipt.locationId,
             sku: it.sku,
             productName: it.productName,
             quantityDelta: it.quantity,
@@ -420,4 +434,3 @@ export async function postWarehouseReceipt(receiptId: string, csrfToken: string)
     return { ok: false as const, error: 'Не удалось провести приход' }
   }
 }
-

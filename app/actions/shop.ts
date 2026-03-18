@@ -250,8 +250,8 @@ export async function createShopOrder(data: {
     for (const i of items) {
       if (i.allowPreorder) continue
       const inv = await tx.shopInventoryItem.upsert({
-        where: { productId: i.productId },
-        create: { productId: i.productId, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
+        where: { productId_warehouseId: { productId: i.productId, warehouseId: 1 } },
+        create: { productId: i.productId, warehouseId: 1, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
         update: {},
       })
       const qty = Number(inv.quantity)
@@ -268,6 +268,8 @@ export async function createShopOrder(data: {
           actionType: 'reserve',
           reason: 'sale',
           productId: i.productId,
+          warehouseId: 1,
+          locationId: inv.locationId ?? null,
           sku: i.sku || null,
           productName: i.productName,
           quantityDelta: i.quantity,

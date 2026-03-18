@@ -13,7 +13,7 @@ export default async function AdminWarehouseCatalogPage() {
 
   const prisma = getPrisma();
   const products = await prisma.shopProduct.findMany({
-    include: { category: true, images: { orderBy: { sortOrder: "asc" }, take: 1 }, inventoryItem: true },
+    include: { category: true, images: { orderBy: { sortOrder: "asc" }, take: 1 }, inventoryItems: { where: { warehouseId: 1 }, take: 1 } },
     orderBy: { createdAt: "desc" },
     take: 500,
   });

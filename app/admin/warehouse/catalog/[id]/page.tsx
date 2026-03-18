@@ -27,6 +27,7 @@ export default async function AdminWarehouseEditProductPage({ params }: { params
         name: true,
         slug: true,
         sku: true,
+        itemType: true,
         shortDescription: true,
         description: true,
         priceKopeks: true,

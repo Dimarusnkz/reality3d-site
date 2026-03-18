@@ -7,6 +7,10 @@ export type PermissionKey =
   | 'warehouse.writeoff'
   | 'warehouse.transfer'
   | 'warehouse.threshold.edit'
+  | 'warehouse.locations.manage'
+  | 'warehouse.recipes.manage'
+  | 'warehouse.production'
+  | 'warehouse.inventory'
   | 'logs.view'
   | 'logs.export'
   | 'finance.view'
@@ -52,4 +56,3 @@ export async function requirePermission(permissionKey: PermissionKey) {
   if (!ok) return { ok: false as const, error: 'Unauthorized' }
   return { ok: true as const, ...ctx }
 }
-

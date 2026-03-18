@@ -13,7 +13,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     include: { images: { orderBy: { sortOrder: "asc" } }, category: true },
   });
 
-  if (!product || !product.isActive) notFound();
+  if (!product || !product.isActive || product.itemType !== "product") notFound();
 
   const image = product.images[0]?.url || "/grid.svg";
 

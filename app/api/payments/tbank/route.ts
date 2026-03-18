@@ -91,8 +91,8 @@ export async function POST(request: Request) {
           for (const item of orderForWriteoff.items) {
             if (!item.productId) continue
             const inv = await tx.shopInventoryItem.upsert({
-              where: { productId: item.productId },
-              create: { productId: item.productId, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
+              where: { productId_warehouseId: { productId: item.productId, warehouseId: 1 } },
+              create: { productId: item.productId, warehouseId: 1, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
               update: {},
             })
 
@@ -120,6 +120,8 @@ export async function POST(request: Request) {
                 actionType: 'writeoff',
                 reason: 'sale',
                 productId: item.productId,
+                warehouseId: 1,
+                locationId: inv.locationId ?? null,
                 sku: item.sku || null,
                 productName: item.productName,
                 quantityDelta: -item.quantity,
@@ -188,7 +190,7 @@ export async function POST(request: Request) {
       await prisma.$transaction(async (tx) => {
         for (const item of orderForUnreserve.items) {
           if (!item.productId) continue
-          const inv = await tx.shopInventoryItem.findUnique({ where: { productId: item.productId } })
+          const inv = await tx.shopInventoryItem.findUnique({ where: { productId_warehouseId: { productId: item.productId, warehouseId: 1 } } })
           if (!inv) continue
           const currentQty = Number(inv.quantity)
           const currentReserved = Number((inv as any).reserved ?? 0)
@@ -204,6 +206,8 @@ export async function POST(request: Request) {
               actionType: 'unreserve',
               reason: 'sale',
               productId: item.productId,
+              warehouseId: 1,
+              locationId: inv.locationId ?? null,
               sku: item.sku || null,
               productName: item.productName,
               quantityDelta: -item.quantity,

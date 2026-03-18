@@ -41,6 +41,10 @@ model User {
   createdGroups AccessGroup[] @relation("AccessGroupCreator")
   warehouseReceiptsCreated WarehouseReceipt[] @relation("WarehouseReceiptCreator")
   warehouseReceiptsPosted  WarehouseReceipt[] @relation("WarehouseReceiptPoster")
+  warehouseProductionCreated WarehouseProductionOrder[] @relation("WarehouseProductionCreator")
+  warehouseProductionPosted  WarehouseProductionOrder[] @relation("WarehouseProductionPoster")
+  warehouseInventoriesCreated WarehouseInventoryCount[] @relation("WarehouseInventoryCreator")
+  warehouseInventoriesPosted  WarehouseInventoryCount[] @relation("WarehouseInventoryPoster")
 }
 
 model Session {
@@ -181,6 +185,7 @@ model ShopProduct {
   name             String
   slug             String             @unique
   sku              String?
+  itemType         String             @default("product")
   description      String?
   shortDescription String?
   priceKopeks      Int
@@ -195,15 +200,21 @@ model ShopProduct {
   wishlistItems    ShopWishlistItem[]
   cartItems        ShopCartItem[]
   orderItems       ShopOrderItem[]
-  inventoryItem    ShopInventoryItem?
+  inventoryItems   ShopInventoryItem[]
   warehouseLogs    ShopWarehouseLog[]
   clientLogs       ShopClientLog[]
   receiptItems     WarehouseReceiptItem[]
+  recipes          WarehouseRecipe[]
+  recipeMaterials  WarehouseRecipeItem[] @relation("WarehouseRecipeMaterial")
+  productionOrders WarehouseProductionOrder[]
+  productionConsumes WarehouseProductionConsumeItem[] @relation("WarehouseProductionMaterial")
+  inventoryCountItems WarehouseInventoryCountItem[]
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
   @@index([isActive, priceKopeks])
   @@index([categoryId])
+  @@index([itemType])
 }
 
 model ShopProductImage {
@@ -320,8 +331,12 @@ model ShopPayment {
 
 model ShopInventoryItem {
   id           Int        @id @default(autoincrement())
-  productId    Int        @unique
+  productId    Int
   product      ShopProduct @relation(fields: [productId], references: [id])
+  warehouseId  Int
+  warehouse    Warehouse  @relation(fields: [warehouseId], references: [id])
+  locationId   Int?
+  location     WarehouseLocation? @relation(fields: [locationId], references: [id])
   unit         String     @default("pcs")
   quantity     Decimal    @default(0) @db.Decimal(18, 3)
   reserved     Decimal    @default(0) @db.Decimal(18, 3)
@@ -332,6 +347,8 @@ model ShopInventoryItem {
 
   @@index([unit])
   @@index([quantity])
+  @@index([warehouseId])
+  @@unique([productId, warehouseId])
 }
 
 model ShopWarehouseLog {
@@ -344,6 +361,10 @@ model ShopWarehouseLog {
   reason        String?
   productId     Int?
   product       ShopProduct? @relation(fields: [productId], references: [id])
+  warehouseId   Int?
+  warehouse     Warehouse?  @relation(fields: [warehouseId], references: [id])
+  locationId    Int?
+  location      WarehouseLocation? @relation(fields: [locationId], references: [id])
   sku           String?
   productName   String?
   quantityDelta Decimal     @db.Decimal(18, 3)
@@ -392,6 +413,38 @@ model ShopClientLog {
   @@index([shopOrderId, createdAt])
 }
 
+model Warehouse {
+  id           Int                @id @default(autoincrement())
+  code         String             @unique
+  name         String
+  isActive     Boolean            @default(true)
+  locations    WarehouseLocation[]
+  inventory    ShopInventoryItem[]
+  receipts     WarehouseReceipt[]
+  productionOrders WarehouseProductionOrder[]
+  inventoryCounts  WarehouseInventoryCount[]
+  logs         ShopWarehouseLog[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+model WarehouseLocation {
+  id          Int       @id @default(autoincrement())
+  warehouseId Int
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  code        String
+  name        String
+  isActive    Boolean   @default(true)
+  inventory   ShopInventoryItem[]
+  receipts    WarehouseReceipt[]
+  logs        ShopWarehouseLog[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([warehouseId, code])
+  @@index([warehouseId])
+}
+
 model WarehouseSupplier {
   id             Int               @id @default(autoincrement())
   name           String            @unique
@@ -407,6 +460,10 @@ model WarehouseSupplier {
 
 model WarehouseReceipt {
   id             String              @id @default(uuid())
+  warehouseId    Int
+  warehouse      Warehouse           @relation(fields: [warehouseId], references: [id])
+  locationId     Int?
+  location       WarehouseLocation?  @relation(fields: [locationId], references: [id])
   supplierId     Int?
   supplier       WarehouseSupplier?  @relation(fields: [supplierId], references: [id])
   documentNo     String
@@ -427,6 +484,7 @@ model WarehouseReceipt {
   @@index([receivedAt])
   @@index([status, receivedAt])
   @@index([supplierId, receivedAt])
+  @@index([warehouseId, receivedAt])
 }
 
 model WarehouseReceiptItem {
@@ -444,6 +502,107 @@ model WarehouseReceiptItem {
   createdAt      DateTime        @default(now())
 
   @@index([receiptId])
+  @@index([productId])
+}
+
+model WarehouseRecipe {
+  id        String      @id @default(uuid())
+  productId Int         @unique
+  product   ShopProduct @relation(fields: [productId], references: [id])
+  version   Int         @default(1)
+  isActive  Boolean     @default(true)
+  items     WarehouseRecipeItem[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model WarehouseRecipeItem {
+  id                String          @id @default(uuid())
+  recipeId          String
+  recipe            WarehouseRecipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  materialProductId Int
+  material          ShopProduct     @relation("WarehouseRecipeMaterial", fields: [materialProductId], references: [id])
+  quantity          Decimal         @db.Decimal(18, 3)
+  unit              String
+  createdAt         DateTime        @default(now())
+
+  @@index([recipeId])
+  @@index([materialProductId])
+}
+
+model WarehouseProductionOrder {
+  id              String      @id @default(uuid())
+  warehouseId     Int
+  warehouse       Warehouse   @relation(fields: [warehouseId], references: [id])
+  productId       Int
+  product         ShopProduct @relation(fields: [productId], references: [id])
+  quantity        Decimal     @db.Decimal(18, 3)
+  unit            String
+  status          String      @default("draft")
+  comment         String?
+  createdByUserId Int?
+  createdBy       User?       @relation("WarehouseProductionCreator", fields: [createdByUserId], references: [id])
+  postedAt        DateTime?
+  postedByUserId  Int?
+  postedBy        User?       @relation("WarehouseProductionPoster", fields: [postedByUserId], references: [id])
+  consumes        WarehouseProductionConsumeItem[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([warehouseId, createdAt])
+  @@index([status, createdAt])
+}
+
+model WarehouseProductionConsumeItem {
+  id                String                   @id @default(uuid())
+  productionId      String
+  production        WarehouseProductionOrder @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  materialProductId Int
+  material          ShopProduct              @relation("WarehouseProductionMaterial", fields: [materialProductId], references: [id])
+  quantity          Decimal                  @db.Decimal(18, 3)
+  unit              String
+  unitCostKopeks    Int?
+  totalCostKopeks   Int?
+  createdAt         DateTime                 @default(now())
+
+  @@index([productionId])
+  @@index([materialProductId])
+}
+
+model WarehouseInventoryCount {
+  id              String      @id @default(uuid())
+  warehouseId     Int
+  warehouse       Warehouse   @relation(fields: [warehouseId], references: [id])
+  status          String      @default("draft")
+  comment         String?
+  startedAt       DateTime    @default(now())
+  createdByUserId Int?
+  createdBy       User?       @relation("WarehouseInventoryCreator", fields: [createdByUserId], references: [id])
+  postedAt        DateTime?
+  postedByUserId  Int?
+  postedBy        User?       @relation("WarehouseInventoryPoster", fields: [postedByUserId], references: [id])
+  items           WarehouseInventoryCountItem[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([warehouseId, startedAt])
+  @@index([status, startedAt])
+}
+
+model WarehouseInventoryCountItem {
+  id          String                @id @default(uuid())
+  inventoryId String
+  inventory   WarehouseInventoryCount @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  productId   Int
+  product     ShopProduct           @relation(fields: [productId], references: [id])
+  expectedQty Decimal               @db.Decimal(18, 3)
+  countedQty  Decimal               @db.Decimal(18, 3)
+  delta       Decimal               @db.Decimal(18, 3)
+  unit        String
+  createdAt   DateTime              @default(now())
+
+  @@unique([inventoryId, productId])
+  @@index([inventoryId])
   @@index([productId])
 }
 

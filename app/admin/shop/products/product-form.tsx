@@ -17,6 +17,7 @@ type ProductInput = {
   name: string;
   slug: string;
   sku: string;
+  itemType: string;
   shortDescription: string;
   description: string;
   priceRub: number;
@@ -40,6 +41,7 @@ export function ProductForm({
     name: string;
     slug: string;
     sku: string | null;
+    itemType: string;
     shortDescription: string | null;
     description: string | null;
     priceKopeks: number;
@@ -57,6 +59,7 @@ export function ProductForm({
       name: product?.name || "",
       slug: product?.slug || "",
       sku: product?.sku || "",
+      itemType: product?.itemType || "product",
       shortDescription: product?.shortDescription || "",
       description: product?.description || "",
       priceRub: (product?.priceKopeks || 0) / 100,
@@ -134,6 +137,7 @@ export function ProductForm({
         name: form.name,
         slug: form.slug,
         sku: form.sku || null,
+        itemType: form.itemType || "product",
         shortDescription: form.shortDescription || null,
         description: form.description || null,
         priceRub: Number(form.priceRub),
@@ -209,6 +213,20 @@ export function ProductForm({
                 {c.name}
               </option>
             ))}
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-400 ml-1">Тип товара</label>
+          <select
+            value={form.itemType}
+            onChange={(e) => setForm({ ...form, itemType: e.target.value })}
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+          >
+            <option value="product">Готовый продукт</option>
+            <option value="material">Сырьё</option>
+            <option value="packaging">Упаковка</option>
+            <option value="consumable">Расходник</option>
           </select>
         </div>
 

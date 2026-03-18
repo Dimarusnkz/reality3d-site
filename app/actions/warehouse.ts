@@ -98,8 +98,8 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
   try {
     const result = await prisma.$transaction(async (tx) => {
       const item = await tx.shopInventoryItem.upsert({
-        where: { productId: product.id },
-        create: { productId: product.id, unit, quantity: 0, reserved: 0, minThreshold: 0 },
+        where: { productId_warehouseId: { productId: product.id, warehouseId: 1 } },
+        create: { productId: product.id, warehouseId: 1, unit, quantity: 0, reserved: 0, minThreshold: 0 },
         update: {},
       })
 
@@ -139,6 +139,8 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
           actionType: parsed.data.actionType,
           reason: parsed.data.reason || null,
           productId: product.id,
+          warehouseId: 1,
+          locationId: item.locationId ?? null,
           sku: product.sku || null,
           productName: product.name,
           quantityDelta: delta,
@@ -162,11 +164,13 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
 
     const minThreshold = Number(result.updated.minThreshold)
     const quantity = Number(result.updated.quantity)
-    if (quantity <= minThreshold && minThreshold > 0) {
+    const reserved = Number((result.updated as any).reserved ?? 0)
+    const free = quantity - reserved
+    if (free <= minThreshold && minThreshold > 0) {
       await notifyLowStock({
         sku: product.sku || null,
         name: product.name,
-        quantity: String(quantity),
+        quantity: String(Math.max(0, free)),
         minThreshold: String(minThreshold),
         unit,
       })
@@ -218,8 +222,8 @@ export async function updateInventorySettings(input: unknown, csrfToken: string)
   try {
     await prisma.$transaction(async (tx) => {
       const item = await tx.shopInventoryItem.upsert({
-        where: { productId: product.id },
-        create: { productId: product.id, unit, quantity: 0, reserved: 0, minThreshold: min },
+        where: { productId_warehouseId: { productId: product.id, warehouseId: 1 } },
+        create: { productId: product.id, warehouseId: 1, unit, quantity: 0, reserved: 0, minThreshold: min },
         update: { unit, minThreshold: min },
       })
 
@@ -229,6 +233,8 @@ export async function updateInventorySettings(input: unknown, csrfToken: string)
           actorRole: access.role,
           actionType: 'threshold_update',
           productId: product.id,
+          warehouseId: 1,
+          locationId: item.locationId ?? null,
           sku: product.sku || null,
           quantityDelta: 0,
           unit: item.unit,

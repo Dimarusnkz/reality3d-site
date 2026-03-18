@@ -20,6 +20,7 @@ export default async function AdminWarehousePage() {
       take: 1000,
     }),
     prisma.shopInventoryItem.findMany({
+      where: { warehouseId: 1 },
       select: { productId: true, unit: true, quantity: true, reserved: true, minThreshold: true },
       orderBy: { updatedAt: "desc" },
       take: 2000,
@@ -71,10 +72,34 @@ export default async function AdminWarehousePage() {
             Приходы
           </Link>
           <Link
+            href="/admin/warehouse/recipes"
+            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+          >
+            Рецептуры
+          </Link>
+          <Link
+            href="/admin/warehouse/production"
+            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+          >
+            Производство
+          </Link>
+          <Link
+            href="/admin/warehouse/inventory"
+            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+          >
+            Инвентаризация
+          </Link>
+          <Link
             href="/admin/warehouse/suppliers"
             className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
           >
             Поставщики
+          </Link>
+          <Link
+            href="/admin/warehouse/locations"
+            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+          >
+            Локации
           </Link>
         </div>
       </div>

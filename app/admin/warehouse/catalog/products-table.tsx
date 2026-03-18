@@ -59,8 +59,8 @@ export default function CatalogProductsTable({ initialProducts }: { initialProdu
               <td className="p-4 text-gray-300">{p.category?.name || "—"}</td>
               <td className="p-4 text-gray-300">{formatRub(p.priceKopeks)}</td>
               <td className="p-4 text-gray-300">{p.stock}</td>
-              <td className="p-4 text-gray-300">{p.inventoryItem ? Number(p.inventoryItem.reserved || 0) : 0}</td>
-              <td className="p-4 text-gray-300">{p.inventoryItem ? Number(p.inventoryItem.quantity || 0) : 0}</td>
+              <td className="p-4 text-gray-300">{p.inventoryItems?.[0] ? Number(p.inventoryItems[0].reserved || 0) : 0}</td>
+              <td className="p-4 text-gray-300">{p.inventoryItems?.[0] ? Number(p.inventoryItems[0].quantity || 0) : 0}</td>
               <td className="p-4">
                 {p.isActive ? (
                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-xs">

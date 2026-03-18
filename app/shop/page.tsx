@@ -26,6 +26,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   const products = await prisma.shopProduct.findMany({
     where: {
       isActive: true,
+      itemType: "product",
       ...(q
         ? {
             OR: [
