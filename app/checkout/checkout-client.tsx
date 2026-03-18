@@ -433,18 +433,42 @@ export function CheckoutClient({
 
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
           <h2 className="text-lg font-semibold text-white">Оплата</h2>
-          <div className="text-sm text-gray-300">
-            Оплата переводом на карту (Т‑Банк). После оформления заказ получает статус «ждёт оплаты», товар резервируется.
-          </div>
-          <a
-            href={process.env.NEXT_PUBLIC_TBANK_SELFEMPLOYED_PAYMENT_URL || "https://www.tinkoff.ru/rm/r_JESjEcBisx.CSUFIGiBXm/5zoeh15252"}
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm text-primary hover:underline"
-          >
-            Перейти к оплате в Т‑Банк
-          </a>
-          <div className="text-xs text-gray-500">Администратор подтверждает оплату вручную после поступления средств.</div>
+          {(() => {
+            const payUrl =
+              process.env.NEXT_PUBLIC_TBANK_SELFEMPLOYED_PAYMENT_URL || "https://www.tinkoff.ru/rm/r_JESjEcBisx.CSUFIGiBXm/5zoeh15252";
+            return (
+              <>
+                <div className="text-sm text-gray-300">
+                  Оплатите переводом на карту по ссылке (Т‑Банк) либо наведите на QR‑код для ОПЛАТЫ. После нажмите ОФОРМИТЬ
+                  ЗАКАЗ!!!! Заказ получает статус «ждёт оплаты», товар резервируется.
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                  <a
+                    href={payUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Перейдите к оплате в Т‑Банк
+                  </a>
+
+                  <div className="sm:justify-self-end">
+                    <div className="bg-white rounded-xl p-3 inline-flex">
+                      <img
+                        src={`/api/qr?size=240&data=${encodeURIComponent(payUrl)}`}
+                        alt="QR-код для оплаты (Т‑Банк)"
+                        width={240}
+                        height={240}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-xs text-gray-500">Администратор подтверждает оплату после поступления средств.</div>
+              </>
+            );
+          })()}
         </div>
 
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-3">
@@ -505,7 +529,7 @@ export function CheckoutClient({
             className="w-full h-11 rounded-lg bg-primary text-white font-semibold shadow-[0_0_15px_rgba(255,94,0,0.3)] hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Оформить заказ
+            ОФОРМИТЬ ЗАКАЗ
           </button>
 
           {formError ? (
