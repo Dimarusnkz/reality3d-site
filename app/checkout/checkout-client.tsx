@@ -336,6 +336,9 @@ export function CheckoutClient({
               <div>
                 <div className="text-white font-medium">СДЭК</div>
                 <div className="text-sm text-gray-400">стоимость уточним после оформления</div>
+                <a href="https://www.cdek-calc.ru/" target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
+                  Рассчитать самостоятельно
+                </a>
               </div>
             </label>
 
@@ -349,6 +352,9 @@ export function CheckoutClient({
               <div>
                 <div className="text-white font-medium">Яндекс Доставка</div>
                 <div className="text-sm text-gray-400">стоимость уточним после оформления</div>
+                <a href="https://dostavka.yandex.ru/order/" target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
+                  Рассчитать самостоятельно
+                </a>
               </div>
             </label>
           </div>

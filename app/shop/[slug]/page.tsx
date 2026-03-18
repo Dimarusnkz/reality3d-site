@@ -58,6 +58,17 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <div className="space-y-2">
             <h1 className="text-3xl font-bold text-white">{product.name}</h1>
             {product.sku ? <div className="text-xs text-gray-500 font-mono">Артикул: {product.sku}</div> : null}
+            {product.weightGrams || product.lengthMm || product.widthMm || product.heightMm ? (
+              <div className="text-xs text-gray-400">
+                {product.weightGrams ? <span>Вес: {(product.weightGrams / 1000).toFixed(2)} кг</span> : null}
+                {product.weightGrams && (product.lengthMm || product.widthMm || product.heightMm) ? <span className="mx-2">•</span> : null}
+                {product.lengthMm && product.widthMm && product.heightMm ? (
+                  <span>
+                    Габариты: {Math.round(product.lengthMm / 10) / 10}×{Math.round(product.widthMm / 10) / 10}×{Math.round(product.heightMm / 10) / 10} см
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="flex items-end gap-4">

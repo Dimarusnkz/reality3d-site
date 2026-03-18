@@ -194,6 +194,10 @@ model ShopProduct {
   priceKopeks      Int
   purchasePriceKopeks Int?
   compareAtKopeks  Int?
+  weightGrams      Int?
+  lengthMm         Int?
+  widthMm          Int?
+  heightMm         Int?
   stock            Int                @default(0)
   allowPreorder    Boolean            @default(false)
   isActive         Boolean            @default(true)

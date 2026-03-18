@@ -23,6 +23,10 @@ type ProductInput = {
   priceRub: number;
   purchasePriceRub: number | null;
   compareAtRub: number | null;
+  weightGrams: number | null;
+  lengthMm: number | null;
+  widthMm: number | null;
+  heightMm: number | null;
   stock: number;
   allowPreorder: boolean;
   isActive: boolean;
@@ -47,6 +51,10 @@ export function ProductForm({
     priceKopeks: number;
     purchasePriceKopeks: number | null;
     compareAtKopeks: number | null;
+    weightGrams: number | null;
+    lengthMm: number | null;
+    widthMm: number | null;
+    heightMm: number | null;
     stock: number;
     allowPreorder: boolean;
     isActive: boolean;
@@ -65,6 +73,10 @@ export function ProductForm({
       priceRub: (product?.priceKopeks || 0) / 100,
       purchasePriceRub: product?.purchasePriceKopeks == null ? null : product.purchasePriceKopeks / 100,
       compareAtRub: product?.compareAtKopeks == null ? null : product.compareAtKopeks / 100,
+      weightGrams: product?.weightGrams ?? null,
+      lengthMm: product?.lengthMm ?? null,
+      widthMm: product?.widthMm ?? null,
+      heightMm: product?.heightMm ?? null,
       stock: product?.stock ?? 0,
       allowPreorder: product?.allowPreorder ?? false,
       isActive: product?.isActive ?? true,
@@ -143,6 +155,10 @@ export function ProductForm({
         priceRub: Number(form.priceRub),
         purchasePriceRub: canEditPurchasePrice ? (form.purchasePriceRub == null ? null : Number(form.purchasePriceRub)) : null,
         compareAtRub: form.compareAtRub == null ? null : Number(form.compareAtRub),
+        weightGrams: form.weightGrams == null ? null : Number(form.weightGrams),
+        lengthMm: form.lengthMm == null ? null : Number(form.lengthMm),
+        widthMm: form.widthMm == null ? null : Number(form.widthMm),
+        heightMm: form.heightMm == null ? null : Number(form.heightMm),
         stock: Number(form.stock),
         allowPreorder: Boolean(form.allowPreorder),
         isActive: Boolean(form.isActive),
@@ -263,6 +279,47 @@ export function ProductForm({
             onChange={(e) => setForm({ ...form, compareAtRub: e.target.value ? Number(e.target.value) : null })}
             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
           />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-400 ml-1">Вес (г)</label>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={form.weightGrams ?? ""}
+            onChange={(e) => setForm({ ...form, weightGrams: e.target.value ? Number(e.target.value) : null })}
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+          />
+        </div>
+
+        <div className="md:col-span-2 space-y-2">
+          <label className="text-sm font-medium text-gray-400 ml-1">Габариты упаковки (мм)</label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input
+              type="number"
+              inputMode="numeric"
+              value={form.lengthMm ?? ""}
+              onChange={(e) => setForm({ ...form, lengthMm: e.target.value ? Number(e.target.value) : null })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white"
+              placeholder="Длина"
+            />
+            <input
+              type="number"
+              inputMode="numeric"
+              value={form.widthMm ?? ""}
+              onChange={(e) => setForm({ ...form, widthMm: e.target.value ? Number(e.target.value) : null })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white"
+              placeholder="Ширина"
+            />
+            <input
+              type="number"
+              inputMode="numeric"
+              value={form.heightMm ?? ""}
+              onChange={(e) => setForm({ ...form, heightMm: e.target.value ? Number(e.target.value) : null })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white"
+              placeholder="Высота"
+            />
+          </div>
         </div>
 
         <div className="space-y-2">
