@@ -9,8 +9,6 @@ import {
   FileText, 
   PenTool, 
   Image as ImageIcon, 
-  Settings, 
-  BarChart3,
   LogOut,
   Shield,
   ShieldCheck,
@@ -39,14 +37,11 @@ const ADMIN_NAV_ITEMS = [
   { href: "/admin/reviews", label: "Отзывы", icon: Star, roles: ['admin', 'manager'] },
   { href: "/admin/security", label: "Безопасность", icon: ShieldCheck, roles: ['admin'] },
   { href: "/admin/team", label: "Сотрудники", icon: Shield, roles: ['admin'] },
-  { href: "/admin/content", label: "Контент", icon: FileText, roles: ['admin', 'manager'] },
   { href: "/admin/blog", label: "Блог", icon: PenTool, roles: ['admin', 'manager'] },
   { href: "/admin/portfolio", label: "Портфолио", icon: ImageIcon, roles: ['admin', 'manager'] },
-  { href: "/admin/analytics", label: "Аналитика", icon: BarChart3, roles: ['admin'] },
   { href: "/admin/databases", label: "Базы данных", icon: Database, roles: ['admin'] },
   { href: "/admin/telegram", label: "Телеграм", icon: Send, roles: ['admin', 'manager'] },
   { href: "/admin/max", label: "MAX", icon: Box, roles: ['admin', 'manager'] },
-  { href: "/admin/settings", label: "Настройки", icon: Settings, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery', 'accountant'] },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
