@@ -98,15 +98,15 @@ export function ServerMetricsPanel({ className }: { className?: string }) {
   const loadText = data ? data.load.slice(0, 3).map((n) => n.toFixed(2)).join(" / ") : "—";
 
   return (
-    <div className={cn("border border-slate-800 bg-slate-900/30 rounded-xl p-6", className)}>
-      <div className="flex items-center justify-between gap-4 mb-5">
+    <div className={cn("border border-slate-800 bg-slate-900/30 rounded-xl p-4", className)}>
+      <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-slate-800 rounded-lg">
-            <Server className="h-5 w-5 text-gray-300" />
+          <div className="p-1.5 bg-slate-800 rounded-lg">
+            <Server className="h-4 w-4 text-gray-300" />
           </div>
           <div>
-            <div className="text-xl font-bold text-white">Сервер</div>
-            <div className="text-sm text-gray-500">Реальное время (обновление ~2 сек)</div>
+            <div className="text-lg font-bold text-white">Сервер</div>
+            <div className="text-xs text-gray-500">Реальное время • ~2 сек</div>
           </div>
         </div>
         <div className="text-xs text-gray-500 flex items-center gap-2">
@@ -120,44 +120,44 @@ export function ServerMetricsPanel({ className }: { className?: string }) {
       ) : error ? (
         <div className="text-sm text-red-400">{error}</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-sm text-gray-400">CPU</div>
+              <div className="text-xs text-gray-400">CPU</div>
               <Cpu className="h-4 w-4 text-gray-500" />
             </div>
-            <div className="text-2xl font-bold text-white mt-2">{computed?.cpuPct == null ? "—" : `${computed.cpuPct.toFixed(0)}%`}</div>
+            <div className="text-xl font-bold text-white mt-1.5">{computed?.cpuPct == null ? "—" : `${computed.cpuPct.toFixed(0)}%`}</div>
             <div className="text-xs text-gray-500 mt-1">Load avg: {loadText}</div>
           </div>
 
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-sm text-gray-400">Память</div>
+              <div className="text-xs text-gray-400">Память</div>
               <Activity className="h-4 w-4 text-gray-500" />
             </div>
-            <div className="text-2xl font-bold text-white mt-2">{computed?.memPct == null ? "—" : `${computed.memPct.toFixed(0)}%`}</div>
+            <div className="text-xl font-bold text-white mt-1.5">{computed?.memPct == null ? "—" : `${computed.memPct.toFixed(0)}%`}</div>
             <div className="text-xs text-gray-500 mt-1">
               {data ? `${formatBytes(computed?.memUsed ?? 0)} / ${formatBytes(data.mem.totalBytes)}` : "—"}
             </div>
           </div>
 
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-sm text-gray-400">Диск</div>
+              <div className="text-xs text-gray-400">Диск</div>
               <HardDrive className="h-4 w-4 text-gray-500" />
             </div>
-            <div className="text-2xl font-bold text-white mt-2">{computed?.diskPct == null ? "—" : `${computed.diskPct.toFixed(0)}%`}</div>
+            <div className="text-xl font-bold text-white mt-1.5">{computed?.diskPct == null ? "—" : `${computed.diskPct.toFixed(0)}%`}</div>
             <div className="text-xs text-gray-500 mt-1">
               {data?.disk && computed?.diskUsed != null ? `${formatBytes(computed.diskUsed)} / ${formatBytes(data.disk.totalBytes)}` : "Недоступно"}
             </div>
           </div>
 
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-sm text-gray-400">Сеть</div>
+              <div className="text-xs text-gray-400">Сеть</div>
               <Network className="h-4 w-4 text-gray-500" />
             </div>
-            <div className="text-2xl font-bold text-white mt-2">
+            <div className="text-xl font-bold text-white mt-1.5">
               {computed?.rxPerSec == null || computed?.txPerSec == null ? "—" : `${formatBytes(computed.rxPerSec)}/с`}
             </div>
             <div className="text-xs text-gray-500 mt-1">
@@ -169,4 +169,3 @@ export function ServerMetricsPanel({ className }: { className?: string }) {
     </div>
   );
 }
-
