@@ -45,6 +45,8 @@ model User {
   warehouseProductionPosted  WarehouseProductionOrder[] @relation("WarehouseProductionPoster")
   warehouseInventoriesCreated WarehouseInventoryCount[] @relation("WarehouseInventoryCreator")
   warehouseInventoriesPosted  WarehouseInventoryCount[] @relation("WarehouseInventoryPoster")
+  warehouseTransfersCreated WarehouseTransfer[] @relation("WarehouseTransferCreator")
+  warehouseTransfersPosted  WarehouseTransfer[] @relation("WarehouseTransferPoster")
 }
 
 model Session {
@@ -209,6 +211,8 @@ model ShopProduct {
   productionOrders WarehouseProductionOrder[]
   productionConsumes WarehouseProductionConsumeItem[] @relation("WarehouseProductionMaterial")
   inventoryCountItems WarehouseInventoryCountItem[]
+  locationStocks  WarehouseLocationStock[]
+  transferItems   WarehouseTransferItem[]
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
@@ -420,7 +424,10 @@ model Warehouse {
   isActive     Boolean            @default(true)
   locations    WarehouseLocation[]
   inventory    ShopInventoryItem[]
+  locationStocks WarehouseLocationStock[]
   receipts     WarehouseReceipt[]
+  transfersFrom WarehouseTransfer[] @relation("WarehouseTransferFromWarehouse")
+  transfersTo   WarehouseTransfer[] @relation("WarehouseTransferToWarehouse")
   productionOrders WarehouseProductionOrder[]
   inventoryCounts  WarehouseInventoryCount[]
   logs         ShopWarehouseLog[]
@@ -436,13 +443,34 @@ model WarehouseLocation {
   name        String
   isActive    Boolean   @default(true)
   inventory   ShopInventoryItem[]
+  stocks      WarehouseLocationStock[]
   receipts    WarehouseReceipt[]
+  transfersFrom WarehouseTransfer[] @relation("WarehouseTransferFromLocation")
+  transfersTo   WarehouseTransfer[] @relation("WarehouseTransferToLocation")
   logs        ShopWarehouseLog[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   @@unique([warehouseId, code])
   @@index([warehouseId])
+}
+
+model WarehouseLocationStock {
+  id          Int       @id @default(autoincrement())
+  warehouseId Int
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  locationId  Int
+  location    WarehouseLocation @relation(fields: [locationId], references: [id])
+  productId   Int
+  product     ShopProduct @relation(fields: [productId], references: [id])
+  unit        String
+  quantity    Decimal   @default(0) @db.Decimal(18, 3)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([warehouseId, locationId, productId])
+  @@index([warehouseId, locationId])
+  @@index([productId])
 }
 
 model WarehouseSupplier {
@@ -485,6 +513,48 @@ model WarehouseReceipt {
   @@index([status, receivedAt])
   @@index([supplierId, receivedAt])
   @@index([warehouseId, receivedAt])
+}
+
+model WarehouseTransfer {
+  id              String      @id @default(uuid())
+  fromWarehouseId Int
+  fromWarehouse   Warehouse   @relation("WarehouseTransferFromWarehouse", fields: [fromWarehouseId], references: [id])
+  fromLocationId  Int?
+  fromLocation    WarehouseLocation? @relation("WarehouseTransferFromLocation", fields: [fromLocationId], references: [id])
+  toWarehouseId   Int
+  toWarehouse     Warehouse   @relation("WarehouseTransferToWarehouse", fields: [toWarehouseId], references: [id])
+  toLocationId    Int?
+  toLocation      WarehouseLocation? @relation("WarehouseTransferToLocation", fields: [toLocationId], references: [id])
+  status          String      @default("draft")
+  comment         String?
+  createdByUserId Int?
+  createdBy       User?       @relation("WarehouseTransferCreator", fields: [createdByUserId], references: [id])
+  postedAt        DateTime?
+  postedByUserId  Int?
+  postedBy        User?       @relation("WarehouseTransferPoster", fields: [postedByUserId], references: [id])
+  items           WarehouseTransferItem[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([status, createdAt])
+  @@index([fromWarehouseId, createdAt])
+  @@index([toWarehouseId, createdAt])
+}
+
+model WarehouseTransferItem {
+  id          String          @id @default(uuid())
+  transferId  String
+  transfer    WarehouseTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  productId   Int
+  product     ShopProduct     @relation(fields: [productId], references: [id])
+  sku         String?
+  productName String
+  quantity    Decimal         @db.Decimal(18, 3)
+  unit        String
+  createdAt   DateTime        @default(now())
+
+  @@index([transferId])
+  @@index([productId])
 }
 
 model WarehouseReceiptItem {

@@ -18,9 +18,11 @@ type ItemRow = { productId: number; name: string; sku: string | null; expectedQt
 export function InventoryViewClient({
   inv,
   products,
+  warehouseId,
 }: {
   inv: { id: string; status: string; startedAt: string; comment: string | null; items: ItemRow[] };
   products: ProductOption[];
+  warehouseId: number;
 }) {
   const options = useMemo(() => products.slice().sort((a, b) => a.name.localeCompare(b.name)), [products]);
   const [isBusy, setIsBusy] = useState(false);
@@ -70,7 +72,7 @@ export function InventoryViewClient({
             {inv.comment ? <div className="text-sm text-gray-300 mt-3">{inv.comment}</div> : null}
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/admin/warehouse/inventory" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+            <Link href={`/admin/warehouse/inventory?w=${warehouseId}`} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
               Назад
             </Link>
             {isDraft ? (
@@ -149,4 +151,3 @@ export function InventoryViewClient({
     </div>
   );
 }
-

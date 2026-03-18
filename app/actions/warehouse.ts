@@ -12,6 +12,7 @@ import { hasPermission, getUserAccessContext } from '@/lib/access'
 type Unit = 'pcs' | 'm' | 'kg'
 
 const movementSchema = z.object({
+  warehouseId: z.number().int().positive().optional().nullable(),
   productId: z.number().int().positive(),
   unit: z.enum(['pcs', 'm', 'kg']),
   quantity: z.string().trim().min(1),
@@ -79,6 +80,7 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
   if (!qty) return { ok: false as const, error: 'Некорректное количество' }
 
   const unit: Unit = parsed.data.unit
+  const warehouseId = parsed.data.warehouseId == null ? 1 : parsed.data.warehouseId
   if (unit === 'pcs' && !Number.isInteger(qty)) return { ok: false as const, error: 'Для шт. нужно целое количество' }
 
   if (parsed.data.actionType !== 'receipt' && qty > 10 && !['admin', 'manager'].includes(access.role)) {
@@ -98,8 +100,8 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
   try {
     const result = await prisma.$transaction(async (tx) => {
       const item = await tx.shopInventoryItem.upsert({
-        where: { productId_warehouseId: { productId: product.id, warehouseId: 1 } },
-        create: { productId: product.id, warehouseId: 1, unit, quantity: 0, reserved: 0, minThreshold: 0 },
+        where: { productId_warehouseId: { productId: product.id, warehouseId } },
+        create: { productId: product.id, warehouseId, unit, quantity: 0, reserved: 0, minThreshold: 0 },
         update: {},
       })
 
@@ -126,10 +128,12 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
       })
 
       if (unit === 'pcs') {
-        await tx.shopProduct.update({
-          where: { id: product.id },
-          data: { stock: Math.max(0, Math.trunc(next - currentReserved)) },
-        })
+        if (warehouseId === 1) {
+          await tx.shopProduct.update({
+            where: { id: product.id },
+            data: { stock: Math.max(0, Math.trunc(next - currentReserved)) },
+          })
+        }
       }
 
       await tx.shopWarehouseLog.create({
@@ -139,7 +143,7 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
           actionType: parsed.data.actionType,
           reason: parsed.data.reason || null,
           productId: product.id,
-          warehouseId: 1,
+          warehouseId,
           locationId: item.locationId ?? null,
           sku: product.sku || null,
           productName: product.name,
@@ -184,6 +188,8 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
     })
 
     revalidatePath('/admin/warehouse')
+    revalidatePath(`/admin/warehouse?w=${warehouseId}`)
+    revalidatePath(`/admin/warehouse/operations?w=${warehouseId}`)
     revalidatePath('/admin/logs')
     return { ok: true as const }
   } catch (e) {
@@ -192,6 +198,7 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
 }
 
 const inventorySettingsSchema = z.object({
+  warehouseId: z.number().int().positive().optional().nullable(),
   productId: z.number().int().positive(),
   unit: z.enum(['pcs', 'm', 'kg']),
   minThreshold: z.string().trim().min(0).max(32),
@@ -212,6 +219,7 @@ export async function updateInventorySettings(input: unknown, csrfToken: string)
 
   const min = parseQuantity(parsed.data.minThreshold === '' ? '0' : parsed.data.minThreshold) ?? 0
   const unit: Unit = parsed.data.unit
+  const warehouseId = parsed.data.warehouseId == null ? 1 : parsed.data.warehouseId
   if (unit === 'pcs' && !Number.isInteger(min)) return { ok: false as const, error: 'Для шт. порог должен быть целым' }
 
   const product = await prisma.shopProduct.findUnique({ where: { id: parsed.data.productId }, select: { id: true, sku: true } })
@@ -222,8 +230,8 @@ export async function updateInventorySettings(input: unknown, csrfToken: string)
   try {
     await prisma.$transaction(async (tx) => {
       const item = await tx.shopInventoryItem.upsert({
-        where: { productId_warehouseId: { productId: product.id, warehouseId: 1 } },
-        create: { productId: product.id, warehouseId: 1, unit, quantity: 0, reserved: 0, minThreshold: min },
+        where: { productId_warehouseId: { productId: product.id, warehouseId } },
+        create: { productId: product.id, warehouseId, unit, quantity: 0, reserved: 0, minThreshold: min },
         update: { unit, minThreshold: min },
       })
 
@@ -233,7 +241,7 @@ export async function updateInventorySettings(input: unknown, csrfToken: string)
           actorRole: access.role,
           actionType: 'threshold_update',
           productId: product.id,
-          warehouseId: 1,
+          warehouseId,
           locationId: item.locationId ?? null,
           sku: product.sku || null,
           quantityDelta: 0,

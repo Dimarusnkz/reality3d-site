@@ -18,10 +18,12 @@ type Row = { materialProductId: string; quantity: string; unit: string };
 export function RecipeClient({
   product,
   materials,
+  warehouseId,
   initial,
 }: {
   product: { id: number; name: string; sku: string | null; itemType: string };
   materials: ProductOption[];
+  warehouseId: number;
   initial: { isActive: boolean; items: { materialProductId: number; quantity: string; unit: string }[] } | null;
 }) {
   const options = useMemo(() => materials.slice().sort((a, b) => a.name.localeCompare(b.name)), [materials]);
@@ -74,7 +76,7 @@ export function RecipeClient({
             <div className="text-xs text-gray-500 font-mono mt-1">{product.sku || "—"}</div>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/admin/warehouse/recipes" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+            <Link href={`/admin/warehouse/recipes?w=${warehouseId}`} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
               Назад
             </Link>
             <button
@@ -165,4 +167,3 @@ export function RecipeClient({
     </div>
   );
 }
-

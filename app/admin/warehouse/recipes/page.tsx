@@ -4,12 +4,18 @@ import { getSession } from "@/lib/session";
 import { getPrisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/access";
 
-export default async function AdminWarehouseRecipesPage() {
+type SearchParams = { w?: string };
+
+export default async function AdminWarehouseRecipesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const session = await getSession();
   if (!session?.userId) redirect("/login");
   const userId = parseInt(session.userId, 10);
   const allowed = await hasPermission(userId, session.role, "warehouse.recipes.manage");
   if (!allowed) redirect("/admin");
+
+  const sp = await searchParams;
+  const warehouseId = sp.w ? parseInt(sp.w, 10) : 1;
+  const w = Number.isFinite(warehouseId) ? warehouseId : 1;
 
   const prisma = getPrisma();
   const [products, recipes] = await Promise.all([
@@ -31,10 +37,13 @@ export default async function AdminWarehouseRecipesPage() {
           <div className="text-sm text-gray-400 mt-1">Сырьё → продукт</div>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/admin/warehouse/production" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+          <Link href={`/admin/warehouse?w=${w}`} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+            Склад
+          </Link>
+          <Link href={`/admin/warehouse/production?w=${w}`} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
             Производство
           </Link>
-          <Link href="/admin/warehouse/catalog" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+          <Link href={`/admin/warehouse/catalog?w=${w}`} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
             Каталог
           </Link>
         </div>
@@ -63,7 +72,7 @@ export default async function AdminWarehouseRecipesPage() {
                   <td className="p-4 text-gray-300">{p.itemType}</td>
                   <td className="p-4 text-gray-300">{r ? `${r.isActive ? "активен" : "выкл"} v${r.version}` : "—"}</td>
                   <td className="p-4 text-right">
-                    <Link href={`/admin/warehouse/recipes/${p.id}`} className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white px-4 text-sm font-medium transition-colors">
+                    <Link href={`/admin/warehouse/recipes/${p.id}?w=${w}`} className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white px-4 text-sm font-medium transition-colors">
                       Открыть
                     </Link>
                   </td>
@@ -76,4 +85,3 @@ export default async function AdminWarehouseRecipesPage() {
     </div>
   );
 }
-

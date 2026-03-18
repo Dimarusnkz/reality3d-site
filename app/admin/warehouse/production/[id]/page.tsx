@@ -5,7 +5,15 @@ import { getPrisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/access";
 import { ProductionViewClient } from "./view-client";
 
-export default async function AdminWarehouseProductionItemPage({ params }: { params: Promise<{ id: string }> }) {
+type SearchParams = { w?: string };
+
+export default async function AdminWarehouseProductionItemPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<SearchParams>;
+}) {
   const session = await getSession();
   if (!session?.userId) redirect("/login");
   const userId = parseInt(session.userId, 10);
@@ -14,6 +22,9 @@ export default async function AdminWarehouseProductionItemPage({ params }: { par
 
   const prisma = getPrisma();
   const { id } = await params;
+  const sp = await searchParams;
+  const wRaw = sp.w ? parseInt(sp.w, 10) : 1;
+  const w = Number.isFinite(wRaw) ? wRaw : 1;
 
   const prod = await prisma.warehouseProductionOrder.findUnique({
     where: { id },
@@ -42,7 +53,7 @@ export default async function AdminWarehouseProductionItemPage({ params }: { par
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/admin/warehouse/production" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+          <Link href={`/admin/warehouse/production?w=${w}`} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
             Назад
           </Link>
         </div>
@@ -72,4 +83,3 @@ export default async function AdminWarehouseProductionItemPage({ params }: { par
     </div>
   );
 }
-

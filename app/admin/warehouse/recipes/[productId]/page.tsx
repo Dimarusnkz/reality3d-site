@@ -4,12 +4,24 @@ import { getPrisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/access";
 import { RecipeClient } from "./recipe-client";
 
-export default async function AdminWarehouseRecipeProductPage({ params }: { params: Promise<{ productId: string }> }) {
+type SearchParams = { w?: string };
+
+export default async function AdminWarehouseRecipeProductPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ productId: string }>;
+  searchParams: Promise<SearchParams>;
+}) {
   const session = await getSession();
   if (!session?.userId) redirect("/login");
   const userId = parseInt(session.userId, 10);
   const allowed = await hasPermission(userId, session.role, "warehouse.recipes.manage");
   if (!allowed) redirect("/admin");
+
+  const sp = await searchParams;
+  const warehouseId = sp.w ? parseInt(sp.w, 10) : 1;
+  const w = Number.isFinite(warehouseId) ? warehouseId : 1;
 
   const prisma = getPrisma();
   const { productId } = await params;
@@ -31,6 +43,7 @@ export default async function AdminWarehouseRecipeProductPage({ params }: { para
     <RecipeClient
       product={product}
       materials={materials as any}
+      warehouseId={w}
       initial={
         recipe
           ? {
@@ -42,4 +55,3 @@ export default async function AdminWarehouseRecipeProductPage({ params }: { para
     />
   );
 }
-

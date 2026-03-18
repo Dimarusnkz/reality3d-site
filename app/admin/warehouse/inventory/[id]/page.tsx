@@ -4,7 +4,15 @@ import { getPrisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/access";
 import { InventoryViewClient } from "./inventory-view-client";
 
-export default async function AdminWarehouseInventoryItemPage({ params }: { params: Promise<{ id: string }> }) {
+type SearchParams = { w?: string };
+
+export default async function AdminWarehouseInventoryItemPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<SearchParams>;
+}) {
   const session = await getSession();
   if (!session?.userId) redirect("/login");
   const userId = parseInt(session.userId, 10);
@@ -13,6 +21,9 @@ export default async function AdminWarehouseInventoryItemPage({ params }: { para
 
   const prisma = getPrisma();
   const { id } = await params;
+  const sp = await searchParams;
+  const wRaw = sp.w ? parseInt(sp.w, 10) : 1;
+  const w = Number.isFinite(wRaw) ? wRaw : 1;
 
   const [inv, products] = await Promise.all([
     prisma.warehouseInventoryCount.findUnique({
@@ -33,6 +44,7 @@ export default async function AdminWarehouseInventoryItemPage({ params }: { para
   return (
     <InventoryViewClient
       products={products as any}
+      warehouseId={w}
       inv={{
         id: inv.id,
         status: inv.status,
@@ -51,4 +63,3 @@ export default async function AdminWarehouseInventoryItemPage({ params }: { para
     />
   );
 }
-

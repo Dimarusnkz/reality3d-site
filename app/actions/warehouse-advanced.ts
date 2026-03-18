@@ -24,6 +24,7 @@ async function requirePerm(permissionKey: Parameters<typeof hasPermission>[2]) {
 }
 
 const locationSchema = z.object({
+  warehouseId: z.number().int().positive().optional().nullable(),
   code: z.string().trim().min(1).max(40).regex(/^[a-z0-9-_.]+$/i),
   name: z.string().trim().min(2).max(120),
   isActive: z.boolean().optional().nullable(),
@@ -41,9 +42,10 @@ export async function createWarehouseLocation(input: unknown, csrfToken: string)
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
 
   try {
+    const warehouseId = parsed.data.warehouseId == null ? 1 : parsed.data.warehouseId
     const created = await prisma.warehouseLocation.create({
       data: {
-        warehouseId: 1,
+        warehouseId,
         code: parsed.data.code,
         name: parsed.data.name,
         isActive: parsed.data.isActive == null ? true : Boolean(parsed.data.isActive),
@@ -52,6 +54,7 @@ export async function createWarehouseLocation(input: unknown, csrfToken: string)
     })
     await logAudit({ actorUserId: accessRes.access.userId, action: 'warehouse.location.create', target: String(created.id) })
     revalidatePath('/admin/warehouse/locations')
+    revalidatePath(`/admin/warehouse/locations?w=${warehouseId}`)
     return { ok: true as const, location: created }
   } catch {
     return { ok: false as const, error: 'Не удалось создать локацию' }
@@ -80,9 +83,66 @@ export async function updateWarehouseLocation(id: number, input: unknown, csrfTo
     })
     await logAudit({ actorUserId: accessRes.access.userId, action: 'warehouse.location.update', target: String(id) })
     revalidatePath('/admin/warehouse/locations')
+    if (parsed.data.warehouseId) revalidatePath(`/admin/warehouse/locations?w=${parsed.data.warehouseId}`)
     return { ok: true as const }
   } catch {
     return { ok: false as const, error: 'Не удалось сохранить локацию' }
+  }
+}
+
+const warehouseSchema = z.object({
+  code: z.string().trim().min(1).max(40).regex(/^[a-z0-9-_.]+$/i),
+  name: z.string().trim().min(2).max(120),
+  isActive: z.boolean().optional().nullable(),
+})
+
+export async function createWarehouse(input: unknown, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { ok: false as const, error: csrf.error }
+
+  const accessRes = await requirePerm('warehouse.locations.manage')
+  if (!accessRes.ok) return accessRes
+
+  const parsed = warehouseSchema.safeParse(input)
+  if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
+
+  try {
+    const created = await prisma.warehouse.create({
+      data: { code: parsed.data.code, name: parsed.data.name, isActive: parsed.data.isActive == null ? true : Boolean(parsed.data.isActive) },
+      select: { id: true, code: true, name: true, isActive: true },
+    })
+    await logAudit({ actorUserId: accessRes.access.userId, action: 'warehouse.create', target: String(created.id) })
+    revalidatePath('/admin/warehouse/warehouses')
+    revalidatePath('/admin/warehouse')
+    return { ok: true as const, warehouse: created }
+  } catch {
+    return { ok: false as const, error: 'Не удалось создать склад' }
+  }
+}
+
+export async function updateWarehouse(id: number, input: unknown, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { ok: false as const, error: csrf.error }
+
+  const accessRes = await requirePerm('warehouse.locations.manage')
+  if (!accessRes.ok) return accessRes
+
+  const parsed = warehouseSchema.safeParse(input)
+  if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
+
+  try {
+    await prisma.warehouse.update({
+      where: { id },
+      data: { code: parsed.data.code, name: parsed.data.name, isActive: parsed.data.isActive == null ? true : Boolean(parsed.data.isActive) },
+    })
+    await logAudit({ actorUserId: accessRes.access.userId, action: 'warehouse.update', target: String(id) })
+    revalidatePath('/admin/warehouse/warehouses')
+    revalidatePath('/admin/warehouse')
+    return { ok: true as const }
+  } catch {
+    return { ok: false as const, error: 'Не удалось сохранить склад' }
   }
 }
 
@@ -153,6 +213,7 @@ export async function saveWarehouseRecipe(input: unknown, csrfToken: string) {
 }
 
 const productionCreateSchema = z.object({
+  warehouseId: z.number().int().positive().optional().nullable(),
   productId: z.number().int().positive(),
   quantity: z.string().trim().min(1).max(32),
   unit: z.enum(['pcs']),
@@ -173,9 +234,10 @@ export async function createWarehouseProductionOrder(input: unknown, csrfToken: 
   if (!qty || qty <= 0 || !Number.isInteger(qty)) return { ok: false as const, error: 'Некорректное количество' }
 
   try {
+    const warehouseId = parsed.data.warehouseId == null ? 1 : parsed.data.warehouseId
     const created = await prisma.warehouseProductionOrder.create({
       data: {
-        warehouseId: 1,
+        warehouseId,
         productId: parsed.data.productId,
         quantity: qty,
         unit: parsed.data.unit,
@@ -232,8 +294,8 @@ export async function postWarehouseProductionOrder(id: string, csrfToken: string
 
       for (const line of materialLines) {
         const inv = await tx.shopInventoryItem.upsert({
-          where: { productId_warehouseId: { productId: line.materialProductId, warehouseId: 1 } },
-          create: { productId: line.materialProductId, warehouseId: 1, unit: line.unit, quantity: 0, reserved: 0, minThreshold: 0 },
+          where: { productId_warehouseId: { productId: line.materialProductId, warehouseId: prod.warehouseId } },
+          create: { productId: line.materialProductId, warehouseId: prod.warehouseId, unit: line.unit, quantity: 0, reserved: 0, minThreshold: 0 },
           update: {},
         })
 
@@ -270,7 +332,7 @@ export async function postWarehouseProductionOrder(id: string, csrfToken: string
             actionType: 'production_consume',
             reason: 'production',
             productId: line.materialProductId,
-            warehouseId: 1,
+            warehouseId: prod.warehouseId,
             locationId: inv.locationId ?? null,
             sku: material?.sku || null,
             productName: material?.name || null,
@@ -286,8 +348,8 @@ export async function postWarehouseProductionOrder(id: string, csrfToken: string
       }
 
       const outInv = await tx.shopInventoryItem.upsert({
-        where: { productId_warehouseId: { productId: prod.productId, warehouseId: 1 } },
-        create: { productId: prod.productId, warehouseId: 1, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
+        where: { productId_warehouseId: { productId: prod.productId, warehouseId: prod.warehouseId } },
+        create: { productId: prod.productId, warehouseId: prod.warehouseId, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
         update: {},
       })
       if (outInv.unit !== 'pcs') throw new Error('UNIT_MISMATCH')
@@ -296,7 +358,9 @@ export async function postWarehouseProductionOrder(id: string, csrfToken: string
       const outNext = outCurrent + outQty
 
       await tx.shopInventoryItem.update({ where: { id: outInv.id }, data: { quantity: outNext } })
-      await tx.shopProduct.update({ where: { id: prod.productId }, data: { stock: Math.max(0, Math.trunc(outNext - outReserved)) } })
+      if (prod.warehouseId === 1) {
+        await tx.shopProduct.update({ where: { id: prod.productId }, data: { stock: Math.max(0, Math.trunc(outNext - outReserved)) } })
+      }
 
       await tx.shopWarehouseLog.create({
         data: {
@@ -305,7 +369,7 @@ export async function postWarehouseProductionOrder(id: string, csrfToken: string
           actionType: 'production_output',
           reason: 'production',
           productId: prod.productId,
-          warehouseId: 1,
+          warehouseId: prod.warehouseId,
           locationId: outInv.locationId ?? null,
           sku: prod.product.sku || null,
           productName: prod.product.name,
@@ -340,6 +404,7 @@ export async function postWarehouseProductionOrder(id: string, csrfToken: string
 }
 
 const inventoryCreateSchema = z.object({
+  warehouseId: z.number().int().positive().optional().nullable(),
   comment: z.string().trim().max(500).optional().nullable(),
 })
 
@@ -355,12 +420,14 @@ export async function createWarehouseInventoryCount(input: unknown, csrfToken: s
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
 
   try {
+    const warehouseId = parsed.data.warehouseId == null ? 1 : parsed.data.warehouseId
     const created = await prisma.warehouseInventoryCount.create({
-      data: { warehouseId: 1, status: 'draft', comment: parsed.data.comment || null, createdByUserId: accessRes.access.userId },
+      data: { warehouseId, status: 'draft', comment: parsed.data.comment || null, createdByUserId: accessRes.access.userId },
       select: { id: true },
     })
     await logAudit({ actorUserId: accessRes.access.userId, action: 'warehouse.inventory.create', target: created.id })
     revalidatePath('/admin/warehouse/inventory')
+    revalidatePath(`/admin/warehouse/inventory?w=${warehouseId}`)
     return { ok: true as const, id: created.id }
   } catch {
     return { ok: false as const, error: 'Не удалось создать инвентаризацию' }
@@ -387,12 +454,12 @@ export async function setWarehouseInventoryCountItem(input: unknown, csrfToken: 
   const qty = parseDecimal(parsed.data.countedQty)
   if (qty == null || qty < 0) return { ok: false as const, error: 'Некорректное количество' }
 
-  const inv = await prisma.warehouseInventoryCount.findUnique({ where: { id: parsed.data.inventoryId }, select: { id: true, status: true } })
+  const inv = await prisma.warehouseInventoryCount.findUnique({ where: { id: parsed.data.inventoryId }, select: { id: true, status: true, warehouseId: true } })
   if (!inv) return { ok: false as const, error: 'Инвентаризация не найдена' }
   if (inv.status !== 'draft') return { ok: false as const, error: 'Нельзя менять проведённую инвентаризацию' }
 
   const inventory = await prisma.shopInventoryItem.findUnique({
-    where: { productId_warehouseId: { productId: parsed.data.productId, warehouseId: 1 } },
+    where: { productId_warehouseId: { productId: parsed.data.productId, warehouseId: inv.warehouseId } },
     select: { quantity: true, unit: true },
   })
 
@@ -445,8 +512,8 @@ export async function postWarehouseInventoryCount(id: string, csrfToken: string)
     await prisma.$transaction(async (tx) => {
       for (const it of inv.items) {
         const item = await tx.shopInventoryItem.upsert({
-          where: { productId_warehouseId: { productId: it.productId, warehouseId: 1 } },
-          create: { productId: it.productId, warehouseId: 1, unit: it.unit, quantity: 0, reserved: 0, minThreshold: 0 },
+          where: { productId_warehouseId: { productId: it.productId, warehouseId: inv.warehouseId } },
+          create: { productId: it.productId, warehouseId: inv.warehouseId, unit: it.unit, quantity: 0, reserved: 0, minThreshold: 0 },
           update: {},
         })
 
@@ -459,7 +526,9 @@ export async function postWarehouseInventoryCount(id: string, csrfToken: string)
         await tx.shopInventoryItem.update({ where: { id: item.id }, data: { quantity: targetQty } })
 
         if (item.unit === 'pcs') {
-          await tx.shopProduct.update({ where: { id: it.productId }, data: { stock: Math.max(0, Math.trunc(targetQty - reserved)) } })
+          if (inv.warehouseId === 1) {
+            await tx.shopProduct.update({ where: { id: it.productId }, data: { stock: Math.max(0, Math.trunc(targetQty - reserved)) } })
+          }
         }
 
         const p = await tx.shopProduct.findUnique({ where: { id: it.productId }, select: { sku: true, name: true } })
@@ -471,7 +540,7 @@ export async function postWarehouseInventoryCount(id: string, csrfToken: string)
             actionType: 'inventory_adjust',
             reason: 'inventory',
             productId: it.productId,
-            warehouseId: 1,
+            warehouseId: inv.warehouseId,
             locationId: item.locationId ?? null,
             sku: p?.sku || null,
             productName: p?.name || null,

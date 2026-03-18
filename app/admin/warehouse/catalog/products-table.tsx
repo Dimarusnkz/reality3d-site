@@ -13,7 +13,7 @@ function getCsrfToken() {
   return parts.pop()?.split(";").shift() || "";
 }
 
-export default function CatalogProductsTable({ initialProducts }: { initialProducts: any[] }) {
+export default function CatalogProductsTable({ initialProducts, warehouseId }: { initialProducts: any[]; warehouseId: number }) {
   const [products, setProducts] = useState(initialProducts);
 
   const remove = async (id: number) => {
@@ -89,7 +89,7 @@ export default function CatalogProductsTable({ initialProducts }: { initialProdu
                   <Image className="w-4 h-4" />
                 </Link>
                 <Link
-                  href={`/admin/warehouse/catalog/${p.id}`}
+                  href={`/admin/warehouse/catalog/${p.id}?w=${warehouseId}`}
                   className="inline-flex p-2 text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-colors"
                   title="Редактировать"
                 >

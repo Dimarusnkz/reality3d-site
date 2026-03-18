@@ -15,6 +15,7 @@ function getCsrfToken() {
 
 type Supplier = { id: number; name: string };
 type ProductOption = { id: number; name: string; sku: string | null };
+type Location = { id: number; code: string; name: string };
 type Item = {
   id: string;
   productId: number | null;
@@ -29,11 +30,14 @@ type Item = {
 export function ReceiptClient({
   receipt,
   suppliers,
+  locations,
   products,
 }: {
   receipt: {
     id: string;
     status: string;
+    warehouseId: number;
+    locationId: number | null;
     supplierId: number | null;
     documentNo: string;
     receivedAt: string;
@@ -43,13 +47,16 @@ export function ReceiptClient({
     items: Item[];
   };
   suppliers: Supplier[];
+  locations: Location[];
   products: ProductOption[];
 }) {
   const supplierOptions = useMemo(() => suppliers.slice().sort((a, b) => a.name.localeCompare(b.name)), [suppliers]);
+  const locationOptions = useMemo(() => locations.slice().sort((a, b) => a.code.localeCompare(b.code)), [locations]);
   const productOptions = useMemo(() => products.slice().sort((a, b) => a.name.localeCompare(b.name)), [products]);
 
   const [header, setHeader] = useState({
     supplierId: receipt.supplierId ? String(receipt.supplierId) : "",
+    locationId: receipt.locationId ? String(receipt.locationId) : "",
     documentNo: receipt.documentNo,
     receivedAt: receipt.receivedAt.slice(0, 10),
     attachmentUrl: receipt.attachmentUrl || "",
@@ -74,6 +81,8 @@ export function ReceiptClient({
       const res = await updateWarehouseReceipt(
         receipt.id,
         {
+          warehouseId: receipt.warehouseId,
+          locationId: header.locationId ? Number(header.locationId) : null,
           supplierId: header.supplierId ? Number(header.supplierId) : null,
           documentNo: header.documentNo,
           receivedAt: header.receivedAt,
@@ -188,7 +197,7 @@ export function ReceiptClient({
             <div className="text-xs text-gray-500 font-mono mt-1">{receipt.id}</div>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/admin/warehouse/receipts" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+            <Link href={`/admin/warehouse/receipts?w=${receipt.warehouseId}`} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
               Назад
             </Link>
             {isDraft ? (
@@ -219,6 +228,22 @@ export function ReceiptClient({
               {supplierOptions.map((s) => (
                 <option key={s.id} value={String(s.id)}>
                   {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-400 ml-1">Локация</label>
+            <select
+              value={header.locationId}
+              onChange={(e) => setHeader((p) => ({ ...p, locationId: e.target.value }))}
+              disabled={!isDraft}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white disabled:opacity-50"
+            >
+              <option value="">—</option>
+              {locationOptions.map((l) => (
+                <option key={l.id} value={String(l.id)}>
+                  {l.code} — {l.name}
                 </option>
               ))}
             </select>
@@ -411,4 +436,3 @@ export function ReceiptClient({
     </div>
   );
 }
-

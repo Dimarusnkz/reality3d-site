@@ -13,6 +13,7 @@ function getCsrfToken() {
 }
 
 type Supplier = { id: number; name: string };
+type Location = { id: number; code: string; name: string };
 type ReceiptRow = {
   id: string;
   status: string;
@@ -22,25 +23,42 @@ type ReceiptRow = {
   itemsCount: number;
 };
 
-export function ReceiptsClient({ suppliers, rows }: { suppliers: Supplier[]; rows: ReceiptRow[] }) {
+export function ReceiptsClient({
+  suppliers,
+  locations,
+  warehouseId,
+  rows,
+}: {
+  suppliers: Supplier[];
+  locations: Location[];
+  warehouseId: number;
+  rows: ReceiptRow[];
+}) {
   const [supplierId, setSupplierId] = useState<string>("");
+  const [locationId, setLocationId] = useState<string>("");
   const [documentNo, setDocumentNo] = useState("");
   const [isBusy, setIsBusy] = useState(false);
 
   const supplierOptions = useMemo(() => suppliers.slice().sort((a, b) => a.name.localeCompare(b.name)), [suppliers]);
+  const locationOptions = useMemo(() => locations.slice().sort((a, b) => a.code.localeCompare(b.code)), [locations]);
 
   const create = async () => {
     setIsBusy(true);
     try {
       const res = await createWarehouseReceipt(
-        { supplierId: supplierId ? Number(supplierId) : null, documentNo: documentNo.trim() },
+        {
+          warehouseId,
+          locationId: locationId ? Number(locationId) : null,
+          supplierId: supplierId ? Number(supplierId) : null,
+          documentNo: documentNo.trim(),
+        },
         getCsrfToken()
       );
       if (!res.ok) {
         alert(res.error || "Ошибка");
         return;
       }
-      window.location.href = `/admin/warehouse/receipts/${res.id}`;
+      window.location.href = `/admin/warehouse/receipts/${res.id}?w=${warehouseId}`;
     } finally {
       setIsBusy(false);
     }
@@ -50,7 +68,7 @@ export function ReceiptsClient({ suppliers, rows }: { suppliers: Supplier[]; row
     <div className="space-y-6">
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
         <div className="text-white font-semibold">Новый приход</div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-400 ml-1">Поставщик</label>
             <select
@@ -62,6 +80,21 @@ export function ReceiptsClient({ suppliers, rows }: { suppliers: Supplier[]; row
               {supplierOptions.map((s) => (
                 <option key={s.id} value={String(s.id)}>
                   {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-400 ml-1">Локация</label>
+            <select
+              value={locationId}
+              onChange={(e) => setLocationId(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white"
+            >
+              <option value="">—</option>
+              {locationOptions.map((l) => (
+                <option key={l.id} value={String(l.id)}>
+                  {l.code} — {l.name}
                 </option>
               ))}
             </select>
@@ -113,7 +146,7 @@ export function ReceiptsClient({ suppliers, rows }: { suppliers: Supplier[]; row
                 <td className="p-4 text-gray-300">{r.status}</td>
                 <td className="p-4 text-right">
                   <Link
-                    href={`/admin/warehouse/receipts/${r.id}`}
+                    href={`/admin/warehouse/receipts/${r.id}?w=${warehouseId}`}
                     className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white px-4 text-sm font-medium transition-colors"
                   >
                     Открыть
@@ -128,4 +161,3 @@ export function ReceiptsClient({ suppliers, rows }: { suppliers: Supplier[]; row
     </div>
   );
 }
-

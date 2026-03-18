@@ -15,7 +15,7 @@ function getCsrfToken() {
 type ProductOption = { id: number; name: string; sku: string | null; itemType: string };
 type Row = { id: string; createdAt: string; status: string; productName: string; qty: string; };
 
-export function ProductionClient({ products, rows }: { products: ProductOption[]; rows: Row[] }) {
+export function ProductionClient({ products, rows, warehouseId }: { products: ProductOption[]; rows: Row[]; warehouseId: number }) {
   const options = useMemo(() => products.slice().sort((a, b) => a.name.localeCompare(b.name)), [products]);
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState("1");
@@ -25,12 +25,12 @@ export function ProductionClient({ products, rows }: { products: ProductOption[]
   const create = async () => {
     setIsBusy(true);
     try {
-      const res = await createWarehouseProductionOrder({ productId: Number(productId), quantity, unit: "pcs", comment: comment || null }, getCsrfToken());
+      const res = await createWarehouseProductionOrder({ warehouseId, productId: Number(productId), quantity, unit: "pcs", comment: comment || null }, getCsrfToken());
       if (!res.ok) {
         alert(res.error || "Ошибка");
         return;
       }
-      window.location.href = `/admin/warehouse/production/${res.id}`;
+      window.location.href = `/admin/warehouse/production/${res.id}?w=${warehouseId}`;
     } finally {
       setIsBusy(false);
     }
@@ -98,7 +98,7 @@ export function ProductionClient({ products, rows }: { products: ProductOption[]
                 <td className="p-4 text-right text-gray-200">{r.qty}</td>
                 <td className="p-4 text-gray-300">{r.status}</td>
                 <td className="p-4 text-right">
-                  <Link href={`/admin/warehouse/production/${r.id}`} className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white px-4 text-sm font-medium transition-colors">
+                  <Link href={`/admin/warehouse/production/${r.id}?w=${warehouseId}`} className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white px-4 text-sm font-medium transition-colors">
                     Открыть
                   </Link>
                 </td>
@@ -111,4 +111,3 @@ export function ProductionClient({ products, rows }: { products: ProductOption[]
     </div>
   );
 }
-

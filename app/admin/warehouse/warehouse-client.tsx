@@ -17,9 +17,11 @@ type Inventory = { productId: number; unit: string; quantity: string; reserved: 
 export function WarehouseClient({
   products,
   inventory,
+  warehouseId,
 }: {
   products: Product[];
   inventory: Inventory[];
+  warehouseId: number;
 }) {
   const inventoryMap = useMemo(() => new Map(inventory.map((i) => [i.productId, i])), [inventory]);
   const [productId, setProductId] = useState<number>(products[0]?.id || 0);
@@ -42,6 +44,7 @@ export function WarehouseClient({
     try {
       const res = await createWarehouseMovement(
         {
+          warehouseId,
           productId,
           unit,
           quantity,
@@ -68,7 +71,7 @@ export function WarehouseClient({
   const saveSettings = async () => {
     setIsBusy(true);
     try {
-      const res = await updateInventorySettings({ productId, unit, minThreshold }, getCsrfToken());
+      const res = await updateInventorySettings({ warehouseId, productId, unit, minThreshold }, getCsrfToken());
       if (!res.ok) {
         alert(res.error || "Ошибка");
         return;

@@ -14,19 +14,19 @@ function getCsrfToken() {
 
 type Row = { id: string; startedAt: string; status: string; itemsCount: number };
 
-export function InventoryClient({ rows }: { rows: Row[] }) {
+export function InventoryClient({ rows, warehouseId }: { rows: Row[]; warehouseId: number }) {
   const [comment, setComment] = useState("");
   const [isBusy, setIsBusy] = useState(false);
 
   const create = async () => {
     setIsBusy(true);
     try {
-      const res = await createWarehouseInventoryCount({ comment: comment || null }, getCsrfToken());
+      const res = await createWarehouseInventoryCount({ warehouseId, comment: comment || null }, getCsrfToken());
       if (!res.ok) {
         alert(res.error || "Ошибка");
         return;
       }
-      window.location.href = `/admin/warehouse/inventory/${res.id}`;
+      window.location.href = `/admin/warehouse/inventory/${res.id}?w=${warehouseId}`;
     } finally {
       setIsBusy(false);
     }
@@ -73,7 +73,7 @@ export function InventoryClient({ rows }: { rows: Row[] }) {
                 <td className="p-4 text-gray-300">{r.status}</td>
                 <td className="p-4 text-gray-300">{r.itemsCount}</td>
                 <td className="p-4 text-right">
-                  <Link href={`/admin/warehouse/inventory/${r.id}`} className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white px-4 text-sm font-medium transition-colors">
+                  <Link href={`/admin/warehouse/inventory/${r.id}?w=${warehouseId}`} className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white px-4 text-sm font-medium transition-colors">
                     Открыть
                   </Link>
                 </td>
@@ -86,4 +86,3 @@ export function InventoryClient({ rows }: { rows: Row[] }) {
     </div>
   );
 }
-

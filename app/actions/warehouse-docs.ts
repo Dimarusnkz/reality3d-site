@@ -19,6 +19,8 @@ const supplierSchema = z.object({
 })
 
 const receiptCreateSchema = z.object({
+  warehouseId: z.number().int().positive().optional().nullable(),
+  locationId: z.number().int().positive().optional().nullable(),
   supplierId: z.number().int().positive().optional().nullable(),
   documentNo: z.string().trim().min(1).max(120),
   receivedAt: z.string().trim().optional().nullable(),
@@ -139,9 +141,11 @@ export async function createWarehouseReceipt(input: unknown, csrfToken: string) 
   const receivedAt = parsed.data.receivedAt ? new Date(parsed.data.receivedAt) : new Date()
 
   try {
+    const warehouseId = parsed.data.warehouseId == null ? 1 : parsed.data.warehouseId
     const rec = await prisma.warehouseReceipt.create({
       data: {
-        warehouseId: 1,
+        warehouseId,
+        locationId: parsed.data.locationId ?? null,
         supplierId: parsed.data.supplierId ?? null,
         documentNo: parsed.data.documentNo,
         receivedAt,
@@ -154,6 +158,7 @@ export async function createWarehouseReceipt(input: unknown, csrfToken: string) 
     })
     await logAudit({ actorUserId: access.userId, action: 'warehouse.receipt.create', target: rec.id })
     revalidatePath('/admin/warehouse/receipts')
+    revalidatePath(`/admin/warehouse/receipts?w=${warehouseId}`)
     return { ok: true as const, id: rec.id }
   } catch {
     return { ok: false as const, error: 'Не удалось создать приход' }
@@ -182,6 +187,8 @@ export async function updateWarehouseReceipt(id: string, input: unknown, csrfTok
     await prisma.warehouseReceipt.update({
       where: { id },
       data: {
+        warehouseId: parsed.data.warehouseId == null ? undefined : parsed.data.warehouseId,
+        locationId: parsed.data.locationId ?? null,
         supplierId: parsed.data.supplierId ?? null,
         documentNo: parsed.data.documentNo,
         ...(receivedAt ? { receivedAt } : {}),
@@ -191,6 +198,7 @@ export async function updateWarehouseReceipt(id: string, input: unknown, csrfTok
     })
     await logAudit({ actorUserId: access.userId, action: 'warehouse.receipt.update', target: id })
     revalidatePath('/admin/warehouse/receipts')
+    if (parsed.data.warehouseId) revalidatePath(`/admin/warehouse/receipts?w=${parsed.data.warehouseId}`)
     revalidatePath(`/admin/warehouse/receipts/${id}`)
     return { ok: true as const }
   } catch {
@@ -359,7 +367,6 @@ export async function postWarehouseReceipt(receiptId: string, csrfToken: string)
           create: {
             productId: it.productId,
             warehouseId: receipt.warehouseId,
-            locationId: receipt.locationId,
             unit: it.unit,
             quantity: 0,
             reserved: 0,
@@ -384,9 +391,19 @@ export async function postWarehouseReceipt(receiptId: string, csrfToken: string)
           where: { id: it.productId },
           data: {
             purchasePriceKopeks: it.unitCostKopeks,
-            stock: Math.max(0, Math.trunc(nextQty - currentReserved)),
+            ...(receipt.warehouseId === 1 ? { stock: Math.max(0, Math.trunc(nextQty - currentReserved)) } : {}),
           },
         })
+
+        if (receipt.locationId) {
+          const ls = await tx.warehouseLocationStock.upsert({
+            where: { warehouseId_locationId_productId: { warehouseId: receipt.warehouseId, locationId: receipt.locationId, productId: it.productId } },
+            create: { warehouseId: receipt.warehouseId, locationId: receipt.locationId, productId: it.productId, unit: it.unit, quantity: 0 },
+            update: {},
+          })
+          if (ls.unit !== it.unit) throw new Error('UNIT_MISMATCH')
+          await tx.warehouseLocationStock.update({ where: { id: ls.id }, data: { quantity: Number(ls.quantity) + Number(it.quantity) } })
+        }
 
         await tx.shopWarehouseLog.create({
           data: {

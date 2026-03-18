@@ -5,7 +5,15 @@ import { getPrisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/access";
 import { ProductForm } from "@/app/admin/shop/products/product-form";
 
-export default async function AdminWarehouseEditProductPage({ params }: { params: Promise<{ id: string }> }) {
+type SearchParams = { w?: string };
+
+export default async function AdminWarehouseEditProductPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<SearchParams>;
+}) {
   const session = await getSession();
   if (!session?.userId) redirect("/login");
   const userId = parseInt(session.userId, 10);
@@ -16,6 +24,9 @@ export default async function AdminWarehouseEditProductPage({ params }: { params
 
   const prisma = getPrisma();
   const { id } = await params;
+  const sp = await searchParams;
+  const wRaw = sp.w ? parseInt(sp.w, 10) : 1;
+  const w = Number.isFinite(wRaw) ? wRaw : 1;
   const productId = parseInt(id, 10);
   if (!Number.isFinite(productId)) notFound();
 
@@ -52,7 +63,7 @@ export default async function AdminWarehouseEditProductPage({ params }: { params
           <div className="text-sm text-gray-400 mt-1">/{product.slug}</div>
         </div>
         <Link
-          href="/admin/warehouse/catalog"
+          href={`/admin/warehouse/catalog?w=${w}`}
           className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
         >
           Назад
