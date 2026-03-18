@@ -1,22 +1,22 @@
-import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getPrisma } from "@/lib/prisma";
 import { CheckoutClient } from "./checkout-client";
 
 export default async function CheckoutPage() {
   const session = await getSession();
-  if (!session?.userId) redirect("/login");
 
   const prisma = getPrisma();
-  const userId = parseInt(session.userId, 10);
+  const userId = session?.userId ? parseInt(session.userId, 10) : null;
 
-  const [cart, user] = await Promise.all([
-    prisma.shopCart.findUnique({
-      where: { userId },
-      include: { items: { include: { product: true } } },
-    }),
-    prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true, phone: true, address: true } }),
-  ]);
+  const [cart, user] = userId
+    ? await Promise.all([
+        prisma.shopCart.findUnique({
+          where: { userId },
+          include: { items: { include: { product: true } } },
+        }),
+        prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true, phone: true, address: true, city: true } }),
+      ])
+    : [null, null];
 
   const items =
     cart?.items
@@ -27,17 +27,17 @@ export default async function CheckoutPage() {
         unitPriceKopeks: i.product!.priceKopeks,
       })) || [];
 
-  if (items.length === 0) redirect("/cart");
-
   return (
     <div className="container mx-auto px-4 py-10 space-y-8">
       <h1 className="text-3xl font-bold text-white">Оформление заказа</h1>
       <CheckoutClient
         items={items}
+        isAuthenticated={Boolean(userId)}
         initial={{
           contactName: user?.name || "",
           contactEmail: user?.email || "",
           contactPhone: user?.phone || "",
+          deliveryCity: user?.city || "",
           deliveryAddress: user?.address || "",
           deliveryPhone: user?.phone || "",
         }}

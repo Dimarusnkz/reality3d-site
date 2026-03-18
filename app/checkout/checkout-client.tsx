@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { createShopOrder, startTbankPayment } from "@/app/actions/shop";
+import { useEffect, useMemo, useState } from "react";
+import { createGuestShopOrder, createShopOrder, startTbankPayment, startTbankPaymentPublic } from "@/app/actions/shop";
 import { formatRub } from "@/lib/shop/money";
 import { PICKUP_ADDRESS, PICKUP_PHONE, ShippingMethod, calcShippingCostKopeks } from "@/lib/shop/shipping";
 import { Loader2 } from "lucide-react";
+import { guestCartClear, guestCartRead } from "@/lib/shop/guest-cart";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -18,27 +19,114 @@ type CheckoutItem = { name: string; quantity: number; unitPriceKopeks: number };
 export function CheckoutClient({
   items,
   initial,
+  isAuthenticated = true,
 }: {
   items: CheckoutItem[];
-  initial?: { contactName?: string; contactPhone?: string; contactEmail?: string; deliveryAddress?: string; deliveryPhone?: string };
+  initial?: {
+    contactName?: string;
+    contactPhone?: string;
+    contactEmail?: string;
+    deliveryCity?: string;
+    deliveryAddress?: string;
+    deliveryPhone?: string;
+  };
+  isAuthenticated?: boolean;
 }) {
+  const normalizePhone = (input: string) => {
+    const raw = input.trim();
+    const digits = raw.replace(/[^\d+]/g, "");
+    let onlyDigits = digits.startsWith("+") ? `+${digits.slice(1).replace(/\D/g, "")}` : digits.replace(/\D/g, "");
+
+    if (onlyDigits.startsWith("+7")) {
+      const d = onlyDigits.slice(2).replace(/\D/g, "").slice(0, 10);
+      return `+7${d}`;
+    }
+
+    const d = onlyDigits.replace(/\D/g, "");
+    if (d.startsWith("8")) {
+      const rest = d.slice(1).slice(0, 10);
+      return `+7${rest}`;
+    }
+    if (d.startsWith("7")) {
+      const rest = d.slice(1).slice(0, 10);
+      return `+7${rest}`;
+    }
+    if (d.startsWith("9")) {
+      return `+7${d.slice(0, 10)}`;
+    }
+    return raw.startsWith("+") ? `+${d.slice(0, 11)}` : d.slice(0, 11);
+  };
+
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("pickup");
   const [paymentProvider, setPaymentProvider] = useState<"tbank" | "yookassa" | "sber_online" | "tinkoff_online">(
     "tbank"
   );
   const [contactName, setContactName] = useState(initial?.contactName || "");
-  const [contactPhone, setContactPhone] = useState(initial?.contactPhone || "");
-  const [contactEmail, setContactEmail] = useState(initial?.contactEmail || "");
-  const [deliveryCity, setDeliveryCity] = useState("");
+  const [contactPhone, setContactPhone] = useState(initial?.contactPhone ? normalizePhone(initial.contactPhone) : "");
+  const [contactEmail, setContactEmail] = useState((initial?.contactEmail || "").trim());
+  const [deliveryCity, setDeliveryCity] = useState(
+    initial?.deliveryCity ||
+      (initial?.deliveryAddress ? initial.deliveryAddress.split(",")[0]?.trim() || "" : "")
+  );
   const [deliveryAddress, setDeliveryAddress] = useState(initial?.deliveryAddress || "");
   const [deliveryPostalCode, setDeliveryPostalCode] = useState("");
-  const [deliveryPhone, setDeliveryPhone] = useState(initial?.deliveryPhone || initial?.contactPhone || "");
+  const [deliveryPhone, setDeliveryPhone] = useState(
+    initial?.deliveryPhone ? normalizePhone(initial.deliveryPhone) : initial?.contactPhone ? normalizePhone(initial.contactPhone) : ""
+  );
   const [comment, setComment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [deliveryPickupPoint, setDeliveryPickupPoint] = useState("");
+  const [courierNote, setCourierNote] = useState("");
+  const [runtimeItems, setRuntimeItems] = useState(items);
+  const [guestLines, setGuestLines] = useState<{ productId: number; quantity: number }[]>([]);
+  const [loadingItems, setLoadingItems] = useState(!isAuthenticated);
+
+  useEffect(() => {
+    if (isAuthenticated) return;
+    let cancelled = false;
+
+    const load = async () => {
+      const lines = guestCartRead();
+      if (!cancelled) setGuestLines(lines);
+      if (lines.length === 0) {
+        if (!cancelled) {
+          setRuntimeItems([]);
+          setLoadingItems(false);
+        }
+        return;
+      }
+      try {
+        const res = await fetch("/api/shop/products/bulk", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ ids: lines.map((l) => l.productId) }),
+        });
+        const data = (await res.json().catch(() => null)) as { ok?: boolean; products?: any[] } | null;
+        const products = Array.isArray(data?.products) ? data?.products : [];
+        const byId = new Map<number, any>(products.map((p) => [p.id, p]));
+        const mapped = lines
+          .map((l) => {
+            const p = byId.get(l.productId);
+            if (!p) return null;
+            return { name: p.name as string, quantity: l.quantity, unitPriceKopeks: p.priceKopeks as number } as CheckoutItem;
+          })
+          .filter(Boolean) as CheckoutItem[];
+        if (!cancelled) setRuntimeItems(mapped);
+      } finally {
+        if (!cancelled) setLoadingItems(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   const subtotal = useMemo(
-    () => items.reduce((sum, i) => sum + i.unitPriceKopeks * i.quantity, 0),
-    [items]
+    () => runtimeItems.reduce((sum, i) => sum + i.unitPriceKopeks * i.quantity, 0),
+    [runtimeItems]
   );
   const shippingCost = useMemo(() => calcShippingCostKopeks(shippingMethod), [shippingMethod]);
   const total = subtotal + shippingCost;
@@ -52,45 +140,98 @@ export function CheckoutClient({
   const isValidEmail = contactEmail.trim().length <= 100 && EMAIL_RE.test(contactEmail.trim());
   const isValidDeliveryPhone = shippingMethod === "pickup" ? true : PHONE_RE.test(deliveryPhone.trim());
   const isValidComment = comment.length <= 200;
+  const isTk = shippingMethod === "cdek" || shippingMethod === "yandex";
+  const isValidPickupPoint = isTk ? deliveryPickupPoint.trim().length > 0 && deliveryPickupPoint.trim().length <= 200 : true;
+  const isValidCourierNote = courierNote.length <= 200;
   const isValidDelivery =
     shippingMethod === "pickup" ? true : deliveryCity.trim().length > 0 && deliveryAddress.trim().length > 0 && isValidDeliveryPhone;
 
-  const canSubmit = isValidName && isValidPhone && isValidEmail && isValidComment && isValidDelivery;
+  const hasItems = runtimeItems.length > 0;
+  const canSubmit =
+    hasItems &&
+    !loadingItems &&
+    isValidName &&
+    isValidPhone &&
+    isValidEmail &&
+    isValidComment &&
+    isValidDelivery &&
+    isValidPickupPoint &&
+    isValidCourierNote;
 
   const submit = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit) {
+      if (!isValidName) setFormError("Имя: только буквы (2–50 символов)");
+      else if (!isValidPhone) setFormError("Телефон: формат +7XXXXXXXXXX");
+      else if (!isValidEmail) setFormError("Email указан неверно");
+      else if (!isValidDelivery) setFormError("Заполните город, адрес и телефон для доставки");
+      else if (!isValidPickupPoint) setFormError("Укажите пункт выдачи / адрес для СДЭК или Яндекс");
+      else if (!isValidCourierNote) setFormError("Комментарий курьеру не более 200 символов");
+      else if (!isValidComment) setFormError("Комментарий не более 200 символов");
+      return;
+    }
     setIsLoading(true);
+    setFormError(null);
     try {
-      const res = await createShopOrder({
-        shippingMethod,
-        paymentProvider,
-        contactName,
-        contactPhone,
-        contactEmail,
-        deliveryPhone: shippingMethod === "pickup" ? undefined : deliveryPhone,
-        deliveryCity: shippingMethod === "pickup" ? undefined : deliveryCity,
-        deliveryAddress: shippingMethod === "pickup" ? undefined : deliveryAddress,
-        deliveryPostalCode: shippingMethod === "pickup" ? undefined : deliveryPostalCode,
-        comment,
-        csrfToken: getCsrfToken(),
-      });
+      const deliveryAddressFinal =
+        shippingMethod === "pickup"
+          ? undefined
+          : isTk
+            ? `${deliveryAddress}${deliveryPickupPoint.trim() ? `, ${deliveryPickupPoint.trim()}` : ""}`
+            : deliveryAddress;
+
+      const commentFinal = [comment.trim(), courierNote.trim() ? `Комментарий курьеру: ${courierNote.trim()}` : ""].filter(Boolean).join("\n");
+
+      const res = isAuthenticated
+        ? await createShopOrder({
+            shippingMethod,
+            paymentProvider,
+            contactName,
+            contactPhone,
+            contactEmail,
+            deliveryPhone: shippingMethod === "pickup" ? undefined : deliveryPhone,
+            deliveryCity: shippingMethod === "pickup" ? undefined : deliveryCity,
+            deliveryAddress: deliveryAddressFinal,
+            deliveryPostalCode: shippingMethod === "pickup" ? undefined : deliveryPostalCode,
+            comment: commentFinal,
+            csrfToken: getCsrfToken(),
+          })
+        : await createGuestShopOrder({
+            items: guestLines,
+            shippingMethod,
+            paymentProvider,
+            contactName,
+            contactPhone,
+            contactEmail,
+            deliveryPhone: shippingMethod === "pickup" ? undefined : deliveryPhone,
+            deliveryCity: shippingMethod === "pickup" ? undefined : deliveryCity,
+            deliveryAddress: deliveryAddressFinal,
+            deliveryPostalCode: shippingMethod === "pickup" ? undefined : deliveryPostalCode,
+            comment: commentFinal,
+            csrfToken: getCsrfToken(),
+          });
       if (!res.ok) {
-        alert(res.error || "Не удалось создать заказ");
+        setFormError(res.error || "Не удалось создать заказ");
         return;
       }
 
+      if (!isAuthenticated) {
+        guestCartClear();
+        window.dispatchEvent(new CustomEvent("cart:changed"));
+      }
+
       if (paymentProvider === "tbank") {
-        const p = await startTbankPayment(res.orderId, getCsrfToken());
+        const p = isAuthenticated
+          ? await startTbankPayment(res.orderId, getCsrfToken())
+          : await startTbankPaymentPublic(res.orderId, (res as any).publicAccessToken, getCsrfToken());
         if (!p.ok) {
-          alert(p.error || "Не удалось создать оплату");
-          window.location.href = `/shop/order/${res.orderId}`;
+          setFormError(p.error || "Не удалось создать оплату");
           return;
         }
         window.location.href = p.paymentUrl;
         return;
       }
 
-      window.location.href = `/shop/order/${res.orderId}`;
+      window.location.href = isAuthenticated ? `/shop/order/${res.orderId}` : `/shop/order/${res.orderId}?token=${encodeURIComponent((res as any).publicAccessToken)}`;
     } finally {
       setIsLoading(false);
     }
@@ -118,7 +259,7 @@ export function CheckoutClient({
               <label className="block text-sm font-medium text-gray-400 mb-1">Телефон</label>
               <input
                 value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
+                onChange={(e) => setContactPhone(normalizePhone(e.target.value))}
                 className={`w-full bg-slate-950 border ${isValidPhone ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40`}
                 placeholder="+79000000000"
                 inputMode="tel"
@@ -131,7 +272,7 @@ export function CheckoutClient({
               <label className="block text-sm font-medium text-gray-400 mb-1">Email</label>
               <input
                 value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
+                onChange={(e) => setContactEmail(e.target.value.trim())}
                 className={`w-full bg-slate-950 border ${isValidEmail ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40`}
                 placeholder="mail@example.com"
                 inputMode="email"
@@ -220,6 +361,7 @@ export function CheckoutClient({
                   value={deliveryCity}
                   onChange={(e) => setDeliveryCity(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  maxLength={100}
                 />
               </div>
               <div>
@@ -235,7 +377,7 @@ export function CheckoutClient({
                 <label className="block text-sm font-medium text-gray-400 mb-1">Телефон для доставки</label>
                 <input
                   value={deliveryPhone}
-                  onChange={(e) => setDeliveryPhone(e.target.value)}
+                  onChange={(e) => setDeliveryPhone(normalizePhone(e.target.value))}
                   className={`w-full bg-slate-950 border ${isValidDeliveryPhone ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40`}
                   placeholder="+79000000000"
                   inputMode="tel"
@@ -254,6 +396,32 @@ export function CheckoutClient({
                   maxLength={200}
                 />
               </div>
+              {isTk ? (
+                <>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-400 mb-1">Пункт выдачи / адрес</label>
+                    <input
+                      value={deliveryPickupPoint}
+                      onChange={(e) => setDeliveryPickupPoint(e.target.value)}
+                      className={`w-full bg-slate-950 border ${isValidPickupPoint ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40`}
+                      placeholder="Например: СДЭК ПВЗ, код/адрес"
+                      maxLength={200}
+                    />
+                    {!isValidPickupPoint ? <div className="text-xs text-red-400 mt-1">Укажите пункт выдачи/адрес</div> : null}
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-400 mb-1">Комментарий курьеру (опц.)</label>
+                    <input
+                      value={courierNote}
+                      onChange={(e) => setCourierNote(e.target.value)}
+                      className={`w-full bg-slate-950 border ${isValidCourierNote ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40`}
+                      maxLength={200}
+                      placeholder="Например: звонок за 30 минут, подъезд, этаж"
+                    />
+                    {!isValidCourierNote ? <div className="text-xs text-red-400 mt-1">Не более 200 символов</div> : null}
+                  </div>
+                </>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -309,7 +477,16 @@ export function CheckoutClient({
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-5 sticky top-24">
           <h2 className="text-lg font-semibold text-white">Итог</h2>
           <div className="space-y-2">
-            {items.map((i, idx) => (
+            {loadingItems ? (
+              <div className="text-sm text-gray-500">
+                <Loader2 className="w-4 h-4 inline-block animate-spin mr-2" />
+                Загрузка…
+              </div>
+            ) : null}
+            {!loadingItems && runtimeItems.length === 0 ? (
+              <div className="text-sm text-gray-500">Корзина пуста</div>
+            ) : null}
+            {runtimeItems.map((i, idx) => (
               <div key={idx} className="flex items-start justify-between gap-4 text-sm">
                 <div className="text-gray-300">
                   {i.name} <span className="text-gray-500">× {i.quantity}</span>
@@ -343,6 +520,10 @@ export function CheckoutClient({
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             Перейти к оплате
           </button>
+
+          {formError ? (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl p-3 text-sm">{formError}</div>
+          ) : null}
 
           <div className="text-xs text-gray-500">
             При выборе ТБанк будет редирект на защищённую страницу оплаты (не iframe).

@@ -3,9 +3,27 @@ import { getPrisma } from "@/lib/prisma";
 import { formatRub } from "@/lib/shop/money";
 import { getShippingMethodLabel } from "@/lib/shop/shipping";
 
-export default async function AdminShopOrdersPage() {
+type SearchParams = { q?: string; status?: string };
+
+export default async function AdminShopOrdersPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const prisma = getPrisma();
+  const sp = await searchParams;
+  const q = (sp.q || "").trim();
+  const status = (sp.status || "").trim();
   const orders = await prisma.shopOrder.findMany({
+    where: {
+      ...(status ? { status } : {}),
+      ...(q
+        ? {
+            OR: [
+              { contactPhone: { contains: q } },
+              { contactEmail: { contains: q, mode: "insensitive" } },
+              { deliveryPhone: { contains: q } },
+              { deliveryAddress: { contains: q, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
     include: { user: { select: { id: true, email: true, name: true } }, payments: { take: 1, orderBy: { createdAt: "desc" } } },
     orderBy: { createdAt: "desc" },
     take: 200,
@@ -13,7 +31,33 @@ export default async function AdminShopOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-white">Заказы магазина</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-white">Заказы магазина</h1>
+        <Link
+          href={`/api/admin/shop/orders/export?q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`}
+          className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+        >
+          Экспорт CSV
+        </Link>
+      </div>
+
+      <form action="/admin/shop/orders" className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row gap-3">
+        <input
+          name="q"
+          defaultValue={q}
+          placeholder="Поиск: телефон / email / адрес"
+          className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+        />
+        <select name="status" defaultValue={status} className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white">
+          <option value="">Все статусы</option>
+          <option value="pending">pending</option>
+          <option value="paid">paid</option>
+          <option value="cancelled">cancelled</option>
+          <option value="shipped">shipped</option>
+          <option value="completed">completed</option>
+        </select>
+        <button className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-semibold transition-colors">Найти</button>
+      </form>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <table className="w-full">
@@ -30,7 +74,7 @@ export default async function AdminShopOrdersPage() {
             {orders.map((o) => (
               <tr key={o.id} className="hover:bg-slate-800/50 transition-colors">
                 <td className="p-4">
-                  <Link href={`/shop/order/${o.id}`} target="_blank" className="text-white font-semibold hover:text-primary transition-colors">
+                  <Link href={`/admin/shop/orders/${o.id}`} className="text-white font-semibold hover:text-primary transition-colors">
                     #{o.orderNo}
                   </Link>
                   <div className="text-xs text-gray-500 mt-0.5">
@@ -51,6 +95,8 @@ export default async function AdminShopOrdersPage() {
                   <div className="text-white">{getShippingMethodLabel(o.shippingMethod)}</div>
                   {o.shippingMethod === "pickup" ? (
                     <div className="text-xs text-gray-500">Самовывоз</div>
+                  ) : o.shippingMethod === "cdek" || o.shippingMethod === "yandex" ? (
+                    <div className="text-xs text-gray-500">по тарифу (уточним)</div>
                   ) : (
                     <div className="text-xs text-gray-500">{o.deliveryCity || "—"}</div>
                   )}

@@ -27,14 +27,41 @@ export async function updateProfile(prevState: ProfileState, formData: FormData)
   }
 
   const userId = parseInt(session.userId)
-  const name = formData.get('name') as string
-  const email = formData.get('email') as string
-  const phone = formData.get('phone') as string
-  const address = formData.get('address') as string
+  const name = String(formData.get('name') || '')
+  const email = String(formData.get('email') || '')
+  const phone = String(formData.get('phone') || '')
+  const address = String(formData.get('address') || '')
+  const city = String(formData.get('city') || '')
 
-  if (!email) {
-    return { error: 'Email is required', success: false }
+  const PHONE_RE = /^\+7\d{10}$/
+  const NAME_RE = /^[A-Za-zА-Яа-яЁё\s\-]{2,50}$/
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+  const normalizePhone = (input: string) => {
+    const raw = input.trim()
+    const digits = raw.replace(/[^\d+]/g, '')
+    let onlyDigits = digits.startsWith('+') ? `+${digits.slice(1).replace(/\D/g, '')}` : digits.replace(/\D/g, '')
+    if (onlyDigits.startsWith('+7')) {
+      const d = onlyDigits.slice(2).replace(/\D/g, '').slice(0, 10)
+      return `+7${d}`
+    }
+    const d = onlyDigits.replace(/\D/g, '')
+    if (d.startsWith('8')) return `+7${d.slice(1).slice(0, 10)}`
+    if (d.startsWith('7')) return `+7${d.slice(1).slice(0, 10)}`
+    if (d.startsWith('9')) return `+7${d.slice(0, 10)}`
+    return raw.startsWith('+') ? `+${d.slice(0, 11)}` : d.slice(0, 11)
   }
+
+  const emailTrim = email.trim()
+  const nameTrim = name.trim()
+  const phoneNorm = phone.trim() ? normalizePhone(phone) : ''
+
+  if (!emailTrim) return { error: 'Email is required', success: false }
+  if (emailTrim.length > 100 || !EMAIL_RE.test(emailTrim)) return { error: 'Неверный email', success: false }
+  if (nameTrim && !NAME_RE.test(nameTrim)) return { error: 'Имя: только буквы (2–50 символов)', success: false }
+  if (phoneNorm && !PHONE_RE.test(phoneNorm)) return { error: 'Телефон: формат +7XXXXXXXXXX', success: false }
+  if (address.length > 200) return { error: 'Адрес не более 200 символов', success: false }
+  if (city.length > 100) return { error: 'Город не более 100 символов', success: false }
 
   try {
     // Check if email is already taken by another user
@@ -49,10 +76,11 @@ export async function updateProfile(prevState: ProfileState, formData: FormData)
     await prisma.user.update({
       where: { id: userId },
       data: {
-        name,
-        email,
-        phone,
-        address
+        name: nameTrim || null,
+        email: emailTrim,
+        phone: phoneNorm || null,
+        address: address.trim() || null,
+        city: city.trim() || null,
       }
     })
 

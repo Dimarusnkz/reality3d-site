@@ -10,7 +10,7 @@ export default async function LkSettingsPage() {
   const user = session?.userId
     ? await prisma.user.findUnique({
         where: { id: parseInt(session.userId) },
-        select: { id: true, name: true, email: true, phone: true, address: true },
+        select: { id: true, name: true, email: true, phone: true, address: true, city: true },
       })
     : null;
 
@@ -26,7 +26,8 @@ export default async function LkSettingsPage() {
             name: user.name,
             email: user.email,
             phone: user.phone,
-            address: user.address || null
+            address: user.address || null,
+            city: user.city || null
         }} />
       </div>
 

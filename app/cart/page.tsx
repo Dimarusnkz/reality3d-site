@@ -5,7 +5,14 @@ import { CartClient } from "./cart-client";
 
 export default async function CartPage() {
   const session = await getSession();
-  if (!session?.userId) redirect("/login");
+  if (!session?.userId) {
+    return (
+      <div className="container mx-auto px-4 py-10 space-y-8">
+        <h1 className="text-3xl font-bold text-white">Корзина</h1>
+        <CartClient initialItems={[]} mode="guest" />
+      </div>
+    );
+  }
 
   const prisma = getPrisma();
   const userId = parseInt(session.userId, 10);
@@ -36,8 +43,7 @@ export default async function CartPage() {
   return (
     <div className="container mx-auto px-4 py-10 space-y-8">
       <h1 className="text-3xl font-bold text-white">Корзина</h1>
-      <CartClient initialItems={items} />
+      <CartClient initialItems={items} mode="auth" />
     </div>
   );
 }
-

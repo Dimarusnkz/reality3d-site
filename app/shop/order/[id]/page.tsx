@@ -6,20 +6,32 @@ import { formatRub } from "@/lib/shop/money";
 import { PICKUP_ADDRESS, PICKUP_PHONE, getShippingMethodLabel } from "@/lib/shop/shipping";
 import { PayTbankButton } from "../pay-tbank-button";
 
-export default async function ShopOrderPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ payment?: string }> }) {
+export default async function ShopOrderPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ payment?: string; token?: string }>;
+}) {
   const session = await getSession();
-  if (!session?.userId) redirect("/login");
-  const userId = parseInt(session.userId, 10);
-
   const { id } = await params;
   const sp = await searchParams;
+  const userId = session?.userId ? parseInt(session.userId, 10) : null;
 
   const prisma = getPrisma();
   const order = await prisma.shopOrder.findUnique({
     where: { id },
     include: { items: true, payments: { orderBy: { createdAt: "desc" }, take: 5 } },
   });
-  if (!order || (order.userId !== userId && session.role !== "admin")) notFound();
+  if (!order) notFound();
+
+  const isGuestAccess = !session?.userId;
+  if (isGuestAccess) {
+    if (order.userId) redirect("/login");
+    if (!sp.token || !order.publicAccessToken || sp.token !== order.publicAccessToken) notFound();
+  } else {
+    if (order.userId !== userId && session?.role !== "admin") notFound();
+  }
 
   const isPaid = order.paymentStatus === "paid" || order.status === "paid";
 
@@ -49,7 +61,7 @@ export default async function ShopOrderPage({ params, searchParams }: { params: 
           <div className="text-gray-300">
             Заказ создан, но не оплачен. Сумма: <span className="text-white font-bold">{formatRub(order.totalKopeks)}</span>
           </div>
-          {order.paymentProvider === "tbank" ? <PayTbankButton orderId={order.id} /> : null}
+          {order.paymentProvider === "tbank" ? <PayTbankButton orderId={order.id} publicAccessToken={isGuestAccess ? sp.token : null} /> : null}
         </div>
       )}
 
@@ -88,6 +100,9 @@ export default async function ShopOrderPage({ params, searchParams }: { params: 
                 <div>{order.deliveryAddress || "—"}</div>
                 <div className="text-xs text-gray-500 mt-1">Индекс: {order.deliveryPostalCode || "—"}</div>
                 <div className="text-xs text-gray-500 mt-1">Телефон: {order.deliveryPhone || order.contactPhone || "—"}</div>
+                {order.shippingMethod === "cdek" || order.shippingMethod === "yandex" ? (
+                  <div className="text-xs text-gray-500 mt-1">Стоимость: по тарифу (уточним)</div>
+                ) : null}
               </div>
             )}
           </div>

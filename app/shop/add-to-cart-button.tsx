@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { addToCart } from "@/app/actions/shop";
 import { ShoppingCart, Loader2, Check } from "lucide-react";
+import { guestCartAdd } from "@/lib/shop/guest-cart";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -26,8 +27,12 @@ export function AddToCartButton({ productId, disabled }: { productId: number; di
     try {
       const res = await addToCart(productId, 1, getCsrfToken());
       if (!res.ok) {
-        alert(res.error || "Не удалось добавить в корзину");
-        return;
+        if ((res.error || "").toLowerCase().includes("нужно войти")) {
+          guestCartAdd(productId, 1);
+        } else {
+          alert(res.error || "Не удалось добавить в корзину");
+          return;
+        }
       }
       setJustAdded(true);
       window.dispatchEvent(new CustomEvent("cart:changed"));

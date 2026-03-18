@@ -13,6 +13,8 @@ export type PermissionKey =
   | 'warehouse.inventory'
   | 'logs.view'
   | 'logs.export'
+  | 'shop.orders.manage'
+  | 'shop.orders.export'
   | 'finance.view'
   | 'finance.entry.create'
   | 'finance.reconcile.create'
@@ -28,6 +30,7 @@ export async function getUserAccessContext() {
 
 export async function hasPermission(userId: number, role: string, permissionKey: PermissionKey) {
   const prisma = getPrisma()
+  if (role === 'admin') return true
 
   const override = await prisma.userAccessPermission.findUnique({
     where: { userId_permissionKey: { userId, permissionKey } },

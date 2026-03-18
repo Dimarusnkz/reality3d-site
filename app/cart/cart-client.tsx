@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { clearCart, setCartItemQuantity } from "@/app/actions/shop";
 import { formatRub } from "@/lib/shop/money";
 import { Loader2, Minus, Plus, Trash2 } from "lucide-react";
+import { guestCartClear, guestCartRead, guestCartSet } from "@/lib/shop/guest-cart";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -23,9 +24,60 @@ type CartItem = {
   imageUrl: string | null;
 };
 
-export function CartClient({ initialItems }: { initialItems: CartItem[] }) {
+export function CartClient({ initialItems, mode }: { initialItems: CartItem[]; mode: "auth" | "guest" }) {
   const [items, setItems] = useState(initialItems);
   const [busy, setBusy] = useState<number | "all" | null>(null);
+  const [loadingGuest, setLoadingGuest] = useState(mode === "guest");
+
+  useEffect(() => {
+    if (mode !== "guest") return;
+    let cancelled = false;
+
+    const load = async () => {
+      const lines = guestCartRead();
+      if (lines.length === 0) {
+        if (!cancelled) {
+          setItems([]);
+          setLoadingGuest(false);
+        }
+        return;
+      }
+      try {
+        const res = await fetch("/api/shop/products/bulk", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ ids: lines.map((l) => l.productId) }),
+        });
+        const data = (await res.json().catch(() => null)) as { ok?: boolean; products?: any[] } | null;
+        const products = Array.isArray(data?.products) ? data?.products : [];
+        const byId = new Map<number, any>(products.map((p) => [p.id, p]));
+        const mapped: CartItem[] = lines
+          .map((l) => {
+            const p = byId.get(l.productId);
+            if (!p) return null;
+            return {
+              productId: p.id,
+              name: p.name,
+              slug: p.slug,
+              unitPriceKopeks: p.priceKopeks,
+              quantity: l.quantity,
+              stock: p.stock,
+              imageUrl: p.imageUrl,
+            } as CartItem;
+          })
+          .filter(Boolean) as CartItem[];
+
+        if (!cancelled) setItems(mapped);
+      } finally {
+        if (!cancelled) setLoadingGuest(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
 
   const total = useMemo(
     () => items.reduce((sum, i) => sum + i.unitPriceKopeks * i.quantity, 0),
@@ -35,10 +87,14 @@ export function CartClient({ initialItems }: { initialItems: CartItem[] }) {
   const updateQty = async (productId: number, nextQty: number) => {
     setBusy(productId);
     try {
-      const res = await setCartItemQuantity(productId, nextQty, getCsrfToken());
-      if (!res.ok) {
-        alert(res.error || "Ошибка");
-        return;
+      if (mode === "auth") {
+        const res = await setCartItemQuantity(productId, nextQty, getCsrfToken());
+        if (!res.ok) {
+          alert(res.error || "Ошибка");
+          return;
+        }
+      } else {
+        guestCartSet(productId, nextQty);
       }
       setItems((prev) =>
         prev
@@ -55,10 +111,14 @@ export function CartClient({ initialItems }: { initialItems: CartItem[] }) {
     if (!confirm("Очистить корзину?")) return;
     setBusy("all");
     try {
-      const res = await clearCart(getCsrfToken());
-      if (!res.ok) {
-        alert(res.error || "Ошибка");
-        return;
+      if (mode === "auth") {
+        const res = await clearCart(getCsrfToken());
+        if (!res.ok) {
+          alert(res.error || "Ошибка");
+          return;
+        }
+      } else {
+        guestCartClear();
       }
       setItems([]);
       window.dispatchEvent(new CustomEvent("cart:changed"));
@@ -66,6 +126,15 @@ export function CartClient({ initialItems }: { initialItems: CartItem[] }) {
       setBusy(null);
     }
   };
+
+  if (mode === "guest" && loadingGuest) {
+    return (
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-10 text-center text-gray-400">
+        <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" />
+        Загрузка корзины…
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

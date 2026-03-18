@@ -6,6 +6,15 @@ import { Menu, X, User, LogOut, Send, ShoppingCart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { logout } from "@/app/actions/auth";
 import { CsrfTokenField } from "@/components/ui/csrf-token-field";
+import { guestCartCount, guestCartRead, guestCartClear } from "@/lib/shop/guest-cart";
+import { mergeGuestCart } from "@/app/actions/shop";
+
+function getCsrfToken() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length !== 2) return "";
+  return parts.pop()?.split(";").shift() || "";
+}
 
 interface SiteHeaderProps {
   user?: {
@@ -43,7 +52,7 @@ export function SiteHeader({ user }: SiteHeaderProps) {
 
     const load = async () => {
       if (!user?.userId) {
-        setCartQty(0);
+        setCartQty(guestCartCount());
         return;
       }
       try {
@@ -63,6 +72,18 @@ export function SiteHeader({ user }: SiteHeaderProps) {
       cancelled = true;
       window.removeEventListener("cart:changed", handler as any);
     };
+  }, [user?.userId]);
+
+  useEffect(() => {
+    if (!user?.userId) return;
+    const lines = guestCartRead();
+    if (lines.length === 0) return;
+    mergeGuestCart(lines, getCsrfToken()).then((res) => {
+      if (res.ok) {
+        guestCartClear();
+        window.dispatchEvent(new CustomEvent("cart:changed"));
+      }
+    });
   }, [user?.userId]);
 
   return (

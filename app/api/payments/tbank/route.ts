@@ -3,6 +3,8 @@ import { getPrisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { verifyTbankToken } from '@/lib/shop/tbank';
 import crypto from 'crypto';
+import { sendTelegramMessage } from '@/lib/telegram';
+import { sendEmailViaSendGrid } from '@/lib/notifications/sendgrid';
 
 function normalizeStatus(status: string | null) {
   const value = (status || '').toUpperCase();
@@ -71,6 +73,29 @@ export async function POST(request: Request) {
       where: { id: resolvedPayment.orderId },
       data: { paymentStatus: 'paid', status: 'paid' },
     });
+
+    const paidOrder = await prisma.shopOrder.findUnique({
+      where: { id: resolvedPayment.orderId },
+      select: { id: true, orderNo: true, totalKopeks: true, contactEmail: true, contactPhone: true, shippingMethod: true, publicAccessToken: true },
+    })
+    if (paidOrder) {
+      sendTelegramMessage(`<b>Оплата получена</b> #${paidOrder.orderNo}\nСумма: <b>${(paidOrder.totalKopeks / 100).toFixed(2)} ₽</b>`).catch(() => {})
+      const from = process.env.SENDGRID_FROM_EMAIL || ''
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+      if (from && paidOrder.contactEmail) {
+        const link = siteUrl
+          ? paidOrder.publicAccessToken
+            ? `${siteUrl.replace(/\/$/, '')}/shop/order/${paidOrder.id}?token=${paidOrder.publicAccessToken}`
+            : `${siteUrl.replace(/\/$/, '')}/shop/order/${paidOrder.id}`
+          : ''
+        sendEmailViaSendGrid({
+          to: [paidOrder.contactEmail],
+          from,
+          subject: `Reality3D: заказ #${paidOrder.orderNo} оплачен`,
+          text: `Оплата получена по заказу #${paidOrder.orderNo}.\n\nСумма: ${(paidOrder.totalKopeks / 100).toFixed(2)} ₽\n\n${link ? `Страница заказа: ${link}\n` : ''}`,
+        }).catch(() => {})
+      }
+    }
 
     const alreadyWrittenOff = await prisma.shopWarehouseLog.findFirst({
       where: { shopOrderId: resolvedPayment.orderId, actionType: 'writeoff', reason: 'sale' },

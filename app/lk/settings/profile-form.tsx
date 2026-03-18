@@ -16,6 +16,7 @@ type UserData = {
   email: string
   phone: string | null
   address: string | null
+  city: string | null
 }
 
 export function ProfileForm({ user }: { user: UserData }) {
@@ -98,6 +99,21 @@ export function ProfileForm({ user }: { user: UserData }) {
                   defaultValue={user.address || ""} 
                   className="w-full bg-slate-900/50 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" 
                   placeholder="Город, улица, дом, квартира"
+                />
+              </div>
+           </div>
+
+           <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-400 ml-1">Город</label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <input 
+                  type="text" 
+                  name="city"
+                  defaultValue={user.city || ""} 
+                  className="w-full bg-slate-900/50 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" 
+                  placeholder="Санкт-Петербург"
+                  maxLength={100}
                 />
               </div>
            </div>

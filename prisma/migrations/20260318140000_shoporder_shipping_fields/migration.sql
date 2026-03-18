@@ -1,0 +1,7 @@
+ALTER TABLE "ShopOrder" ADD COLUMN IF NOT EXISTS "shippingCarrier" TEXT;
+ALTER TABLE "ShopOrder" ADD COLUMN IF NOT EXISTS "shippingTrackingNo" TEXT;
+ALTER TABLE "ShopOrder" ADD COLUMN IF NOT EXISTS "shippingStatus" TEXT NOT NULL DEFAULT 'new';
+ALTER TABLE "ShopOrder" ADD COLUMN IF NOT EXISTS "shippingCostFinalKopeks" INTEGER;
+ALTER TABLE "ShopOrder" ADD COLUMN IF NOT EXISTS "shippingQuoteMinKopeks" INTEGER;
+ALTER TABLE "ShopOrder" ADD COLUMN IF NOT EXISTS "shippingQuoteMaxKopeks" INTEGER;
+
