@@ -5,6 +5,7 @@ import { getPrisma } from "@/lib/prisma";
 import { formatRub } from "@/lib/shop/money";
 import { PICKUP_ADDRESS, PICKUP_PHONE, getShippingMethodLabel } from "@/lib/shop/shipping";
 import { PayTbankButton } from "../pay-tbank-button";
+import { PayTbankLinkButton } from "../pay-tbank-link-button";
 
 export default async function ShopOrderPage({
   params,
@@ -34,6 +35,7 @@ export default async function ShopOrderPage({
   }
 
   const isPaid = order.paymentStatus === "paid" || order.status === "paid";
+  const showPay = !isPaid && (order.paymentProvider === "tbank_link" || order.paymentProvider === "tbank");
 
   return (
     <div className="container mx-auto px-4 py-10 space-y-8">
@@ -61,7 +63,13 @@ export default async function ShopOrderPage({
           <div className="text-gray-300">
             Заказ создан, но не оплачен. Сумма: <span className="text-white font-bold">{formatRub(order.totalKopeks)}</span>
           </div>
-          {order.paymentProvider === "tbank" ? <PayTbankButton orderId={order.id} publicAccessToken={isGuestAccess ? sp.token : null} /> : null}
+          {showPay ? (
+            order.paymentProvider === "tbank" ? (
+              <PayTbankButton orderId={order.id} publicAccessToken={isGuestAccess ? sp.token : null} />
+            ) : (
+              <PayTbankLinkButton />
+            )
+          ) : null}
         </div>
       )}
 

@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { updateShopOrderAdmin } from "@/app/actions/shop-orders-admin";
-import { Loader2, Save } from "lucide-react";
+import { confirmShopOrderPaymentAdmin, updateShopOrderAdmin } from "@/app/actions/shop-orders-admin";
+import { Loader2, Save, CheckCircle } from "lucide-react";
 import { formatRub } from "@/lib/shop/money";
 import { getShippingMethodLabel } from "@/lib/shop/shipping";
 
@@ -52,6 +52,7 @@ export function OrderAdminClient({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
 
   const itemsTotal = useMemo(() => order.items.reduce((s, i) => s + i.totalKopeks, 0), [order.items]);
 
@@ -87,6 +88,24 @@ export function OrderAdminClient({
       window.location.reload();
     } finally {
       setBusy(false);
+    }
+  };
+
+  const confirmPayment = async () => {
+    if (!confirm("Подтвердить оплату и перевести заказ в статус paid?")) return;
+    setConfirmBusy(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await confirmShopOrderPaymentAdmin(order.id, getCsrfToken());
+      if (!res.ok) {
+        setError(res.error || "Ошибка");
+        return;
+      }
+      setSuccess("Оплата подтверждена");
+      window.location.reload();
+    } finally {
+      setConfirmBusy(false);
     }
   };
 
@@ -183,6 +202,16 @@ export function OrderAdminClient({
                 <label className="block text-sm text-gray-400 mb-1">Оплата</label>
                 <div className="text-white font-medium">{order.paymentStatus}</div>
                 <div className="text-xs text-gray-500">{order.paymentProvider || "—"}</div>
+                {order.paymentStatus !== "paid" ? (
+                  <button
+                    onClick={confirmPayment}
+                    disabled={confirmBusy}
+                    className="inline-flex h-9 items-center justify-center rounded-lg bg-emerald-600 px-4 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50 mt-3"
+                  >
+                    {confirmBusy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                    Подтвердить оплату
+                  </button>
+                ) : null}
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Статус доставки</label>
@@ -235,4 +264,3 @@ export function OrderAdminClient({
     </div>
   );
 }
-

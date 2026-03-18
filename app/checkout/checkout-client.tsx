@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createGuestShopOrder, createShopOrder, startTbankPayment, startTbankPaymentPublic } from "@/app/actions/shop";
+import { createGuestShopOrder, createShopOrder } from "@/app/actions/shop";
 import { formatRub } from "@/lib/shop/money";
 import { PICKUP_ADDRESS, PICKUP_PHONE, ShippingMethod, calcShippingCostKopeks } from "@/lib/shop/shipping";
 import { Loader2 } from "lucide-react";
@@ -58,9 +58,7 @@ export function CheckoutClient({
   };
 
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("pickup");
-  const [paymentProvider, setPaymentProvider] = useState<"tbank" | "yookassa" | "sber_online" | "tinkoff_online">(
-    "tbank"
-  );
+  const paymentProvider = "tbank_link" as const;
   const [contactName, setContactName] = useState(initial?.contactName || "");
   const [contactPhone, setContactPhone] = useState(initial?.contactPhone ? normalizePhone(initial.contactPhone) : "");
   const [contactEmail, setContactEmail] = useState((initial?.contactEmail || "").trim());
@@ -219,19 +217,8 @@ export function CheckoutClient({
         window.dispatchEvent(new CustomEvent("cart:changed"));
       }
 
-      if (paymentProvider === "tbank") {
-        const p = isAuthenticated
-          ? await startTbankPayment(res.orderId, getCsrfToken())
-          : await startTbankPaymentPublic(res.orderId, (res as any).publicAccessToken, getCsrfToken());
-        if (!p.ok) {
-          setFormError(p.error || "Не удалось создать оплату");
-          return;
-        }
-        window.location.href = p.paymentUrl;
-        return;
-      }
-
-      window.location.href = isAuthenticated ? `/shop/order/${res.orderId}` : `/shop/order/${res.orderId}?token=${encodeURIComponent((res as any).publicAccessToken)}`;
+      const tokenPart = isAuthenticated ? "" : `?token=${encodeURIComponent((res as any).publicAccessToken)}`;
+      window.location.href = `/shop/order/${res.orderId}${tokenPart}${tokenPart ? "&" : "?"}pay=1`;
     } finally {
       setIsLoading(false);
     }
@@ -446,36 +433,18 @@ export function CheckoutClient({
 
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
           <h2 className="text-lg font-semibold text-white">Оплата</h2>
-          <div className="space-y-2">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input type="radio" checked={paymentProvider === "tbank"} onChange={() => setPaymentProvider("tbank")} />
-              <div className="text-white">Тинькофф Банк (ТБанк) — безопасная страница оплаты</div>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="radio"
-                checked={paymentProvider === "yookassa"}
-                onChange={() => setPaymentProvider("yookassa")}
-              />
-              <div className="text-white">ЮKassa (СБП, карта)</div>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="radio"
-                checked={paymentProvider === "sber_online"}
-                onChange={() => setPaymentProvider("sber_online")}
-              />
-              <div className="text-white">Сбербанк Онлайн</div>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="radio"
-                checked={paymentProvider === "tinkoff_online"}
-                onChange={() => setPaymentProvider("tinkoff_online")}
-              />
-              <div className="text-white">Тинькофф Онлайн</div>
-            </label>
+          <div className="text-sm text-gray-300">
+            Оплата переводом на карту (Т‑Банк). После оформления заказ получает статус «ждёт оплаты», товар резервируется.
           </div>
+          <a
+            href={process.env.NEXT_PUBLIC_TBANK_SELFEMPLOYED_PAYMENT_URL || "https://www.tinkoff.ru/rm/r_JESjEcBisx.CSUFIGiBXm/5zoeh15252"}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-primary hover:underline"
+          >
+            Перейти к оплате в Т‑Банк
+          </a>
+          <div className="text-xs text-gray-500">Администратор подтверждает оплату вручную после поступления средств.</div>
         </div>
 
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-3">
@@ -536,7 +505,7 @@ export function CheckoutClient({
             className="w-full h-11 rounded-lg bg-primary text-white font-semibold shadow-[0_0_15px_rgba(255,94,0,0.3)] hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Перейти к оплате
+            Оформить заказ
           </button>
 
           {formError ? (
@@ -544,7 +513,7 @@ export function CheckoutClient({
           ) : null}
 
           <div className="text-xs text-gray-500">
-            При выборе ТБанк будет редирект на защищённую страницу оплаты (не iframe).
+            После оформления откроется страница заказа со ссылкой на оплату.
           </div>
         </div>
       </div>

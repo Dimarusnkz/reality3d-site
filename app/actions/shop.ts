@@ -222,7 +222,7 @@ export async function mergeGuestCart(lines: { productId: number; quantity: numbe
 
 export async function createShopOrder(data: {
   shippingMethod: ShippingMethod
-  paymentProvider: 'tbank' | 'yookassa' | 'sber_online' | 'tinkoff_online'
+  paymentProvider: 'tbank' | 'tbank_link' | 'yookassa' | 'sber_online' | 'tinkoff_online'
   contactName: string
   contactPhone: string
   contactEmail: string
@@ -446,7 +446,7 @@ export async function createShopOrder(data: {
 export async function createGuestShopOrder(data: {
   items: { productId: number; quantity: number }[]
   shippingMethod: ShippingMethod
-  paymentProvider: 'tbank' | 'yookassa' | 'sber_online' | 'tinkoff_online'
+  paymentProvider: 'tbank' | 'tbank_link' | 'yookassa' | 'sber_online' | 'tinkoff_online'
   contactName: string
   contactPhone: string
   contactEmail: string
