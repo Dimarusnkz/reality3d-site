@@ -222,7 +222,7 @@ export async function postWarehouseProductionOrder(id: string, csrfToken: string
     const outQty = Number(prod.quantity)
 
     await prisma.$transaction(async (tx) => {
-      const materialLines: Array<{ materialProductId: number; unit: 'pcs' | 'kg' | 'm'; required: number }> = []
+      const materialLines: Array<{ materialProductId: number; unit: string; required: number }> = []
       for (const it of recipe.items) {
         const perUnit = Number(it.quantity)
         const required = perUnit * outQty
