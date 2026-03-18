@@ -43,7 +43,10 @@ export default function OrdersList({ initialOrders }: { initialOrders: any[] }) 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-3xl font-bold text-white">Мои заказы</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-white">Заказы 3D-печати</h1>
+          <div className="text-sm text-gray-400 mt-1">Заказы из калькулятора и проекты</div>
+        </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />

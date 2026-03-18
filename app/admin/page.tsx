@@ -7,6 +7,8 @@ import { hasPermission } from "@/lib/access";
 import { formatRub } from "@/lib/shop/money";
 import { getMskDayKeyFromDate, getMskDayRangeUtc } from "@/lib/time-msk";
 import { ServerMetricsPanel } from "./server-metrics-panel";
+import { cn } from "@/lib/utils";
+import { getShopOrderStatusMeta, getShopPaymentStatusMeta } from "@/lib/shop/order-status";
 
 export default async function AdminDashboard() {
   const session = await getSession();
@@ -136,6 +138,9 @@ export default async function AdminDashboard() {
               <div className="text-gray-500 text-sm">Нет заказов</div>
             ) : (
               recentShopOrders.map((o) => (
+                const statusMeta = getShopOrderStatusMeta(o.status);
+                const payMeta = getShopPaymentStatusMeta(o.paymentStatus);
+                return (
                 <Link
                   key={o.id}
                   href={`/admin/shop/orders`}
@@ -153,13 +158,18 @@ export default async function AdminDashboard() {
                     </div>
                     <div className="text-right shrink-0">
                       <div className="font-bold text-white">{formatRub(o.totalKopeks)}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">
-                        {o.paymentStatus} / {o.status}
+                      <div className="flex flex-wrap justify-end gap-1.5 mt-1">
+                        <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium", payMeta.className)}>
+                          {payMeta.label}
+                        </span>
+                        <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium", statusMeta.className)}>
+                          {statusMeta.label}
+                        </span>
                       </div>
                     </div>
                   </div>
                 </Link>
-              ))
+              )})
             )}
           </div>
         </div>

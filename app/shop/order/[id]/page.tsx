@@ -4,6 +4,8 @@ import { getSession } from "@/lib/session";
 import { getPrisma } from "@/lib/prisma";
 import { formatRub } from "@/lib/shop/money";
 import { PICKUP_ADDRESS, PICKUP_PHONE, getShippingMethodLabel } from "@/lib/shop/shipping";
+import { cn } from "@/lib/utils";
+import { getShopOrderStatusMeta, getShopPaymentAttemptStatusMeta, getShopPaymentProviderLabel, getShopPaymentStatusMeta } from "@/lib/shop/order-status";
 import { PayTbankButton } from "../pay-tbank-button";
 import { PayTbankLinkButton } from "../pay-tbank-link-button";
 
@@ -36,15 +38,19 @@ export default async function ShopOrderPage({
 
   const isPaid = order.paymentStatus === "paid" || order.status === "paid";
   const showPay = !isPaid && (order.paymentProvider === "tbank_link" || order.paymentProvider === "tbank");
+  const statusMeta = getShopOrderStatusMeta(order.status);
+  const payMeta = getShopPaymentStatusMeta(order.paymentStatus);
 
   return (
     <div className="container mx-auto px-4 py-10 space-y-8">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold text-white">Заказ #{order.orderNo}</h1>
-        <div className="text-sm text-gray-400">
-          Статус: <span className="text-white font-medium">{order.status}</span>
-          <span className="mx-2">•</span>
-          Оплата: <span className="text-white font-medium">{order.paymentStatus}</span>
+        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-400">
+          <span>Статус:</span>
+          <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", statusMeta.className)}>{statusMeta.label}</span>
+          <span className="mx-1">•</span>
+          <span>Оплата:</span>
+          <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", payMeta.className)}>{payMeta.label}</span>
         </div>
       </div>
 
@@ -141,7 +147,10 @@ export default async function ShopOrderPage({
                 {order.payments.map((p) => (
                   <div key={p.id} className="flex items-center justify-between gap-3">
                     <div className="text-gray-300">
-                      {p.provider} <span className="text-gray-500">({p.status})</span>
+                      {getShopPaymentProviderLabel(p.provider)}{" "}
+                      <span className={cn("text-xs", getShopPaymentAttemptStatusMeta(p.status).className)}>
+                        ({getShopPaymentAttemptStatusMeta(p.status).label})
+                      </span>
                     </div>
                     <div className="text-white font-medium">{formatRub(p.amountKopeks)}</div>
                   </div>

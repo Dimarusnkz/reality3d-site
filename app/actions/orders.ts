@@ -91,6 +91,29 @@ export async function getClientOrders() {
   })
 }
 
+export async function getClientShopOrders() {
+  const prisma = getPrisma()
+  const session = await getSession()
+  if (!session || !session.userId) {
+    return []
+  }
+
+  return await prisma.shopOrder.findMany({
+    where: { userId: parseInt(session.userId) },
+    select: {
+      id: true,
+      orderNo: true,
+      createdAt: true,
+      status: true,
+      paymentStatus: true,
+      paymentProvider: true,
+      totalKopeks: true,
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  })
+}
+
 // --- Admin/Employee Actions ---
 
 export async function getOrders() {

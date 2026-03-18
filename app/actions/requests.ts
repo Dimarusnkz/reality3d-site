@@ -2,8 +2,6 @@
 
 import { sendTelegramMessage } from '@/lib/telegram'
 import { sendMaxMessage } from '@/lib/max'
-import bcrypt from 'bcryptjs'
-import { getPrisma } from '@/lib/prisma'
 import { assertCsrf } from '@/lib/csrf'
 import { getClientIp } from '@/lib/request'
 import { rateLimit } from '@/lib/rate-limit'
@@ -26,7 +24,6 @@ const requestSchema = z.object({
 });
 
 export async function submitRequest(formData: FormData) {
-  const prisma = getPrisma()
   const csrf = await assertCsrf(formData)
   if (!csrf.ok) {
     return { error: csrf.error }
@@ -46,56 +43,6 @@ export async function submitRequest(formData: FormData) {
   const { name, phone, email, description } = parsed.data
 
   try {
-    // 1. Find or create user
-    let user = await prisma.user.findUnique({
-      where: { email }
-    })
-
-    if (!user) {
-      // Create new user (lead)
-      const hashedPassword = await bcrypt.hash(Math.random().toString(36), 10)
-      user = await prisma.user.create({
-        data: {
-          email,
-          name,
-          phone,
-          password: hashedPassword,
-          role: 'user', // Default role
-        }
-      })
-    }
-
-    // 2. Create Chat Session for the request
-    // Check if active session exists, if not create one
-    // But since this is a "request", maybe create a new session or append to existing?
-    // Let's check for existing active session
-    let session = await prisma.chatSession.findFirst({
-      where: {
-        userId: user.id,
-        status: 'active'
-      }
-    })
-
-    if (!session) {
-      session = await prisma.chatSession.create({
-        data: {
-          userId: user.id,
-          status: 'active'
-        }
-      })
-    }
-
-    // 3. Add message to chat (as if from user)
-    await prisma.chatMessage.create({
-      data: {
-        sessionId: session.id,
-        senderId: user.id,
-        content: `ЗАЯВКА С САЙТА:\n${description}\n\nТелефон: ${phone}`,
-        isInternal: false
-      }
-    })
-
-    // 4. Send Notifications (Telegram & MAX)
     const notificationMessage = `
 <b>🔔 Новая заявка с сайта</b>
 
@@ -105,8 +52,6 @@ export async function submitRequest(formData: FormData) {
 
 📝 <b>Описание:</b>
 ${escapeHtml(description)}
-
-🔗 <a href="https://reality3d.ru/admin/chat?sessionId=${encodeURIComponent(session.id.toString())}">Перейти в чат</a>
     `
 
     await sendTelegramMessage(notificationMessage)

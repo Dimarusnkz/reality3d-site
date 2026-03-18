@@ -6,6 +6,8 @@ import { confirmShopOrderPaymentAdmin, updateShopOrderAdmin } from "@/app/action
 import { Loader2, Save, CheckCircle } from "lucide-react";
 import { formatRub } from "@/lib/shop/money";
 import { getShippingMethodLabel } from "@/lib/shop/shipping";
+import { cn } from "@/lib/utils";
+import { getShopOrderStatusMeta, getShopPaymentProviderLabel, getShopPaymentStatusMeta } from "@/lib/shop/order-status";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -92,7 +94,7 @@ export function OrderAdminClient({
   };
 
   const confirmPayment = async () => {
-    if (!confirm("Подтвердить оплату и перевести заказ в статус paid?")) return;
+    if (!confirm("Подтвердить оплату и перевести заказ в статус «Оплачен»?")) return;
     setConfirmBusy(true);
     setError(null);
     setSuccess(null);
@@ -191,17 +193,26 @@ export function OrderAdminClient({
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Статус заказа</label>
                 <select value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white">
-                  <option value="pending">pending</option>
-                  <option value="paid">paid</option>
-                  <option value="shipped">shipped</option>
-                  <option value="completed">completed</option>
-                  <option value="cancelled">cancelled</option>
+                  <option value="pending">В обработке</option>
+                  <option value="paid">Оплачен</option>
+                  <option value="shipped">Отправлен</option>
+                  <option value="completed">Завершён</option>
+                  <option value="cancelled">Отменён</option>
                 </select>
+                <div className="mt-2">
+                  <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", getShopOrderStatusMeta(order.status).className)}>
+                    {getShopOrderStatusMeta(order.status).label}
+                  </span>
+                </div>
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Оплата</label>
-                <div className="text-white font-medium">{order.paymentStatus}</div>
-                <div className="text-xs text-gray-500">{order.paymentProvider || "—"}</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", getShopPaymentStatusMeta(order.paymentStatus).className)}>
+                    {getShopPaymentStatusMeta(order.paymentStatus).label}
+                  </span>
+                  <span className="text-xs text-gray-500">{getShopPaymentProviderLabel(order.paymentProvider)}</span>
+                </div>
                 {order.paymentStatus !== "paid" ? (
                   <button
                     onClick={confirmPayment}
@@ -216,12 +227,12 @@ export function OrderAdminClient({
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Статус доставки</label>
                 <select value={form.shippingStatus} onChange={(e) => setForm((p) => ({ ...p, shippingStatus: e.target.value }))} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white">
-                  <option value="new">new</option>
-                  <option value="quoted">quoted</option>
-                  <option value="packed">packed</option>
-                  <option value="shipped">shipped</option>
-                  <option value="delivered">delivered</option>
-                  <option value="cancelled">cancelled</option>
+                  <option value="new">Новый</option>
+                  <option value="quoted">Расчёт</option>
+                  <option value="packed">Упакован</option>
+                  <option value="shipped">Отправлен</option>
+                  <option value="delivered">Доставлен</option>
+                  <option value="cancelled">Отменён</option>
                 </select>
               </div>
               <div>

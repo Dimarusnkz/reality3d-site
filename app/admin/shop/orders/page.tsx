@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getPrisma } from "@/lib/prisma";
 import { formatRub } from "@/lib/shop/money";
 import { getShippingMethodLabel } from "@/lib/shop/shipping";
+import { cn } from "@/lib/utils";
+import { getShopOrderStatusMeta, getShopPaymentProviderLabel, getShopPaymentStatusMeta } from "@/lib/shop/order-status";
 
 type SearchParams = { q?: string; status?: string };
 
@@ -50,11 +52,11 @@ export default async function AdminShopOrdersPage({ searchParams }: { searchPara
         />
         <select name="status" defaultValue={status} className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white">
           <option value="">Все статусы</option>
-          <option value="pending">pending</option>
-          <option value="paid">paid</option>
-          <option value="cancelled">cancelled</option>
-          <option value="shipped">shipped</option>
-          <option value="completed">completed</option>
+          <option value="pending">В обработке</option>
+          <option value="paid">Оплачен</option>
+          <option value="cancelled">Отменён</option>
+          <option value="shipped">Отправлен</option>
+          <option value="completed">Завершён</option>
         </select>
         <button className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-semibold transition-colors">Найти</button>
       </form>
@@ -80,6 +82,14 @@ export default async function AdminShopOrdersPage({ searchParams }: { searchPara
                   <div className="text-xs text-gray-500 mt-0.5">
                     {new Date(o.createdAt).toLocaleString("ru-RU")}
                   </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium", getShopPaymentStatusMeta(o.paymentStatus).className)}>
+                      {getShopPaymentStatusMeta(o.paymentStatus).label}
+                    </span>
+                    <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium", getShopOrderStatusMeta(o.status).className)}>
+                      {getShopOrderStatusMeta(o.status).label}
+                    </span>
+                  </div>
                 </td>
                 <td className="p-4 text-gray-300">
                   {o.user ? (
@@ -102,8 +112,8 @@ export default async function AdminShopOrdersPage({ searchParams }: { searchPara
                   )}
                 </td>
                 <td className="p-4 text-gray-300">
-                  <div className="text-white">{o.paymentProvider || "—"}</div>
-                  <div className="text-xs text-gray-500">{o.paymentStatus}</div>
+                  <div className="text-white">{getShopPaymentProviderLabel(o.paymentProvider)}</div>
+                  <div className="text-xs text-gray-500">{getShopPaymentStatusMeta(o.paymentStatus).label}</div>
                 </td>
                 <td className="p-4 text-right text-white font-semibold">{formatRub(o.totalKopeks)}</td>
               </tr>
