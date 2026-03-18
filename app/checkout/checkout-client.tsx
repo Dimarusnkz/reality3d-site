@@ -323,6 +323,14 @@ export function CheckoutClient({
               <div>
                 <div className="text-white font-medium">Почта России</div>
                 <div className="text-sm text-gray-400">от 299 ₽, 3–10 дней (по РФ)</div>
+                <a
+                  href="https://www.pochta.ru/shipment?type=PARCEL&weight=200"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Рассчитать самостоятельно
+                </a>
               </div>
             </label>
 
