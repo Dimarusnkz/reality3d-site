@@ -36,7 +36,11 @@ export function CheckoutClient({ items }: { items: CheckoutItem[] }) {
   const shippingCost = useMemo(() => calcShippingCostKopeks(shippingMethod), [shippingMethod]);
   const total = subtotal + shippingCost;
 
-  const canSubmit = contactName.trim() && contactPhone.trim() && contactEmail.trim();
+  const canSubmit =
+    contactName.trim() &&
+    contactPhone.trim() &&
+    contactEmail.trim() &&
+    (shippingMethod === "pickup" ? true : deliveryCity.trim() && deliveryAddress.trim());
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -154,6 +158,32 @@ export function CheckoutClient({ items }: { items: CheckoutItem[] }) {
                 <div className="text-sm text-gray-400">от 299 ₽, 3–10 дней (по РФ)</div>
               </div>
             </label>
+
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name="shipping"
+                checked={shippingMethod === "cdek"}
+                onChange={() => setShippingMethod("cdek")}
+              />
+              <div>
+                <div className="text-white font-medium">СДЭК</div>
+                <div className="text-sm text-gray-400">стоимость уточним после оформления</div>
+              </div>
+            </label>
+
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name="shipping"
+                checked={shippingMethod === "yandex"}
+                onChange={() => setShippingMethod("yandex")}
+              />
+              <div>
+                <div className="text-white font-medium">Яндекс Доставка</div>
+                <div className="text-sm text-gray-400">стоимость уточним после оформления</div>
+              </div>
+            </label>
           </div>
 
           {shippingMethod !== "pickup" ? (
@@ -180,7 +210,7 @@ export function CheckoutClient({ items }: { items: CheckoutItem[] }) {
                   value={deliveryAddress}
                   onChange={(e) => setDeliveryAddress(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  placeholder="Улица, дом, квартира"
+                  placeholder="Улица, дом, квартира / ПВЗ"
                 />
               </div>
             </div>
@@ -252,7 +282,9 @@ export function CheckoutClient({ items }: { items: CheckoutItem[] }) {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-400">Доставка</span>
-              <span className="text-white">{formatRub(shippingCost)}</span>
+              <span className="text-white">
+                {shippingMethod === "cdek" || shippingMethod === "yandex" ? "по тарифу" : formatRub(shippingCost)}
+              </span>
             </div>
             <div className="flex items-center justify-between text-base font-bold">
               <span className="text-white">Итого</span>
@@ -277,4 +309,3 @@ export function CheckoutClient({ items }: { items: CheckoutItem[] }) {
     </div>
   );
 }
-

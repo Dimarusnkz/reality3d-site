@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getPrisma } from "@/lib/prisma";
 import { formatRub } from "@/lib/shop/money";
+import { getShippingMethodLabel } from "@/lib/shop/shipping";
 
 export default async function AdminShopOrdersPage() {
   const prisma = getPrisma();
@@ -47,7 +48,7 @@ export default async function AdminShopOrdersPage() {
                   )}
                 </td>
                 <td className="p-4 text-gray-300">
-                  <div className="text-white">{o.shippingMethod}</div>
+                  <div className="text-white">{getShippingMethodLabel(o.shippingMethod)}</div>
                   {o.shippingMethod === "pickup" ? (
                     <div className="text-xs text-gray-500">Самовывоз</div>
                   ) : (
@@ -68,4 +69,3 @@ export default async function AdminShopOrdersPage() {
     </div>
   );
 }
-

@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getPrisma } from "@/lib/prisma";
 import { formatRub } from "@/lib/shop/money";
-import { PICKUP_ADDRESS, PICKUP_PHONE } from "@/lib/shop/shipping";
+import { PICKUP_ADDRESS, PICKUP_PHONE, getShippingMethodLabel } from "@/lib/shop/shipping";
 import { PayTbankButton } from "../pay-tbank-button";
 
 export default async function ShopOrderPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ payment?: string }> }) {
@@ -76,7 +76,7 @@ export default async function ShopOrderPage({ params, searchParams }: { params: 
 
           <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 space-y-2">
             <div className="text-gray-400 text-sm">Доставка</div>
-            <div className="text-white font-medium">{order.shippingMethod}</div>
+            <div className="text-white font-medium">{getShippingMethodLabel(order.shippingMethod)}</div>
             {order.shippingMethod === "pickup" ? (
               <div className="text-gray-300 text-sm">
                 <div>{PICKUP_ADDRESS}</div>
@@ -128,4 +128,3 @@ export default async function ShopOrderPage({ params, searchParams }: { params: 
     </div>
   );
 }
-
