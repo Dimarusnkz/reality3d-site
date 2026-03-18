@@ -3,23 +3,10 @@
 import { useState, useEffect } from "react";
 import { Search, Eye, Plus, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getCalcOrderStatusMeta } from "@/lib/orders/calc-order-status";
 import { CreateOrderModal } from "./create-order-modal";
 import { ClientOrderDetailsModal } from "./client-order-details";
 import { useSearchParams } from "next/navigation";
-
-type OrderStatus = 'pending' | 'processing' | 'payment_pending' | 'paid' | 'in_production' | 'ready' | 'completed' | 'shipped' | 'cancelled';
-
-const STATUSES: Record<OrderStatus | string, { label: string; color: string; bg: string }> = {
-  pending: { label: 'На проверке', color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-  processing: { label: 'В работе', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-  payment_pending: { label: 'Ожидает оплаты', color: 'text-orange-400', bg: 'bg-orange-500/10' },
-  paid: { label: 'Оплачен', color: 'text-green-400', bg: 'bg-green-500/10' },
-  in_production: { label: 'В производстве', color: 'text-purple-400', bg: 'bg-purple-500/10' },
-  ready: { label: 'Готов к выдаче', color: 'text-secondary', bg: 'bg-secondary/10' },
-  completed: { label: 'Завершен', color: 'text-slate-400', bg: 'bg-slate-500/10' },
-  shipped: { label: 'Отправлен', color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-  cancelled: { label: 'Отменен', color: 'text-red-400', bg: 'bg-red-500/10' },
-};
 
 export default function OrdersList({ initialOrders }: { initialOrders: any[] }) {
   const searchParams = useSearchParams();
@@ -95,7 +82,7 @@ export default function OrdersList({ initialOrders }: { initialOrders: any[] }) 
             </thead>
             <tbody className="divide-y divide-slate-800">
               {filteredOrders.map((order) => {
-                const statusConfig = STATUSES[order.status] || STATUSES.pending;
+                const statusMeta = getCalcOrderStatusMeta(order.status);
                 
                 return (
                   <tr key={order.id} className="hover:bg-slate-900/30 transition-colors group">
@@ -106,12 +93,10 @@ export default function OrdersList({ initialOrders }: { initialOrders: any[] }) 
                     </td>
                     <td className="px-6 py-4">
                       <span className={cn(
-                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border border-opacity-20",
-                        statusConfig.color,
-                        statusConfig.bg,
-                        `border-${statusConfig.color.split('-')[1]}-500`
+                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                        statusMeta.className
                       )}>
-                        {statusConfig.label}
+                        {statusMeta.label}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-white font-medium">

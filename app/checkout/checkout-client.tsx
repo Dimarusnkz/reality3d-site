@@ -146,6 +146,7 @@ export function CheckoutClient({
 
   const hasItems = runtimeItems.length > 0;
   const canSubmit =
+    isAuthenticated &&
     hasItems &&
     !loadingItems &&
     isValidName &&
@@ -157,6 +158,10 @@ export function CheckoutClient({
     isValidCourierNote;
 
   const submit = async () => {
+    if (!isAuthenticated) {
+      window.location.href = "/login";
+      return;
+    }
     if (!canSubmit) {
       if (!isValidName) setFormError("Имя: только буквы (2–50 символов)");
       else if (!isValidPhone) setFormError("Телефон: формат +7XXXXXXXXXX");
@@ -227,6 +232,19 @@ export function CheckoutClient({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       <div className="lg:col-span-7 space-y-8">
+        {!isAuthenticated ? (
+          <div className="bg-orange-500/10 border border-orange-500/20 text-orange-300 rounded-xl p-4 text-sm">
+            Войдите в личный кабинет, чтобы оформить заказ и видеть его в разделе «Мои заказы».
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a href="/login" className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary/90 transition-all">
+                Войти
+              </a>
+              <a href="/register" className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-800 px-4 text-sm font-semibold text-white hover:bg-slate-700 transition-all">
+                Регистрация
+              </a>
+            </div>
+          </div>
+        ) : null}
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
           <h2 className="text-lg font-semibold text-white">Контакты</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

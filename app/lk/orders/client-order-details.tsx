@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { X, MessageSquare, Loader2, RefreshCw } from "lucide-react";
 import { getOrderDetails, addOrderComment, createOrder } from "@/app/actions/orders";
 import { cn } from "@/lib/utils";
+import { getCalcOrderStatusMeta } from "@/lib/orders/calc-order-status";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -112,8 +113,8 @@ export function ClientOrderDetailsModal({ orderId, onClose }: ClientOrderDetails
                              <div className="text-xl font-bold text-primary mb-1">
                                 {order.price > 0 ? `${order.price} ₽` : 'На расчете'}
                              </div>
-                             <div className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-slate-800 text-gray-300">
-                                {order.status}
+                             <div className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", getCalcOrderStatusMeta(order.status).className)}>
+                                {getCalcOrderStatusMeta(order.status).label}
                              </div>
                         </div>
                     </div>
