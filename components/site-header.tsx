@@ -42,6 +42,10 @@ export function SiteHeader({ user }: SiteHeaderProps) {
     let cancelled = false;
 
     const load = async () => {
+      if (!user?.userId) {
+        setCartQty(0);
+        return;
+      }
       try {
         const res = await fetch("/api/cart/count", { cache: "no-store" });
         const data = (await res.json().catch(() => null)) as { ok?: boolean; quantity?: number } | null;
@@ -59,7 +63,7 @@ export function SiteHeader({ user }: SiteHeaderProps) {
       cancelled = true;
       window.removeEventListener("cart:changed", handler as any);
     };
-  }, []);
+  }, [user?.userId]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-black/80 backdrop-blur-md">
