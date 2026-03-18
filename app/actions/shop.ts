@@ -195,7 +195,7 @@ export async function mergeGuestCart(lines: { productId: number; quantity: numbe
   for (const l of normalized) {
     const product = await prisma.shopProduct.findUnique({
       where: { id: l.productId },
-      select: { id: true, isActive: true, stock: true, allowPreorder: true },
+      select: { id: true, isActive: true, stock: true, allowPreorder: true, priceKopeks: true },
     })
     if (!product || !product.isActive) continue
 
@@ -210,8 +210,8 @@ export async function mergeGuestCart(lines: { productId: number; quantity: numbe
 
     await prisma.shopCartItem.upsert({
       where: { cartId_productId: { cartId, productId: product.id } },
-      create: { cartId, productId: product.id, quantity: nextQty },
-      update: { quantity: nextQty },
+      create: { cartId, productId: product.id, quantity: nextQty, unitPriceKopeks: product.priceKopeks },
+      update: { quantity: nextQty, unitPriceKopeks: product.priceKopeks },
     })
   }
 
