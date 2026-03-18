@@ -109,7 +109,7 @@ export async function saveWarehouseRecipe(input: unknown, csrfToken: string) {
   const parsed = recipeSchema.safeParse(input)
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
 
-  const prepared = []
+  const prepared: Array<{ materialProductId: number; quantity: number; unit: 'pcs' | 'kg' | 'm' }> = []
   for (const it of parsed.data.items) {
     const qty = parseDecimal(it.quantity)
     if (!qty || qty <= 0) return { ok: false as const, error: 'Некорректное количество в рецепте' }
@@ -222,7 +222,7 @@ export async function postWarehouseProductionOrder(id: string, csrfToken: string
     const outQty = Number(prod.quantity)
 
     await prisma.$transaction(async (tx) => {
-      const materialLines = []
+      const materialLines: Array<{ materialProductId: number; unit: 'pcs' | 'kg' | 'm'; required: number }> = []
       for (const it of recipe.items) {
         const perUnit = Number(it.quantity)
         const required = perUnit * outQty
