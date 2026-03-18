@@ -53,6 +53,17 @@ export default function CatalogProductsTable({ initialProducts, warehouseId }: {
                     <div className="text-white font-semibold">{p.name}</div>
                     <div className="text-xs text-gray-500 font-mono mt-0.5">/{p.slug}</div>
                     {p.sku ? <div className="text-xs text-gray-500 mt-0.5">SKU: {p.sku}</div> : null}
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {p.weightGrams != null ? <span>Вес: {(p.weightGrams / 1000).toFixed(2)} кг</span> : <span>Вес: —</span>}
+                      <span className="mx-2">•</span>
+                      {p.lengthMm != null && p.widthMm != null && p.heightMm != null ? (
+                        <span>
+                          Габариты: {Math.round(p.lengthMm / 10) / 10}×{Math.round(p.widthMm / 10) / 10}×{Math.round(p.heightMm / 10) / 10} см
+                        </span>
+                      ) : (
+                        <span>Габариты: —</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </td>
