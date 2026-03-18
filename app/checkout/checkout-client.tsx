@@ -322,7 +322,7 @@ export function CheckoutClient({
               />
               <div>
                 <div className="text-white font-medium">Почта России</div>
-                <div className="text-sm text-gray-400">от 299 ₽, 3–10 дней (по РФ)</div>
+                <div className="text-sm text-gray-400">Оплата доставки получателем</div>
                 <a
                   href="https://www.pochta.ru/shipment?type=PARCEL&weight=200"
                   target="_blank"
@@ -343,7 +343,7 @@ export function CheckoutClient({
               />
               <div>
                 <div className="text-white font-medium">СДЭК</div>
-                <div className="text-sm text-gray-400">стоимость уточним после оформления</div>
+                <div className="text-sm text-gray-400">Оплата доставки получателем</div>
                 <a href="https://www.cdek-calc.ru/" target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
                   Рассчитать самостоятельно
                 </a>
@@ -359,7 +359,7 @@ export function CheckoutClient({
               />
               <div>
                 <div className="text-white font-medium">Яндекс Доставка</div>
-                <div className="text-sm text-gray-400">стоимость уточним после оформления</div>
+                <div className="text-sm text-gray-400">Оплата доставки получателем</div>
                 <a href="https://dostavka.yandex.ru/order/" target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
                   Рассчитать самостоятельно
                 </a>
@@ -517,7 +517,7 @@ export function CheckoutClient({
             <div className="flex items-center justify-between">
               <span className="text-gray-400">Доставка</span>
               <span className="text-white">
-                {shippingMethod === "cdek" || shippingMethod === "yandex" ? "по тарифу (уточним)" : formatRub(shippingCost)}
+                {formatRub(shippingCost)}
               </span>
             </div>
             <div className="flex items-center justify-between text-base font-bold">

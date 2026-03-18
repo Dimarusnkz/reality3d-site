@@ -7,7 +7,6 @@ export const PICKUP_PHONE = '+7 923-631-7850';
 export function calcShippingCostKopeks(method: ShippingMethod) {
   if (method === 'pickup') return 0;
   if (method === 'courier_spb') return 39900;
-  if (method === 'russian_post') return 29900;
   return 0;
 }
 
