@@ -8,7 +8,7 @@ npm install
 
 ./build_server.sh
 
-pm2 restart reality3d --update-env || pm2 start reality3d --update-env
+pm2 reload reality3d --update-env || pm2 restart reality3d --update-env || pm2 start reality3d --update-env
 
 ok=0
 for i in $(seq 1 30); do

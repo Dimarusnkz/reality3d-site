@@ -503,7 +503,7 @@ export function CheckoutClient({
             <div className="flex items-center justify-between">
               <span className="text-gray-400">Доставка</span>
               <span className="text-white">
-                {shippingMethod === "cdek" || shippingMethod === "yandex" ? "по тарифу" : formatRub(shippingCost)}
+                {shippingMethod === "cdek" || shippingMethod === "yandex" ? "по тарифу (уточним)" : formatRub(shippingCost)}
               </span>
             </div>
             <div className="flex items-center justify-between text-base font-bold">

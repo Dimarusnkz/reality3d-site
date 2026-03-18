@@ -100,8 +100,16 @@ export default async function ShopOrderPage({
                 <div>{order.deliveryAddress || "—"}</div>
                 <div className="text-xs text-gray-500 mt-1">Индекс: {order.deliveryPostalCode || "—"}</div>
                 <div className="text-xs text-gray-500 mt-1">Телефон: {order.deliveryPhone || order.contactPhone || "—"}</div>
+                {order.shippingTrackingNo ? (
+                  <div className="text-xs text-gray-500 mt-1">Трек: {order.shippingTrackingNo}</div>
+                ) : null}
                 {order.shippingMethod === "cdek" || order.shippingMethod === "yandex" ? (
-                  <div className="text-xs text-gray-500 mt-1">Стоимость: по тарифу (уточним)</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Стоимость:{" "}
+                    {typeof order.shippingQuoteMinKopeks === "number" && typeof order.shippingQuoteMaxKopeks === "number"
+                      ? `${formatRub(order.shippingQuoteMinKopeks)}–${formatRub(order.shippingQuoteMaxKopeks)} (по тарифу)`
+                      : "по тарифу (уточним)"}
+                  </div>
                 ) : null}
               </div>
             )}
