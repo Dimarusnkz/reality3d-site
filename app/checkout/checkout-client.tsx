@@ -367,11 +367,9 @@ export function CheckoutClient({
             </label>
           </div>
 
-          {shippingMethod === "russian_post" || shippingMethod === "cdek" || shippingMethod === "yandex" ? (
-            <div className="text-xs text-gray-500 pt-2">
-              Доставка СДЭК/Яндекс/Почта — оплачивается получателем, мы передаём заказ в ТК.
-            </div>
-          ) : null}
+          <div className="text-xs text-gray-500 pt-2">
+            Доставка СДЭК/Яндекс/Почта — оплачивается получателем, мы передаём заказ в ТК.
+          </div>
 
           {shippingMethod !== "pickup" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
