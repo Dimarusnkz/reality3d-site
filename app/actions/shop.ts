@@ -777,7 +777,7 @@ export async function startTbankPayment(orderId: string, csrfToken: string) {
     return { ok: false as const, error: 'Ошибка создания ссылки оплаты' }
   }
 
-  return { ok: true as const, paymentUrl: payment.paymentUrl }
+  return { ok: true as const, paymentUrl: init.json.PaymentURL }
 }
 
 export async function startTbankPaymentPublic(orderId: string, publicAccessToken: string, csrfToken: string) {
@@ -855,5 +855,5 @@ export async function startTbankPaymentPublic(orderId: string, publicAccessToken
     metadata: { orderId: order.id, paymentId: payment.id, externalPaymentId: payment.externalPaymentId, guest: true },
   })
 
-  return { ok: true as const, paymentUrl: payment.paymentUrl }
+  return { ok: true as const, paymentUrl: init.json.PaymentURL }
 }
