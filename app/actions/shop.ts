@@ -174,6 +174,23 @@ export async function createShopOrder(data: {
   const csrf = await assertCsrfTokenValue(data.csrfToken || null)
   if (!csrf.ok) return { ok: false as const, error: csrf.error }
 
+  const PHONE_RE = /^\+7\d{10}$/
+  const NAME_RE = /^[A-Za-zА-Яа-яЁё\s\-]{2,50}$/
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+  if (!NAME_RE.test((data.contactName || '').trim())) {
+    return { ok: false as const, error: 'Имя: только буквы (2–50 символов)' }
+  }
+  if (!PHONE_RE.test((data.contactPhone || '').trim())) {
+    return { ok: false as const, error: 'Телефон: формат +7XXXXXXXXXX' }
+  }
+  if ((data.contactEmail || '').trim().length > 100 || !EMAIL_RE.test((data.contactEmail || '').trim())) {
+    return { ok: false as const, error: 'Email указан неверно (макс. 100 символов)' }
+  }
+  if ((data.comment || '').length > 200) {
+    return { ok: false as const, error: 'Комментарий не более 200 символов' }
+  }
+
   const { userId } = await requireUserId()
   const meta = await getLogMeta()
 
@@ -220,6 +237,9 @@ export async function createShopOrder(data: {
   if (data.shippingMethod !== 'pickup') {
     if (!data.deliveryCity?.trim() || !data.deliveryAddress?.trim() || !data.deliveryPhone?.trim()) {
       return { ok: false as const, error: 'Заполните город, адрес и телефон для доставки' }
+    }
+    if (!PHONE_RE.test((data.deliveryPhone || '').trim())) {
+      return { ok: false as const, error: 'Телефон для доставки: формат +7XXXXXXXXXX' }
     }
   }
 

@@ -43,11 +43,19 @@ export function CheckoutClient({
   const shippingCost = useMemo(() => calcShippingCostKopeks(shippingMethod), [shippingMethod]);
   const total = subtotal + shippingCost;
 
-  const canSubmit =
-    contactName.trim() &&
-    contactPhone.trim() &&
-    contactEmail.trim() &&
-    (shippingMethod === "pickup" ? true : deliveryCity.trim() && deliveryAddress.trim() && deliveryPhone.trim());
+  const PHONE_RE = /^\+7\d{10}$/;
+  const NAME_RE = /^[A-Za-zА-Яа-яЁё\s\-]{2,50}$/;
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+  const isValidName = NAME_RE.test(contactName.trim());
+  const isValidPhone = PHONE_RE.test(contactPhone.trim());
+  const isValidEmail = contactEmail.trim().length <= 100 && EMAIL_RE.test(contactEmail.trim());
+  const isValidDeliveryPhone = shippingMethod === "pickup" ? true : PHONE_RE.test(deliveryPhone.trim());
+  const isValidComment = comment.length <= 200;
+  const isValidDelivery =
+    shippingMethod === "pickup" ? true : deliveryCity.trim().length > 0 && deliveryAddress.trim().length > 0 && isValidDeliveryPhone;
+
+  const canSubmit = isValidName && isValidPhone && isValidEmail && isValidComment && isValidDelivery;
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -99,27 +107,37 @@ export function CheckoutClient({
               <input
                 value={contactName}
                 onChange={(e) => setContactName(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className={`w-full bg-slate-950 border ${isValidName ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40`}
                 placeholder="Иван"
+                maxLength={50}
+                inputMode="text"
               />
+              {!isValidName ? <div className="text-xs text-red-400 mt-1">Только буквы (латиница/кириллица), 2–50 символов</div> : null}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">Телефон</label>
               <input
                 value={contactPhone}
                 onChange={(e) => setContactPhone(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
-                placeholder="+7..."
+                className={`w-full bg-slate-950 border ${isValidPhone ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40`}
+                placeholder="+79000000000"
+                inputMode="tel"
+                pattern="^\+7\d{10}$"
+                maxLength={12}
               />
+              {!isValidPhone ? <div className="text-xs text-red-400 mt-1">Формат: +7XXXXXXXXXX</div> : null}
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-400 mb-1">Email</label>
               <input
                 value={contactEmail}
                 onChange={(e) => setContactEmail(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className={`w-full bg-slate-950 border ${isValidEmail ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40`}
                 placeholder="mail@example.com"
+                inputMode="email"
+                maxLength={100}
               />
+              {!isValidEmail ? <div className="text-xs text-red-400 mt-1">Неверный email (макс. 100 символов)</div> : null}
             </div>
           </div>
         </div>
@@ -210,6 +228,7 @@ export function CheckoutClient({
                   value={deliveryPostalCode}
                   onChange={(e) => setDeliveryPostalCode(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  maxLength={12}
                 />
               </div>
               <div className="sm:col-span-2">
@@ -217,9 +236,15 @@ export function CheckoutClient({
                 <input
                   value={deliveryPhone}
                   onChange={(e) => setDeliveryPhone(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  placeholder="+7..."
+                  className={`w-full bg-slate-950 border ${isValidDeliveryPhone ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40`}
+                  placeholder="+79000000000"
+                  inputMode="tel"
+                  pattern="^\+7\d{10}$"
+                  maxLength={12}
                 />
+                {!isValidDeliveryPhone && shippingMethod !== "pickup" ? (
+                  <div className="text-xs text-red-400 mt-1">Формат: +7XXXXXXXXXX</div>
+                ) : null}
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-400 mb-1">Адрес</label>
@@ -228,6 +253,7 @@ export function CheckoutClient({
                   onChange={(e) => setDeliveryAddress(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
                   placeholder="Улица, дом, квартира / ПВЗ"
+                  maxLength={200}
                 />
               </div>
             </div>
@@ -273,9 +299,11 @@ export function CheckoutClient({
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[100px]"
+            className={`w-full bg-slate-950 border ${isValidComment ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[100px]`}
             placeholder="Например: позвонить за 30 минут до доставки"
+            maxLength={200}
           />
+          {!isValidComment ? <div className="text-xs text-red-400 mt-1">Комментарий не более 200 символов</div> : null}
         </div>
       </div>
 
