@@ -242,9 +242,7 @@ export function CheckoutClient({
                   pattern="^\+7\d{10}$"
                   maxLength={12}
                 />
-                {!isValidDeliveryPhone && shippingMethod !== "pickup" ? (
-                  <div className="text-xs text-red-400 mt-1">Формат: +7XXXXXXXXXX</div>
-                ) : null}
+                {!isValidDeliveryPhone ? <div className="text-xs text-red-400 mt-1">Формат: +7XXXXXXXXXX</div> : null}
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-400 mb-1">Адрес</label>
