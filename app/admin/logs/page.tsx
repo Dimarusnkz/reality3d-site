@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getPrisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/access";
+import { getClientLogActionLabel, getWarehouseLogActionLabel } from "@/lib/logs/action-labels";
 
 type SearchParams = {
   type?: string;
@@ -176,7 +177,12 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
               <tr key={idx} className={r.kind === "warehouse" ? "bg-blue-500/5" : "bg-green-500/5"}>
                 <td className="p-4 text-gray-300">{r.createdAt.toLocaleString("ru-RU")}</td>
                 <td className="p-4 text-white">{r.user}</td>
-                <td className="p-4 text-gray-300">{r.action}</td>
+                <td className="p-4">
+                  <div className="text-gray-200">
+                    {r.kind === "warehouse" ? getWarehouseLogActionLabel(r.action) : getClientLogActionLabel(r.action)}
+                  </div>
+                  <div className="text-xs text-gray-500 font-mono">{r.action}</div>
+                </td>
                 <td className="p-4 text-gray-300">{r.target}</td>
                 <td className="p-4 text-gray-300">{r.delta}</td>
                 <td className="p-4 text-gray-400">{r.note}</td>

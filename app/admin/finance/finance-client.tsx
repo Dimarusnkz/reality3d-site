@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { createCashEntry } from "@/app/actions/finance";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { getCashDirectionMeta, getCashEntryTypeLabel } from "@/lib/finance/cash-entry-labels";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -143,8 +145,20 @@ export function FinanceClient({ accounts, entries }: { accounts: Account[]; entr
               <tr key={e.id} className="hover:bg-slate-800/50 transition-colors">
                 <td className="p-4 text-gray-300">{new Date(e.createdAt).toLocaleString("ru-RU")}</td>
                 <td className="p-4 text-white">{accountMap.get(e.accountCode as any) || e.accountCode}</td>
-                <td className="p-4 text-gray-300">{e.direction}</td>
-                <td className="p-4 text-gray-300 font-mono text-xs">{e.entryType}</td>
+                <td className="p-4">
+                  <span
+                    className={cn(
+                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                      getCashDirectionMeta(e.direction).className
+                    )}
+                  >
+                    {getCashDirectionMeta(e.direction).label}
+                  </span>
+                </td>
+                <td className="p-4">
+                  <div className="text-gray-200 text-sm">{getCashEntryTypeLabel(e.entryType)}</div>
+                  <div className="text-xs text-gray-500 font-mono">{e.entryType}</div>
+                </td>
                 <td className="p-4 text-right text-white font-semibold">{formatRub(e.amountKopeks)}</td>
                 <td className="p-4 text-gray-400">{e.description || "—"}</td>
               </tr>
@@ -156,4 +170,3 @@ export function FinanceClient({ accounts, entries }: { accounts: Account[]; entr
     </div>
   );
 }
-
