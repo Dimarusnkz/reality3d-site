@@ -6,6 +6,7 @@ import { getPrisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/access";
 import { formatRub } from "@/lib/shop/money";
 import { getMskDayKeyFromDate, getMskDayRangeUtc } from "@/lib/time-msk";
+import { ServerMetricsPanel } from "./server-metrics-panel";
 
 export default async function AdminDashboard() {
   const session = await getSession();
@@ -121,6 +122,8 @@ export default async function AdminDashboard() {
           <p className="text-sm text-gray-400">Клиентов в базе</p>
         </div>
       </div>
+
+      {session.role === "admin" ? <ServerMetricsPanel /> : null}
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 border border-slate-800 bg-slate-900/30 rounded-xl p-6">
