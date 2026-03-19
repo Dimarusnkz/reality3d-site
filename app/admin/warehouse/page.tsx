@@ -183,5 +183,3 @@ export default async function AdminWarehousePage({ searchParams }: { searchParam
     </div>
   );
 }
-  );
-}

@@ -268,6 +268,3 @@ export function ProfileForm({ user }: { user: UserData }) {
     </div>
   )
 }
-    </div>
-  )
-}
