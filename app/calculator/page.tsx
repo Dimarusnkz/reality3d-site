@@ -15,6 +15,7 @@ import {
   Clock,
   Truck,
   MessageSquare,
+  CheckCircle2,
   Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
