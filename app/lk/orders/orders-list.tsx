@@ -7,7 +7,7 @@ import { CreateOrderModal } from "./create-order-modal";
 import { cn } from "@/lib/utils";
 import { getCalcOrderStatusMeta } from "@/lib/orders/calc-order-status";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ButtonLink } from "@/components/ui/button";
+import { LinkButton, Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export default function OrdersList({ initialOrders }: { initialOrders: any[] }) {
