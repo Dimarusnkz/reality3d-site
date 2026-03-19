@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatRub } from "@/lib/shop/money";
-import { createShopOrder } from "@/app/actions/shop-order";
+import { createShopOrder } from "@/app/actions/shop";
 import { guestCartClear } from "@/lib/shop/guest-cart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createOrder } from "@/app/actions/orders";
