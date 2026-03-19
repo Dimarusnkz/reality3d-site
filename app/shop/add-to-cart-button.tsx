@@ -5,6 +5,8 @@ import { addToCart } from "@/app/actions/shop";
 import { ShoppingCart, Loader2, Check } from "lucide-react";
 import { guestCartAdd } from "@/lib/shop/guest-cart";
 
+import { cn } from "@/lib/utils";
+
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; csrf_token=`);
@@ -12,7 +14,15 @@ function getCsrfToken() {
   return parts.pop()?.split(";").shift() || "";
 }
 
-export function AddToCartButton({ productId, disabled }: { productId: number; disabled?: boolean }) {
+export function AddToCartButton({ 
+  productId, 
+  disabled,
+  className 
+}: { 
+  productId: number; 
+  disabled?: boolean;
+  className?: string;
+}) {
   const [isLoading, setIsLoading] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
 
@@ -45,16 +55,23 @@ export function AddToCartButton({ productId, disabled }: { productId: number; di
     <button
       onClick={handleClick}
       disabled={disabled || isLoading}
-      className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white shadow-[0_0_15px_rgba(255,94,0,0.3)] hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+      className={cn(
+        "h-10 px-4 rounded-lg bg-primary hover:bg-orange-600 text-white font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2 w-full",
+        justAdded && "bg-green-500 hover:bg-green-500",
+        className
+      )}
     >
       {isLoading ? (
-        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+        <Loader2 className="h-4 w-4 animate-spin" />
       ) : justAdded ? (
-        <Check className="w-4 h-4 mr-2" />
+        <>
+          <Check className="h-4 w-4" /> Добавлено
+        </>
       ) : (
-        <ShoppingCart className="w-4 h-4 mr-2" />
+        <>
+          <ShoppingCart className="h-4 w-4" /> Купить
+        </>
       )}
-      {justAdded ? "Добавлено" : "В корзину"}
     </button>
   );
 }
