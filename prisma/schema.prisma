@@ -43,6 +43,7 @@ model User {
   warehouseReceiptsPosted     WarehouseReceipt[]         @relation("WarehouseReceiptPoster")
   warehouseTransfersCreated   WarehouseTransfer[]        @relation("WarehouseTransferCreator")
   warehouseTransfersPosted    WarehouseTransfer[]        @relation("WarehouseTransferPoster")
+  auditEvents                 AuditEvent[]               @relation("UserAuditEvents")
 }
 
 model Session {
@@ -66,6 +67,7 @@ model AuditEvent {
   target      String?
   metadata    String?
   createdAt   DateTime @default(now())
+  actor       User?    @relation("UserAuditEvents", fields: [actorUserId], references: [id])
 
   @@index([createdAt])
 }
