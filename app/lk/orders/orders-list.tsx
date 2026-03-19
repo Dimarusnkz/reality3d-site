@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search, Plus, Eye, Package } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { CreateOrderModal } from "./create-order-modal";
 import { cn } from "@/lib/utils";
 import { getCalcOrderStatusMeta } from "@/lib/orders/calc-order-status";
