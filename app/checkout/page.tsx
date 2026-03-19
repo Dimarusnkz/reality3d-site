@@ -18,29 +18,16 @@ export default async function CheckoutPage() {
       ])
     : [null, null];
 
-  const items =
-    cart?.items
-      .filter((i) => i.product && i.product.isActive)
-      .map((i) => ({
-        name: i.product!.name,
-        quantity: i.quantity,
-        unitPriceKopeks: i.product!.priceKopeks,
-      })) || [];
+  const totalKopeks = cart?.items.reduce((acc, i) => acc + i.quantity * i.unitPriceKopeks, 0) || 0;
+  const cartWithTotal = cart ? { ...cart, totalKopeks } : null;
 
   return (
     <div className="container mx-auto px-4 py-10 space-y-8">
       <h1 className="text-3xl font-bold text-white">Оформление заказа</h1>
       <CheckoutClient
-        items={items}
+        cart={cartWithTotal}
+        user={user}
         isAuthenticated={Boolean(userId)}
-        initial={{
-          contactName: user?.name || "",
-          contactEmail: user?.email || "",
-          contactPhone: user?.phone || "",
-          deliveryCity: user?.city || "",
-          deliveryAddress: user?.address || "",
-          deliveryPhone: user?.phone || "",
-        }}
       />
     </div>
   );
