@@ -47,7 +47,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           }
         : {}),
     },
-    include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
+    include: { images: { orderBy: { sortOrder: "asc" }, take: 1 }, category: true },
     orderBy: { createdAt: "desc" },
     take: 48,
   });
