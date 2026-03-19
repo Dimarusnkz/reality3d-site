@@ -7,11 +7,14 @@ import Turnstile from "@/components/ui/turnstile";
 import { CsrfTokenField } from "@/components/ui/csrf-token-field";
 import { cn } from "@/lib/utils";
 import { register } from "@/actions/auth";
+import { useSearchParams } from "next/navigation";
 
 export default function RegisterPage() {
   const [state, formAction, isPending] = useActionState(register, undefined);
   const [showPassword, setShowPassword] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
+  const sp = useSearchParams();
+  const redirectTo = sp.get("redirectTo") || "";
   const captchaError =
     (state?.errors as any)?.captcha?.[0] || (state?.errors as any)?.["cf-turnstile-response"]?.[0];
   const csrfError = (state?.errors as any)?.csrf_token?.[0];
@@ -41,6 +44,7 @@ export default function RegisterPage() {
 
         <form className="space-y-4" action={formAction}>
            <CsrfTokenField />
+           <input type="hidden" name="redirectTo" value={redirectTo} />
            {(state?.errors as any)?.email && (
              <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-sm p-3 rounded-lg flex items-center gap-2">
                <AlertCircle className="h-4 w-4" />

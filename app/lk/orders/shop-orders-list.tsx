@@ -4,6 +4,9 @@ import Link from "next/link";
 import { getShopOrderStatusMeta, getShopPaymentStatusMeta, getShopPaymentProviderLabel } from "@/lib/shop/order-status";
 import { cn } from "@/lib/utils";
 import { formatRub } from "@/lib/shop/money";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ButtonLink } from "@/components/ui/button";
+import { ShoppingCart } from "lucide-react";
 
 type ShopOrderRow = {
   id: string;
@@ -26,7 +29,23 @@ export default function ShopOrdersList({ orders }: { orders: ShopOrderRow[] }) {
       </div>
 
       {orders.length === 0 ? (
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 text-gray-400">Пока нет заказов магазина.</div>
+        <div className="bg-slate-900/50 border border-slate-800 rounded-xl">
+          <EmptyState
+            icon={ShoppingCart}
+            title="Пока нет заказов магазина"
+            description="Перейдите в магазин, добавьте товары в корзину и оформите заказ. История будет отображаться здесь."
+            actions={
+              <>
+                <ButtonLink href="/shop" size="sm">
+                  Перейти в магазин
+                </ButtonLink>
+                <ButtonLink href="/checkout" variant="outline" size="sm">
+                  В корзину
+                </ButtonLink>
+              </>
+            }
+          />
+        </div>
       ) : (
         <div className="overflow-x-auto border border-slate-800 rounded-xl">
           <table className="min-w-full divide-y divide-slate-800">
@@ -76,4 +95,3 @@ export default function ShopOrdersList({ orders }: { orders: ShopOrderRow[] }) {
     </div>
   );
 }
-

@@ -100,7 +100,7 @@ export default function CalculatorPage() {
         });
 
         if (result.error === 'Unauthorized') {
-        router.push('/login?redirect=/calculator');
+        router.push('/login?redirectTo=/calculator');
         } else if (result.success) {
         alert('Заказ успешно создан! Менеджер свяжется с вами.');
         router.push('/lk/orders');

@@ -7,6 +7,7 @@ import { ArrowRight, Clock, Truck, ShieldCheck, Cpu, FileText, Layers, Zap, Uplo
 import { motion } from "framer-motion";
 import { usePortfolio } from "@/app/context/portfolio-context";
 import Image from "next/image";
+import { ButtonLink } from "@/components/ui/button";
 
 function useInViewOnce<T extends Element>(options?: IntersectionObserverInit) {
   const ref = useRef<T | null>(null);
@@ -111,20 +112,20 @@ export default function Home() {
                 FDM, SLA, SLS технологии. Доставка по всей России.
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Link
-                  className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-8 text-base font-bold text-white shadow-[0_0_20px_rgba(255,94,0,0.4)] transition-all hover:bg-primary/90 hover:shadow-[0_0_30px_rgba(255,94,0,0.6)] hover:-translate-y-1"
-                  href="/register"
-                >
-                  Получи расчет онлайн
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-                <Link
-                  className="inline-flex h-12 items-center justify-center rounded-lg border border-slate-700 bg-slate-900/50 px-8 text-base font-medium text-white transition-all hover:bg-slate-800 hover:border-slate-500"
-                  href="/calculator"
-                >
-                  Загрузи модель
-                </Link>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+                <ButtonLink href="/calculator" size="lg" className="group">
+                  Рассчитать 3D‑печать
+                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-0.5" />
+                </ButtonLink>
+                <ButtonLink href="/shop" variant="outline" size="lg">
+                  Купить в магазине
+                </ButtonLink>
+              </div>
+
+              <div className="text-sm text-gray-500">
+                <Link href="/login" className="hover:text-white transition-colors">Войти</Link>
+                <span className="mx-2">•</span>
+                <Link href="/register" className="hover:text-white transition-colors">Регистрация</Link>
               </div>
               
               <div className="flex items-center gap-6 pt-4 text-sm text-gray-500">

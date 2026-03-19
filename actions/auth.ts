@@ -54,6 +54,7 @@ const loginSchema = z.object({
   password: z.string()
     .max(20, 'Password must be at most 20 characters'),
   'cf-turnstile-response': captchaFieldSchema,
+  redirectTo: z.string().max(200).optional().nullable(),
 });
 
 const registerSchema = z.object({
@@ -71,7 +72,19 @@ const registerSchema = z.object({
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter'),
   'cf-turnstile-response': captchaFieldSchema,
+  redirectTo: z.string().max(200).optional().nullable(),
 });
+
+function sanitizeRedirectTo(value: unknown) {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  if (!trimmed.startsWith('/')) return null
+  if (trimmed.startsWith('//')) return null
+  if (trimmed.includes('://')) return null
+  if (trimmed.length > 200) return null
+  return trimmed
+}
 
 export async function login(prevState: any, formData: FormData) {
   const prisma = getPrisma();
@@ -97,6 +110,7 @@ export async function login(prevState: any, formData: FormData) {
 
   const { email, password } = result.data;
   const captchaToken = result.data['cf-turnstile-response'];
+  const redirectTo = sanitizeRedirectTo(result.data.redirectTo);
 
   try {
     const captcha = await verifyTurnstile(captchaToken || '');
@@ -127,8 +141,10 @@ export async function login(prevState: any, formData: FormData) {
     await createSession(user.id.toString(), user.role);
     
     if (['admin', 'manager', 'engineer', 'warehouse', 'delivery'].includes(user.role)) {
+      if (redirectTo && redirectTo.startsWith('/admin')) redirect(redirectTo);
       redirect('/admin');
     } else {
+      if (redirectTo && !redirectTo.startsWith('/admin')) redirect(redirectTo);
       redirect('/lk');
     }
   } catch (error: any) {
@@ -168,6 +184,7 @@ export async function register(prevState: any, formData: FormData) {
 
   const { email, password, name } = result.data;
   const captchaToken = result.data['cf-turnstile-response'];
+  const redirectTo = sanitizeRedirectTo(result.data.redirectTo);
 
   try {
     const captcha = await verifyTurnstile(captchaToken || '');
@@ -206,6 +223,7 @@ export async function register(prevState: any, formData: FormData) {
     });
 
     await createSession(user.id.toString(), 'user');
+    if (redirectTo && !redirectTo.startsWith('/admin')) redirect(redirectTo);
     redirect('/lk');
   } catch (error: any) {
     if (error.digest?.startsWith('NEXT_REDIRECT')) {

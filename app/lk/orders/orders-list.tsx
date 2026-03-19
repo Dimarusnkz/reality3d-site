@@ -7,6 +7,8 @@ import { getCalcOrderStatusMeta } from "@/lib/orders/calc-order-status";
 import { CreateOrderModal } from "./create-order-modal";
 import { ClientOrderDetailsModal } from "./client-order-details";
 import { useSearchParams } from "next/navigation";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ButtonLink } from "@/components/ui/button";
 
 export default function OrdersList({ initialOrders }: { initialOrders: any[] }) {
   const searchParams = useSearchParams();
@@ -57,16 +59,24 @@ export default function OrdersList({ initialOrders }: { initialOrders: any[] }) 
 
       <div className="neon-card rounded-xl overflow-hidden min-h-[400px]">
         {filteredOrders.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full py-20 text-gray-500">
-                <Package className="h-16 w-16 mb-4 opacity-50" />
-                <p className="text-lg">У вас пока нет заказов</p>
-                <button 
+            <EmptyState
+              icon={Package}
+              title="Пока нет заказов 3D‑печати"
+              description="Сделайте расчёт в калькуляторе или создайте заказ вручную — он появится в личном кабинете."
+              actions={
+                <>
+                  <ButtonLink href="/calculator" size="sm">
+                    Рассчитать в калькуляторе
+                  </ButtonLink>
+                  <button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="mt-4 text-primary hover:underline"
-                >
-                    Создать первый заказ
-                </button>
-            </div>
+                    className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm font-semibold text-white hover:bg-slate-900/50 transition-all"
+                  >
+                    Создать заказ вручную
+                  </button>
+                </>
+              }
+            />
         ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">

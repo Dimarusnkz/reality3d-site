@@ -6,6 +6,8 @@ import { formatRub } from "@/lib/shop/money";
 import { PICKUP_ADDRESS, PICKUP_PHONE, ShippingMethod, calcShippingCostKopeks } from "@/lib/shop/shipping";
 import { Loader2 } from "lucide-react";
 import { guestCartClear, guestCartRead } from "@/lib/shop/guest-cart";
+import { Steps } from "@/components/ui/steps";
+import { ButtonLink } from "@/components/ui/button";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -157,9 +159,16 @@ export function CheckoutClient({
     isValidPickupPoint &&
     isValidCourierNote;
 
+  const currentStep =
+    !isValidName || !isValidPhone || !isValidEmail
+      ? 1
+      : !isValidDelivery || !isValidPickupPoint
+        ? 2
+        : 3;
+
   const submit = async () => {
     if (!isAuthenticated) {
-      window.location.href = "/login";
+      window.location.href = "/login?redirectTo=/checkout";
       return;
     }
     if (!canSubmit) {
@@ -232,16 +241,24 @@ export function CheckoutClient({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       <div className="lg:col-span-7 space-y-8">
+        <Steps
+          current={currentStep}
+          steps={[
+            { title: "Контакты", description: "Кому передать заказ" },
+            { title: "Доставка", description: "Самовывоз или доставка" },
+            { title: "Оплата", description: "Ссылка / QR и подтверждение" },
+          ]}
+        />
         {!isAuthenticated ? (
           <div className="bg-orange-500/10 border border-orange-500/20 text-orange-300 rounded-xl p-4 text-sm">
             Войдите в личный кабинет, чтобы оформить заказ и видеть его в разделе «Мои заказы».
             <div className="mt-3 flex flex-wrap gap-2">
-              <a href="/login" className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary/90 transition-all">
+              <ButtonLink href="/login?redirectTo=/checkout" size="sm">
                 Войти
-              </a>
-              <a href="/register" className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-800 px-4 text-sm font-semibold text-white hover:bg-slate-700 transition-all">
+              </ButtonLink>
+              <ButtonLink href="/register?redirectTo=/checkout" variant="secondary" size="sm">
                 Регистрация
-              </a>
+              </ButtonLink>
             </div>
           </div>
         ) : null}
