@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { getShopOrderStatusMeta, getShopPaymentStatusMeta, getShopPaymentProviderLabel } from "@/lib/shop/order-status";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,20 @@ type ShopOrderRow = {
 };
 
 export default function ShopOrdersList({ orders }: { orders: ShopOrderRow[] }) {
+  const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter(o => {
+      if (filter === "active") {
+        return !["completed", "cancelled"].includes(o.status);
+      }
+      if (filter === "completed") {
+        return ["completed", "cancelled"].includes(o.status);
+      }
+      return true;
+    });
+  }, [orders, filter]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -26,6 +41,27 @@ export default function ShopOrdersList({ orders }: { orders: ShopOrderRow[] }) {
           <h2 className="text-2xl font-bold text-white">Заказы магазина</h2>
           <p className="text-gray-400">История заказов из магазина</p>
         </div>
+      </div>
+
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
+        <button
+          onClick={() => setFilter("all")}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors", filter === "all" ? "bg-primary text-white" : "bg-slate-900/50 text-gray-400 hover:text-white hover:bg-slate-800")}
+        >
+          Все заказы
+        </button>
+        <button
+          onClick={() => setFilter("active")}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors", filter === "active" ? "bg-primary text-white" : "bg-slate-900/50 text-gray-400 hover:text-white hover:bg-slate-800")}
+        >
+          Активные
+        </button>
+        <button
+          onClick={() => setFilter("completed")}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors", filter === "completed" ? "bg-primary text-white" : "bg-slate-900/50 text-gray-400 hover:text-white hover:bg-slate-800")}
+        >
+          Завершённые
+        </button>
       </div>
 
       {orders.length === 0 ? (
@@ -46,6 +82,14 @@ export default function ShopOrdersList({ orders }: { orders: ShopOrderRow[] }) {
             }
           />
         </div>
+      ) : filteredOrders.length === 0 ? (
+        <div className="bg-slate-900/50 border border-slate-800 rounded-xl">
+          <EmptyState
+            icon={ShoppingCart}
+            title="Нет подходящих заказов"
+            description="В этой категории пока нет заказов."
+          />
+        </div>
       ) : (
         <div className="overflow-x-auto border border-slate-800 rounded-xl">
           <table className="min-w-full divide-y divide-slate-800">
@@ -59,7 +103,7 @@ export default function ShopOrdersList({ orders }: { orders: ShopOrderRow[] }) {
               </tr>
             </thead>
             <tbody className="bg-slate-900/50 divide-y divide-slate-800">
-              {orders.map((o) => {
+              {filteredOrders.map((o) => {
                 const date = typeof o.createdAt === "string" ? new Date(o.createdAt) : o.createdAt;
                 const status = getShopOrderStatusMeta(o.status);
                 const pay = getShopPaymentStatusMeta(o.paymentStatus);

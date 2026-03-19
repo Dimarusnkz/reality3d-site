@@ -37,7 +37,7 @@ export function PayTbankButton({ orderId, publicAccessToken }: { orderId: string
       <button
         onClick={pay}
         disabled={isLoading}
-        className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-white shadow-[0_0_15px_rgba(255,94,0,0.3)] hover:bg-primary/90 transition-all disabled:opacity-50"
+        className="inline-flex h-10 w-full sm:w-auto items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-white shadow-[0_0_15px_rgba(255,94,0,0.3)] hover:bg-primary/90 transition-all disabled:opacity-50"
       >
         {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
         Оплатить (ТБанк)

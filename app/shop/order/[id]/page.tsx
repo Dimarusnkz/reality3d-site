@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { getShopOrderStatusMeta, getShopPaymentAttemptStatusMeta, getShopPaymentProviderLabel, getShopPaymentStatusMeta } from "@/lib/shop/order-status";
 import { PayTbankButton } from "../pay-tbank-button";
 import { PayTbankLinkButton } from "../pay-tbank-link-button";
+import { OrderLayout, OrderSection, OrderInfoRow } from "@/components/order/order-layout";
+import { Badge } from "@/components/ui/badge";
 
 export default async function ShopOrderPage({
   params,
@@ -42,50 +44,44 @@ export default async function ShopOrderPage({
   const payMeta = getShopPaymentStatusMeta(order.paymentStatus);
 
   return (
-    <div className="container mx-auto px-4 py-10 space-y-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-white">Заказ #{order.orderNo}</h1>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-400">
-          <span>Статус:</span>
-          <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", statusMeta.className)}>{statusMeta.label}</span>
-          <span className="mx-1">•</span>
-          <span>Оплата:</span>
-          <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", payMeta.className)}>{payMeta.label}</span>
-        </div>
-      </div>
-
-      {sp.payment === "failed" ? (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl p-4">
-          Оплата не прошла. Попробуй ещё раз или выбери другой способ.
-        </div>
-      ) : null}
-
-      {isPaid ? (
-        <div className="bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl p-4">
-          Оплата получена. Мы свяжемся с вами для подтверждения.
-        </div>
-      ) : (
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="text-gray-300">
-            Заказ создан, но не оплачен. Сумма: <span className="text-white font-bold">{formatRub(order.totalKopeks)}</span>
-          </div>
-          {showPay ? (
-            order.paymentProvider === "tbank" ? (
-              <PayTbankButton orderId={order.id} publicAccessToken={isGuestAccess ? sp.token : null} />
-            ) : (
-              <PayTbankLinkButton />
-            )
+    <OrderLayout
+      title={`Заказ #${order.orderNo}`}
+      subtitle={`От ${order.createdAt.toLocaleString("ru-RU", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}`}
+      backUrl="/shop"
+      backLabel="В магазин"
+      statusBadge={<Badge className={statusMeta.className}>{statusMeta.label}</Badge>}
+      paymentBadge={<Badge className={payMeta.className}>{payMeta.label}</Badge>}
+      mainContent={
+        <div className="space-y-6 md:space-y-8">
+          {sp.payment === "failed" ? (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl p-4 text-sm">
+              Оплата не прошла. Попробуй ещё раз или выбери другой способ.
+            </div>
           ) : null}
-        </div>
-      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-7 space-y-6">
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
-            <div className="p-4 border-b border-slate-800 bg-slate-950 text-gray-400 text-sm">Состав заказа</div>
-            <div className="divide-y divide-slate-800">
+          {isPaid ? (
+            <div className="bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl p-4 text-sm">
+              Оплата получена. Мы свяжемся с вами для подтверждения.
+            </div>
+          ) : (
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="text-gray-300">
+                Заказ создан, но не оплачен. Сумма: <span className="text-white font-bold">{formatRub(order.totalKopeks)}</span>
+              </div>
+              {showPay ? (
+                order.paymentProvider === "tbank" ? (
+                  <PayTbankButton orderId={order.id} publicAccessToken={isGuestAccess ? sp.token : null} />
+                ) : (
+                  <PayTbankLinkButton />
+                )
+              ) : null}
+            </div>
+          )}
+
+          <OrderSection title="Состав заказа">
+            <div className="divide-y divide-slate-800/50 -mx-4 md:-mx-5 px-4 md:px-5">
               {order.items.map((i) => (
-                <div key={i.id} className="p-4 flex items-start justify-between gap-4">
+                <div key={i.id} className="py-4 first:pt-0 last:pb-0 flex items-start justify-between gap-4">
                   <div className="text-white">
                     {i.productName} <span className="text-gray-500">× {i.quantity}</span>
                     {i.sku ? <div className="text-xs text-gray-500 font-mono mt-1">{i.sku}</div> : null}
@@ -94,58 +90,62 @@ export default async function ShopOrderPage({
                 </div>
               ))}
             </div>
-            <div className="p-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between">
+            <div className="pt-4 mt-4 border-t border-slate-800/50 flex items-center justify-between">
               <span className="text-gray-400">Итого</span>
-              <span className="text-white font-bold">{formatRub(order.totalKopeks)}</span>
+              <span className="text-white font-bold text-lg">{formatRub(order.totalKopeks)}</span>
             </div>
-          </div>
-
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 space-y-2">
-            <div className="text-gray-400 text-sm">Доставка</div>
-            <div className="text-white font-medium">{getShippingMethodLabel(order.shippingMethod)}</div>
-            {order.shippingMethod === "pickup" ? (
-              <div className="text-gray-300 text-sm">
-                <div>{PICKUP_ADDRESS}</div>
-                <div className="text-xs text-gray-500 mt-1">Телефон: {PICKUP_PHONE}</div>
-              </div>
-            ) : (
-              <div className="text-gray-300 text-sm">
-                <div>{order.deliveryCity || "—"}</div>
-                <div>{order.deliveryAddress || "—"}</div>
-                <div className="text-xs text-gray-500 mt-1">Индекс: {order.deliveryPostalCode || "—"}</div>
-                <div className="text-xs text-gray-500 mt-1">Телефон: {order.deliveryPhone || order.contactPhone || "—"}</div>
-                {order.shippingTrackingNo ? (
-                  <div className="text-xs text-gray-500 mt-1">Трек: {order.shippingTrackingNo}</div>
-                ) : null}
-                {order.shippingMethod === "cdek" || order.shippingMethod === "yandex" ? (
-                  <div className="text-xs text-gray-500 mt-1">
-                    Стоимость:{" "}
-                    {typeof order.shippingQuoteMinKopeks === "number" && typeof order.shippingQuoteMaxKopeks === "number"
-                      ? `${formatRub(order.shippingQuoteMinKopeks)}–${formatRub(order.shippingQuoteMaxKopeks)} (по тарифу)`
-                      : "по тарифу (уточним)"}
-                  </div>
-                ) : null}
-              </div>
-            )}
-          </div>
+          </OrderSection>
         </div>
+      }
+      sidebarContent={
+        <div className="space-y-6">
+          <OrderSection title="Контакты">
+            <OrderInfoRow label="Имя" value={order.contactName || "—"} />
+            <OrderInfoRow label="Телефон" value={order.contactPhone || "—"} />
+            <OrderInfoRow label="Email" value={order.contactEmail || "—"} />
+          </OrderSection>
 
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 space-y-2">
-            <div className="text-gray-400 text-sm">Контакты</div>
-            <div className="text-white">{order.contactName || "—"}</div>
-            <div className="text-gray-300 text-sm">{order.contactPhone || "—"}</div>
-            <div className="text-gray-300 text-sm">{order.contactEmail || "—"}</div>
-          </div>
+          <OrderSection title="Доставка">
+            <OrderInfoRow 
+              label="Способ" 
+              value={getShippingMethodLabel(order.shippingMethod)} 
+            />
+            {order.shippingMethod === "pickup" ? (
+              <OrderInfoRow 
+                label="Адрес самовывоза" 
+                value={PICKUP_ADDRESS} 
+                subvalue={`Телефон: ${PICKUP_PHONE}`} 
+              />
+            ) : (
+              <OrderInfoRow 
+                label="Адрес доставки" 
+                value={`${order.deliveryCity || "—"}, ${order.deliveryAddress || "—"}`} 
+                subvalue={
+                  <div className="space-y-1 mt-1">
+                    {order.deliveryPostalCode && <div>Индекс: {order.deliveryPostalCode}</div>}
+                    <div>Телефон: {order.deliveryPhone || order.contactPhone || "—"}</div>
+                    {order.shippingTrackingNo && <div>Трек: {order.shippingTrackingNo}</div>}
+                    {(order.shippingMethod === "cdek" || order.shippingMethod === "yandex") && (
+                      <div>
+                        Стоимость:{" "}
+                        {typeof order.shippingQuoteMinKopeks === "number" && typeof order.shippingQuoteMaxKopeks === "number"
+                          ? `${formatRub(order.shippingQuoteMinKopeks)}–${formatRub(order.shippingQuoteMaxKopeks)} (по тарифу)`
+                          : "по тарифу (уточним)"}
+                      </div>
+                    )}
+                  </div>
+                }
+              />
+            )}
+          </OrderSection>
 
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 space-y-3">
-            <div className="text-gray-400 text-sm">Платежи</div>
+          <OrderSection title="Платежи">
             {order.payments.length === 0 ? (
               <div className="text-gray-500 text-sm">Пока нет</div>
             ) : (
-              <div className="space-y-2 text-sm">
+              <div className="space-y-3">
                 {order.payments.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between gap-3">
+                  <div key={p.id} className="flex items-center justify-between gap-3 text-sm">
                     <div className="text-gray-300">
                       {getShopPaymentProviderLabel(p.provider)}{" "}
                       <span className={cn("text-xs", getShopPaymentAttemptStatusMeta(p.status).className)}>
@@ -157,15 +157,9 @@ export default async function ShopOrderPage({
                 ))}
               </div>
             )}
-          </div>
-
-          <div className="text-sm text-gray-500">
-            <Link href="/shop" className="text-primary hover:underline">
-              Вернуться в магазин
-            </Link>
-          </div>
+          </OrderSection>
         </div>
-      </div>
-    </div>
+      }
+    />
   );
 }

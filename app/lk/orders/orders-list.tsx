@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, Eye, Plus, Package } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Search, Plus, Eye, Package } from "lucide-react";
+import { CreateOrderModal } from "./create-order-modal";
 import { cn } from "@/lib/utils";
 import { getCalcOrderStatusMeta } from "@/lib/orders/calc-order-status";
-import { CreateOrderModal } from "./create-order-modal";
-import { ClientOrderDetailsModal } from "./client-order-details";
-import { useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ButtonLink } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function OrdersList({ initialOrders }: { initialOrders: any[] }) {
   const searchParams = useSearchParams();
@@ -22,12 +21,26 @@ export default function OrdersList({ initialOrders }: { initialOrders: any[] }) 
 
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [orders] = useState(initialOrders);
+  const [orders, setOrders] = useState(initialOrders);
+  const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
 
-  const filteredOrders = orders.filter(order => 
-    order.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    order.id.toString().includes(searchTerm)
-  );
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      const matchesSearch = 
+        order.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        order.id.toString().includes(searchTerm);
+      
+      if (!matchesSearch) return false;
+      
+      if (filter === "active") {
+        return !["completed", "cancelled"].includes(order.status);
+      }
+      if (filter === "completed") {
+        return ["completed", "cancelled"].includes(order.status);
+      }
+      return true;
+    });
+  }, [orders, searchTerm, filter]);
 
   return (
     <div className="space-y-6">
@@ -55,6 +68,27 @@ export default function OrdersList({ initialOrders }: { initialOrders: any[] }) 
              <span className="hidden sm:inline">Новый заказ</span>
           </button>
         </div>
+      </div>
+
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
+        <button
+          onClick={() => setFilter("all")}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors", filter === "all" ? "bg-primary text-white" : "bg-slate-900/50 text-gray-400 hover:text-white hover:bg-slate-800")}
+        >
+          Все заказы
+        </button>
+        <button
+          onClick={() => setFilter("active")}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors", filter === "active" ? "bg-primary text-white" : "bg-slate-900/50 text-gray-400 hover:text-white hover:bg-slate-800")}
+        >
+          Активные
+        </button>
+        <button
+          onClick={() => setFilter("completed")}
+          className={cn("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors", filter === "completed" ? "bg-primary text-white" : "bg-slate-900/50 text-gray-400 hover:text-white hover:bg-slate-800")}
+        >
+          Завершённые
+        </button>
       </div>
 
       <div className="neon-card rounded-xl overflow-hidden min-h-[400px]">
@@ -95,7 +129,7 @@ export default function OrdersList({ initialOrders }: { initialOrders: any[] }) 
                 const statusMeta = getCalcOrderStatusMeta(order.status);
                 
                 return (
-                  <tr key={order.id} className="hover:bg-slate-900/30 transition-colors group">
+                  <tr key={order.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors group">
                     <td className="px-6 py-4 font-bold text-white">#{order.id}</td>
                     <td className="px-6 py-4 text-gray-300">
                         <div className="font-medium text-white">{order.title || "Без названия"}</div>
@@ -117,13 +151,13 @@ export default function OrdersList({ initialOrders }: { initialOrders: any[] }) 
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button 
-                            onClick={() => setSelectedOrderId(order.id)}
+                        <Link 
+                            href={`/lk/orders/${order.id}`}
                             className="p-2 text-gray-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" 
                             title="Подробнее"
                         >
                            <Eye className="h-4 w-4" />
-                        </button>
+                        </Link>
                       </div>
                     </td>
                   </tr>
@@ -147,11 +181,6 @@ export default function OrdersList({ initialOrders }: { initialOrders: any[] }) 
             // OR we can trigger a router refresh.
             window.location.reload(); // Simple brute force refresh for now
         }}
-      />
-      
-      <ClientOrderDetailsModal 
-        orderId={selectedOrderId}
-        onClose={() => setSelectedOrderId(null)}
       />
     </div>
   );

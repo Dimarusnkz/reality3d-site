@@ -137,7 +137,7 @@ export default async function AdminDashboard() {
             {recentShopOrders.length === 0 ? (
               <div className="text-gray-500 text-sm">Нет заказов</div>
             ) : (
-              recentShopOrders.map((o) => (
+              recentShopOrders.map((o) => {
                 const statusMeta = getShopOrderStatusMeta(o.status);
                 const payMeta = getShopPaymentStatusMeta(o.paymentStatus);
                 return (
@@ -169,7 +169,8 @@ export default async function AdminDashboard() {
                     </div>
                   </div>
                 </Link>
-              )})
+                );
+              })
             )}
           </div>
         </div>
