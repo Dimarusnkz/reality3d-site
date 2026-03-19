@@ -29,40 +29,41 @@ export function SiteFooter() {
         </div>
         
         <div className="space-y-4">
-          <h3 className="font-bold text-white">Навигация</h3>
-          <ul className="space-y-2 text-sm text-gray-400">
-            <li><Link href="/services" className="hover:text-primary hover:underline transition-colors">Услуги</Link></li>
-            <li><Link href="/portfolio" className="hover:text-primary hover:underline transition-colors">Портфолио</Link></li>
-            <li><Link href="/blog" className="hover:text-primary hover:underline transition-colors">Блог</Link></li>
-            <li><Link href="/materials" className="hover:text-primary hover:underline transition-colors">Материалы</Link></li>
-            <li><Link href="/reviews" className="hover:text-primary hover:underline transition-colors">Отзывы</Link></li>
+          <h3 className="font-bold text-white uppercase tracking-widest text-[10px]">Навигация</h3>
+          <ul className="space-y-3 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">
+            <li><Link href="/services" className="hover:text-primary transition-colors">Услуги</Link></li>
+            <li><Link href="/portfolio" className="hover:text-primary transition-colors">Портфолио</Link></li>
+            <li><Link href="/blog" className="hover:text-primary transition-colors">Блог</Link></li>
+            <li><Link href="/materials" className="hover:text-primary transition-colors">Материалы</Link></li>
+            <li><Link href="/reviews" className="hover:text-primary transition-colors">Отзывы</Link></li>
+            <li><Link href="/contacts" className="hover:text-primary transition-colors">Контакты</Link></li>
           </ul>
         </div>
 
         <div className="space-y-4">
-          <h3 className="font-bold text-white">Услуги</h3>
-          <ul className="space-y-2 text-sm text-gray-400">
-            <li><Link href="/services" className="hover:text-primary hover:underline transition-colors">FDM Печать</Link></li>
-            <li><Link href="/services" className="hover:text-primary hover:underline transition-colors">SLA Печать</Link></li>
-            <li><Link href="/services" className="hover:text-primary hover:underline transition-colors">SLS Печать</Link></li>
-            <li><Link href="/services" className="hover:text-primary hover:underline transition-colors">Моделирование</Link></li>
+          <h3 className="font-bold text-white uppercase tracking-widest text-[10px]">Услуги</h3>
+          <ul className="space-y-3 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">
+            <li><Link href="/services" className="hover:text-primary transition-colors">FDM Печать</Link></li>
+            <li><Link href="/services" className="hover:text-primary transition-colors">SLA Печать</Link></li>
+            <li><Link href="/services" className="hover:text-primary transition-colors">SLS Печать</Link></li>
+            <li><Link href="/services" className="hover:text-primary transition-colors">Моделирование</Link></li>
           </ul>
         </div>
 
         <div className="space-y-4">
-          <h3 className="font-bold text-white">Контакты</h3>
-          <ul className="space-y-2 text-sm text-gray-400">
-            <li className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary" />
-              <span>СПб, пр. Современиков 1к3</span>
+          <h3 className="font-bold text-white uppercase tracking-widest text-[10px]">Контакты</h3>
+          <ul className="space-y-3 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">
+            <li className="flex items-center gap-2 group">
+              <MapPin className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+              <span className="group-hover:text-white transition-colors">СПб, пр. Современиков 1к3</span>
             </li>
-            <li className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-primary" />
-              <span>+7 (923) 631-7850</span>
+            <li className="flex items-center gap-2 group">
+              <Phone className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+              <span className="group-hover:text-white transition-colors">+7 (923) 631-7850</span>
             </li>
-            <li className="flex items-center gap-2">
-               <Mail className="h-4 w-4 text-primary" />
-               <span>zakaz@reality3d.ru</span>
+            <li className="flex items-center gap-2 group">
+               <Mail className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+               <span className="group-hover:text-white transition-colors">zakaz@reality3d.ru</span>
             </li>
           </ul>
         </div>

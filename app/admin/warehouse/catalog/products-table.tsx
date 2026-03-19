@@ -5,6 +5,8 @@ import Link from "next/link";
 import { deleteShopProduct } from "@/app/actions/shop-admin";
 import { Edit2, Trash2, Eye, CheckCircle, XCircle, Image } from "lucide-react";
 import { formatRub } from "@/lib/shop/money";
+import { Badge } from "@/components/ui/badge";
+import { Button, LinkButton } from "@/components/ui/button";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -27,99 +29,112 @@ export default function CatalogProductsTable({ initialProducts, warehouseId }: {
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-      <table className="w-full">
-        <thead className="bg-slate-950 border-b border-slate-800">
-          <tr>
-            <th className="text-left p-4 text-gray-400 font-medium">Товар</th>
-            <th className="text-left p-4 text-gray-400 font-medium">Категория</th>
-            <th className="text-left p-4 text-gray-400 font-medium">Цена</th>
-            <th className="text-left p-4 text-gray-400 font-medium">Свободно</th>
-            <th className="text-left p-4 text-gray-400 font-medium">Резерв</th>
-            <th className="text-left p-4 text-gray-400 font-medium">Всего</th>
-            <th className="text-left p-4 text-gray-400 font-medium">Статус</th>
-            <th className="text-right p-4 text-gray-400 font-medium">Действия</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-800">
-          {products.map((p) => (
-            <tr key={p.id} className="hover:bg-slate-800/50 transition-colors">
-              <td className="p-4 text-white font-medium">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-slate-950 border border-slate-800 overflow-hidden shrink-0">
-                    <img src={p.images?.[0]?.url || "/grid.svg"} alt={p.name} className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <div className="text-white font-semibold">{p.name}</div>
-                    <div className="text-xs text-gray-500 font-mono mt-0.5">/{p.slug}</div>
-                    {p.sku ? <div className="text-xs text-gray-500 mt-0.5">SKU: {p.sku}</div> : null}
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      {p.weightGrams != null ? <span>Вес: {(p.weightGrams / 1000).toFixed(2)} кг</span> : <span>Вес: —</span>}
-                      <span className="mx-2">•</span>
-                      {p.lengthMm != null && p.widthMm != null && p.heightMm != null ? (
-                        <span>
-                          Габариты: {Math.round(p.lengthMm / 10) / 10}×{Math.round(p.widthMm / 10) / 10}×{Math.round(p.heightMm / 10) / 10} см
-                        </span>
-                      ) : (
-                        <span>Габариты: —</span>
-                      )}
+    <div className="neon-card rounded-2xl overflow-hidden border border-slate-800/50">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left">
+          <thead className="text-gray-500 bg-slate-950 border-b border-slate-800/50">
+            <tr>
+              <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Товар</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Категория</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Цена</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Остатки</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Статус</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px] text-right">Действия</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800/30">
+            {products.map((p) => (
+              <tr key={p.id} className="hover:bg-primary/[0.02] transition-colors group">
+                <td className="px-6 py-5">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden shrink-0 shadow-inner group-hover:border-primary/30 transition-colors">
+                      <img src={p.images?.[0]?.url || "/grid.svg"} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                    </div>
+                    <div>
+                      <div className="text-white font-bold text-base group-hover:text-primary transition-colors">{p.name}</div>
+                      <div className="text-[10px] text-gray-500 font-mono mt-1 uppercase tracking-tight">/{p.slug}</div>
+                      {p.sku ? <div className="text-[10px] text-primary/60 font-bold mt-1 uppercase tracking-widest">SKU: {p.sku}</div> : null}
                     </div>
                   </div>
-                </div>
-              </td>
-              <td className="p-4 text-gray-300">{p.category?.name || "—"}</td>
-              <td className="p-4 text-gray-300">{formatRub(p.priceKopeks)}</td>
-              <td className="p-4 text-gray-300">{p.stock}</td>
-              <td className="p-4 text-gray-300">{p.inventoryItems?.[0] ? Number(p.inventoryItems[0].reserved || 0) : 0}</td>
-              <td className="p-4 text-gray-300">{p.inventoryItems?.[0] ? Number(p.inventoryItems[0].quantity || 0) : 0}</td>
-              <td className="p-4">
-                {p.isActive ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-xs">
-                    <CheckCircle className="w-3 h-3" /> Активен
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-500/10 text-yellow-500 text-xs">
-                    <XCircle className="w-3 h-3" /> Скрыт
-                  </span>
-                )}
-              </td>
-              <td className="p-4 text-right space-x-2">
-                <Link
-                  href={`/shop/${p.slug}`}
-                  target="_blank"
-                  className="inline-flex p-2 text-gray-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
-                  title="Просмотр"
-                >
-                  <Eye className="w-4 h-4" />
-                </Link>
-                <Link
-                  href={`/admin/shop/products/${p.id}`}
-                  className="inline-flex p-2 text-purple-300 hover:text-purple-200 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg transition-colors"
-                  title="Оформление карточки"
-                >
-                  <Image className="w-4 h-4" />
-                </Link>
-                <Link
-                  href={`/admin/warehouse/catalog/${p.id}?w=${warehouseId}`}
-                  className="inline-flex p-2 text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-colors"
-                  title="Редактировать"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </Link>
-                <button
-                  onClick={() => remove(p.id)}
-                  className="inline-flex p-2 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors"
-                  title="Удалить"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                </td>
+                <td className="px-6 py-5">
+                  <div className="text-gray-300 font-medium">{p.category?.name || "—"}</div>
+                </td>
+                <td className="px-6 py-5">
+                  <div className="text-white font-bold">{formatRub(p.priceKopeks)}</div>
+                </td>
+                <td className="px-6 py-5">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between gap-4 text-[10px] uppercase font-bold tracking-widest">
+                      <span className="text-gray-500">Свободно:</span>
+                      <span className={cn("text-white", p.stock > 0 ? "text-green-400" : "text-red-400")}>{p.stock}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 text-[10px] uppercase font-bold tracking-widest">
+                      <span className="text-gray-500">Резерв:</span>
+                      <span className="text-orange-400">{p.inventoryItems?.[0] ? Number(p.inventoryItems[0].reserved || 0) : 0}</span>
+                    </div>
+                    <div className="border-t border-slate-800/50 mt-1 pt-1 flex items-center justify-between gap-4 text-[10px] uppercase font-bold tracking-widest">
+                      <span className="text-gray-400">Всего:</span>
+                      <span className="text-white">{p.inventoryItems?.[0] ? Number(p.inventoryItems[0].quantity || 0) : 0}</span>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-5">
+                  <Badge variant={p.isActive ? "success" : "warning"}>
+                    {p.isActive ? "Активен" : "Скрыт"}
+                  </Badge>
+                </td>
+                <td className="px-6 py-5 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <LinkButton
+                      href={`/shop/${p.slug}`}
+                      target="_blank"
+                      variant="secondary"
+                      size="sm"
+                      title="Просмотр"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </LinkButton>
+                    <LinkButton
+                      href={`/admin/shop/products/${p.id}`}
+                      variant="secondary"
+                      size="sm"
+                      className="text-purple-400 hover:text-purple-300"
+                      title="Оформление карточки"
+                    >
+                      <Image className="w-4 h-4" />
+                    </LinkButton>
+                    <LinkButton
+                      href={`/admin/warehouse/catalog/${p.id}?w=${warehouseId}`}
+                      variant="secondary"
+                      size="sm"
+                      className="text-blue-400 hover:text-blue-300"
+                      title="Редактировать параметры"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </LinkButton>
+                    <Button
+                      onClick={() => remove(p.id)}
+                      variant="secondary"
+                      size="sm"
+                      className="text-red-400 hover:text-red-300"
+                      title="Удалить"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      {products.length === 0 ? <div className="p-8 text-center text-gray-500">Нет товаров</div> : null}
+      {products.length === 0 ? (
+        <div className="py-20 text-center">
+          <p className="text-gray-500 font-medium">Каталог пуст</p>
+        </div>
+      ) : null}
     </div>
   );
 }

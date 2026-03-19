@@ -10,11 +10,11 @@ export default async function AdminClientsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
-           <h1 className="text-3xl font-bold text-white mb-2">Клиенты</h1>
-           <p className="text-gray-400">Управление базой клиентов и история заказов.</p>
+          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Клиенты</h1>
+          <p className="text-gray-500 mt-1 font-bold uppercase tracking-widest text-[10px]">CRM & User Management</p>
         </div>
       </div>
       

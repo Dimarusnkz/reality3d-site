@@ -90,15 +90,15 @@ export default function TeamClient({ users }: { users: UserType[] }) {
   };
 
   return (
-    <div className="space-y-6 relative">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-8 relative">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-1">Сотрудники</h1>
-          <p className="text-gray-400">Управление доступом и ролями команды</p>
+          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Сотрудники</h1>
+          <p className="text-gray-500 mt-1 font-bold uppercase tracking-widest text-[10px]">Team & Access Management</p>
         </div>
         <button 
           onClick={handleOpenCreate}
-          className="neon-button flex items-center gap-2"
+          className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300 active:translate-y-0"
         >
           <Plus className="h-4 w-4" />
           Новый сотрудник
@@ -107,9 +107,10 @@ export default function TeamClient({ users }: { users: UserType[] }) {
 
       <div className="grid gap-4">
         {users.map((user) => (
-          <div key={user.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-800 bg-slate-900/50">
-            <div className="flex items-center gap-4">
-              <div className={cn("p-2 rounded-lg", ROLE_CONFIG[user.role]?.bg || "bg-gray-800")}>
+          <div key={user.id} className="group flex items-center justify-between p-5 rounded-2xl border border-slate-800 bg-slate-900/40 hover:border-primary/30 transition-all duration-300 relative overflow-hidden">
+            <div className="absolute inset-0 bg-primary/[0.02] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="flex items-center gap-5 relative z-10">
+              <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center border border-white/5 shadow-inner", ROLE_CONFIG[user.role]?.bg || "bg-gray-800")}>
                 {ROLE_CONFIG[user.role]?.icon ? (
                     <div className={ROLE_CONFIG[user.role]?.color}>
                         {(() => {
@@ -120,19 +121,19 @@ export default function TeamClient({ users }: { users: UserType[] }) {
                 ) : <User className="h-5 w-5 text-gray-400" />}
               </div>
               <div>
-                <h3 className="font-medium text-white">{user.name || "Без имени"}</h3>
-                <p className="text-sm text-gray-400">{user.email}</p>
+                <h3 className="text-lg font-black text-white tracking-tight group-hover:text-primary transition-colors">{user.name || "Без имени"}</h3>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">{user.email}</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-               <span className={cn("text-xs px-2 py-1 rounded-full bg-slate-800 text-gray-300")}>
+            <div className="flex items-center gap-6 relative z-10">
+               <span className={cn("text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-full border border-slate-800 bg-slate-950/50 text-gray-400 shadow-inner")}>
                  {ROLE_CONFIG[user.role]?.label || user.role}
                </span>
                <button 
                  onClick={() => handleOpenEdit(user)}
-                 className="text-sm text-blue-400 hover:text-blue-300"
+                 className="text-[10px] font-black text-gray-500 hover:text-primary transition-colors uppercase tracking-[0.2em]"
                >
-                 Ред.
+                 Редактировать
                </button>
             </div>
           </div>

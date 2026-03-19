@@ -1,12 +1,12 @@
-"use client";
+import { getClientFiles } from "@/app/actions/orders";
+import FilesClient from "./files-client";
 
-export default function LkFilesPage() {
+export default async function LkFilesPage() {
+  const files = await getClientFiles();
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-white">Мои файлы</h1>
-      <div className="neon-card p-10 rounded-xl text-center">
-        <p className="text-gray-400">Здесь будут ваши загруженные 3D-модели.</p>
-      </div>
+    <div className="h-full flex flex-col">
+      <FilesClient initialFiles={files as any[]} />
     </div>
   );
 }

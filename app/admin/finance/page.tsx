@@ -5,6 +5,8 @@ import { getPrisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/access";
 import { FinanceClient } from "./finance-client";
 import { formatRub } from "@/lib/shop/money";
+import { LinkButton } from "@/components/ui/button";
+import { Wallet, History, FileBarChart } from "lucide-react";
 
 export default async function AdminFinancePage() {
   const session = await getSession();
@@ -60,26 +62,38 @@ export default async function AdminFinancePage() {
     });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-white">Касса</h1>
-        <div className="flex items-center gap-3">
-          <Link href="/admin/finance/reconciliations" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+        <div>
+          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Финансы и касса</h1>
+          <p className="text-gray-500 mt-1 font-bold uppercase tracking-widest text-[10px]">Cash Flow & Revenue Control</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <LinkButton href="/admin/finance/reconciliations" variant="secondary" size="sm" className="font-bold uppercase tracking-widest text-[10px]">
+            <History className="mr-2 h-3.5 w-3.5" />
             Сверки
-          </Link>
-          <Link href="/admin/finance/reports" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+          </LinkButton>
+          <LinkButton href="/admin/finance/reports" variant="secondary" size="sm" className="font-bold uppercase tracking-widest text-[10px]">
+            <FileBarChart className="mr-2 h-3.5 w-3.5" />
             Отчёты
-          </Link>
+          </LinkButton>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {scoreboard.map((s) => (
-          <div key={s.code} className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <div className="text-sm text-gray-400">{s.name}</div>
-            <div className="text-2xl font-bold text-white mt-2">{formatRub(s.balanceKopeks)}</div>
+          <div key={s.code} className="neon-card p-6 rounded-2xl border border-slate-800 bg-slate-900/40 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+              <Wallet className="h-12 w-12 text-primary" />
+            </div>
+            <div className="relative z-10">
+              <div className="text-3xl font-black text-white mb-1 tracking-tighter">{formatRub(s.balanceKopeks)}</div>
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{s.name}</p>
+            </div>
           </div>
         ))}
       </div>
+
       <FinanceClient
         accounts={accounts.map((a) => ({ code: a.code, name: a.name })) as any}
         entries={entries.map((e) => ({

@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getPrisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/access";
+import { Badge } from "@/components/ui/badge";
+import { LinkButton } from "@/components/ui/button";
+import { Plus, Tag, ArrowDownCircle, AlertTriangle } from "lucide-react";
 import CatalogProductsTable from "./products-table";
 
 type SearchParams = { w?: string };
@@ -25,37 +28,49 @@ export default async function AdminWarehouseCatalogPage({ searchParams }: { sear
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Каталог</h1>
-          <div className="text-sm text-gray-400 mt-1">Цены, категории, остатки, публикация</div>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight uppercase">Складской каталог</h1>
+          <p className="text-gray-500 mt-1 font-bold uppercase tracking-widest text-[10px]">Inventory & Pricing Management</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Link
+        <div className="flex flex-wrap items-center gap-3">
+          <LinkButton
             href={`/admin/warehouse/catalog/new?w=${w}`}
-            className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-semibold transition-colors"
+            variant="primary"
+            size="sm"
+            className="font-bold uppercase tracking-widest text-[10px]"
           >
+            <Plus className="mr-2 h-3.5 w-3.5" />
             Добавить товар
-          </Link>
-          <Link
+          </LinkButton>
+          <LinkButton
             href={`/admin/warehouse/categories?w=${w}`}
-            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+            variant="secondary"
+            size="sm"
+            className="font-bold uppercase tracking-widest text-[10px]"
           >
+            <Tag className="mr-2 h-3.5 w-3.5" />
             Категории
-          </Link>
-          <Link
+          </LinkButton>
+          <LinkButton
             href={`/admin/warehouse/receipts?w=${w}`}
-            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+            variant="secondary"
+            size="sm"
+            className="font-bold uppercase tracking-widest text-[10px]"
           >
+            <ArrowDownCircle className="mr-2 h-3.5 w-3.5" />
             Приходы
-          </Link>
-          <Link
+          </LinkButton>
+          <LinkButton
             href={`/admin/warehouse/low-stock?w=${w}`}
-            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+            variant="secondary"
+            size="sm"
+            className="font-bold uppercase tracking-widest text-[10px] text-orange-400 hover:text-orange-300"
           >
+            <AlertTriangle className="mr-2 h-3.5 w-3.5" />
             Низкий остаток
-          </Link>
+          </LinkButton>
         </div>
       </div>
 

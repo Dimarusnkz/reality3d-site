@@ -4,6 +4,9 @@ import { formatRub } from "@/lib/shop/money";
 import { getShippingMethodLabel } from "@/lib/shop/shipping";
 import { cn } from "@/lib/utils";
 import { getShopOrderStatusMeta, getShopPaymentProviderLabel, getShopPaymentStatusMeta } from "@/lib/shop/order-status";
+import { Badge } from "@/components/ui/badge";
+import { Button, LinkButton } from "@/components/ui/button";
+import { Search, Download, User, Truck, CreditCard } from "lucide-react";
 
 type SearchParams = { q?: string; status?: string };
 
@@ -32,25 +35,37 @@ export default async function AdminShopOrdersPage({ searchParams }: { searchPara
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-white">Заказы магазина</h1>
-        <Link
+        <div>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">Заказы магазина</h1>
+          <p className="text-gray-400 mt-1">Управление продажами и платежами</p>
+        </div>
+        <LinkButton
           href={`/api/admin/shop/orders/export?q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`}
-          className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+          variant="secondary"
+          size="sm"
         >
+          <Download className="mr-2 h-4 w-4" />
           Экспорт CSV
-        </Link>
+        </LinkButton>
       </div>
 
-      <form action="/admin/shop/orders" className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row gap-3">
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder="Поиск: телефон / email / адрес"
-          className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
-        />
-        <select name="status" defaultValue={status} className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white">
+      <form action="/admin/shop/orders" className="neon-card p-5 rounded-2xl border border-slate-800 bg-slate-900/40 flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Поиск: телефон / email / адрес"
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-white focus:border-primary outline-none transition-all text-sm"
+          />
+        </div>
+        <select 
+          name="status" 
+          defaultValue={status} 
+          className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-all text-sm appearance-none cursor-pointer min-w-[180px]"
+        >
           <option value="">Все статусы</option>
           <option value="pending">В обработке</option>
           <option value="paid">Оплачен</option>
@@ -58,69 +73,101 @@ export default async function AdminShopOrdersPage({ searchParams }: { searchPara
           <option value="shipped">Отправлен</option>
           <option value="completed">Завершён</option>
         </select>
-        <button className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-semibold transition-colors">Найти</button>
+        <Button size="sm" className="md:w-32">Найти</Button>
       </form>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-slate-950 border-b border-slate-800">
-            <tr>
-              <th className="text-left p-4 text-gray-400 font-medium">Заказ</th>
-              <th className="text-left p-4 text-gray-400 font-medium">Покупатель</th>
-              <th className="text-left p-4 text-gray-400 font-medium">Доставка</th>
-              <th className="text-left p-4 text-gray-400 font-medium">Оплата</th>
-              <th className="text-right p-4 text-gray-400 font-medium">Сумма</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800">
-            {orders.map((o) => (
-              <tr key={o.id} className="hover:bg-slate-800/50 transition-colors">
-                <td className="p-4">
-                  <Link href={`/admin/shop/orders/${o.id}`} className="text-white font-semibold hover:text-primary transition-colors">
-                    #{o.orderNo}
-                  </Link>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {new Date(o.createdAt).toLocaleString("ru-RU")}
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium", getShopPaymentStatusMeta(o.paymentStatus).className)}>
-                      {getShopPaymentStatusMeta(o.paymentStatus).label}
-                    </span>
-                    <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium", getShopOrderStatusMeta(o.status).className)}>
-                      {getShopOrderStatusMeta(o.status).label}
-                    </span>
-                  </div>
-                </td>
-                <td className="p-4 text-gray-300">
-                  {o.user ? (
-                    <div>
-                      <div className="text-white">{o.user.name || o.user.email}</div>
-                      <div className="text-xs text-gray-500">{o.user.email}</div>
-                    </div>
-                  ) : (
-                    <div className="text-gray-500">—</div>
-                  )}
-                </td>
-                <td className="p-4 text-gray-300">
-                  <div className="text-white">{getShippingMethodLabel(o.shippingMethod)}</div>
-                  {o.shippingMethod === "pickup" ? (
-                    <div className="text-xs text-gray-500">Самовывоз</div>
-                  ) : o.shippingMethod === "cdek" || o.shippingMethod === "yandex" ? (
-                    <div className="text-xs text-gray-500">по тарифу (уточним)</div>
-                  ) : (
-                    <div className="text-xs text-gray-500">{o.deliveryCity || "—"}</div>
-                  )}
-                </td>
-                <td className="p-4 text-gray-300">
-                  <div className="text-white">{getShopPaymentProviderLabel(o.paymentProvider)}</div>
-                  <div className="text-xs text-gray-500">{getShopPaymentStatusMeta(o.paymentStatus).label}</div>
-                </td>
-                <td className="p-4 text-right text-white font-semibold">{formatRub(o.totalKopeks)}</td>
+      <div className="neon-card rounded-2xl overflow-hidden border border-slate-800/50">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="text-gray-500 bg-slate-950 border-b border-slate-800/50">
+              <tr>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Заказ</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Покупатель</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Доставка</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Оплата</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px] text-right">Сумма</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {orders.length === 0 ? <div className="p-8 text-center text-gray-500">Нет заказов</div> : null}
+            </thead>
+            <tbody className="divide-y divide-slate-800/30">
+              {orders.map((o) => {
+                const statusMeta = getShopOrderStatusMeta(o.status);
+                const payMeta = getShopPaymentStatusMeta(o.paymentStatus);
+                
+                return (
+                  <tr key={o.id} className="hover:bg-primary/[0.02] transition-colors group">
+                    <td className="px-6 py-5">
+                      <Link href={`/admin/shop/orders/${o.id}`} className="font-bold text-white text-base hover:text-primary transition-colors">
+                        #{o.orderNo}
+                      </Link>
+                      <div className="text-[10px] text-gray-500 mt-1 uppercase font-bold tracking-tight">
+                        {new Date(o.createdAt).toLocaleDateString("ru-RU")}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mt-2.5">
+                        <Badge variant={o.status === "completed" ? "secondary" : o.status === "cancelled" ? "error" : "info"}>
+                          {statusMeta.label}
+                        </Badge>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      {o.user ? (
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-bold text-primary">
+                            {(o.user.name || o.user.email || "?")[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="text-white font-bold">{o.user.name || "Без имени"}</div>
+                            <div className="text-[10px] text-gray-500 mt-0.5">{o.user.email}</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3 grayscale opacity-50">
+                           <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
+                             <User className="w-4 h-4 text-gray-500" />
+                           </div>
+                           <span className="text-gray-500 text-xs italic">Гость</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2 text-gray-300 font-medium">
+                        <Truck className="w-3.5 h-3.5 text-gray-500" />
+                        {getShippingMethodLabel(o.shippingMethod)}
+                      </div>
+                      <div className="text-[10px] text-gray-500 mt-1 truncate max-w-[180px]">
+                        {o.shippingMethod === "pickup" ? "Самовывоз из студии" : o.deliveryCity || "—"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2 text-white font-bold">
+                        <CreditCard className="w-3.5 h-3.5 text-gray-500" />
+                        <Badge variant={o.paymentStatus === "paid" ? "success" : "warning"} className="px-1.5 py-0">
+                          {payMeta.label}
+                        </Badge>
+                      </div>
+                      <div className="text-[10px] text-gray-500 mt-1 uppercase tracking-tight">
+                        {getShopPaymentProviderLabel(o.paymentProvider)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <div className="text-lg font-black text-white tracking-tight">
+                        {formatRub(o.totalKopeks)}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {orders.length === 0 ? (
+          <div className="py-20 text-center">
+            <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-800">
+              <Search className="w-8 h-8 text-gray-700" />
+            </div>
+            <p className="text-gray-500 font-medium text-lg">Заказы не найдены</p>
+            <p className="text-gray-600 text-sm mt-1">Попробуйте изменить параметры поиска</p>
+          </div>
+        ) : null}
       </div>
     </div>
   );

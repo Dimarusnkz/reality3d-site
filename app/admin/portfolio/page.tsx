@@ -76,16 +76,16 @@ export default function AdminPortfolioPage() {
   const categories = ["Прототипы", "Макеты", "Арт", "Детали", "Ювелирка"];
 
   return (
-    <div className="space-y-6 relative">
+    <div className="space-y-8 relative">
        {/* Header and Add Button */}
-       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-1">Портфолио</h1>
-          <p className="text-gray-400">Управление проектами и примерами работ</p>
+          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Портфолио</h1>
+          <p className="text-gray-500 mt-1 font-bold uppercase tracking-widest text-[10px]">Project Showcase Management</p>
         </div>
         <button 
           onClick={handleOpenAdd}
-          className="neon-button flex items-center gap-2"
+          className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300 active:translate-y-0"
         >
           <Plus className="h-4 w-4" />
           Добавить проект
@@ -93,46 +93,57 @@ export default function AdminPortfolioPage() {
       </div>
 
       {/* Project Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {projects.map((project) => (
-          <div key={project.id} className="group relative bg-slate-900 rounded-xl overflow-hidden border border-slate-800 hover:border-primary/50 transition-all">
-            <div className="aspect-video relative overflow-hidden bg-slate-950">
+          <div key={project.id} className="group relative neon-card border border-slate-800 bg-slate-900/40 rounded-3xl overflow-hidden hover:border-primary/40 transition-all duration-500">
+            <div className="aspect-[16/10] relative overflow-hidden bg-slate-950">
                <Image
                  src={project.imageUrl}
                  alt={project.title}
                  fill
                  sizes="(max-width: 768px) 100vw, 33vw"
-                 className="object-cover transition-transform duration-500 group-hover:scale-110"
+                 className="object-cover transition-transform duration-700 group-hover:scale-110"
                />
-               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
+               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80"></div>
                
                {/* Actions Overlay */}
-               <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+               <div className="absolute top-4 right-4 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
                   <button 
                     onClick={() => handleOpenEdit(project)}
-                    className="p-2 bg-blue-500/80 hover:bg-blue-500 text-white rounded-lg backdrop-blur-sm transition-colors"
+                    className="p-2.5 bg-slate-900/80 hover:bg-blue-500 text-white rounded-xl backdrop-blur-md border border-white/5 shadow-xl transition-all duration-300"
                     title="Редактировать"
                   >
                     <Edit className="h-4 w-4" />
                   </button>
                   <button 
                     onClick={() => deleteProject(project.id)}
-                    className="p-2 bg-red-500/80 hover:bg-red-500 text-white rounded-lg backdrop-blur-sm transition-colors"
+                    className="p-2.5 bg-slate-900/80 hover:bg-red-500 text-white rounded-xl backdrop-blur-md border border-white/5 shadow-xl transition-all duration-300"
                     title="Удалить"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
                </div>
                
-               <span className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded text-xs text-white border border-white/10">
-                 {project.category}
-               </span>
+               <div className="absolute top-4 left-4">
+                  <span className="px-3 py-1 bg-primary/10 backdrop-blur-md rounded-full text-[9px] font-black uppercase tracking-widest text-primary border border-primary/20 shadow-lg shadow-primary/5">
+                    {project.category}
+                  </span>
+               </div>
             </div>
-            <div className="p-4">
-              <h3 className="font-bold text-white text-lg mb-1 truncate">{project.title}</h3>
-              <p className="text-sm text-gray-400 line-clamp-2 h-10">{project.description}</p>
-              <div className="mt-4 text-xs text-gray-500 flex justify-between items-center">
-                 <span>{new Date(project.date).toLocaleDateString()}</span>
+            <div className="p-6">
+              <h3 className="text-xl font-black text-white mb-2 group-hover:text-primary transition-colors truncate tracking-tight">{project.title}</h3>
+              <p className="text-sm text-gray-500 line-clamp-2 h-10 leading-relaxed">{project.description}</p>
+              <div className="mt-6 flex items-center justify-between">
+                 <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse"></div>
+                    <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">{new Date(project.date).toLocaleDateString('ru-RU')}</span>
+                 </div>
+                 <button 
+                    onClick={() => handleOpenEdit(project)}
+                    className="text-[9px] font-black text-gray-600 hover:text-primary transition-colors uppercase tracking-[0.2em]"
+                  >
+                    Изменить
+                  </button>
               </div>
             </div>
           </div>

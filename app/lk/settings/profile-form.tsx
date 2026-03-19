@@ -2,8 +2,11 @@
 
 import { useActionState, useState, useRef, useEffect } from 'react'
 import { updateProfile, updatePassword, ProfileState } from '@/app/actions/profile'
-import { Eye, EyeOff, Lock, User as UserIcon, Mail, Phone, MapPin, ShieldCheck } from 'lucide-react'
+import { Eye, EyeOff, Lock, User as UserIcon, Mail, Phone, MapPin, ShieldCheck, Check, Loader2 } from 'lucide-react'
 import { CsrfTokenField } from '@/components/ui/csrf-token-field'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 const initialState: ProfileState = {
   message: '',
@@ -38,204 +41,233 @@ export function ProfileForm({ user }: { user: UserData }) {
   return (
     <div className="space-y-12">
       {/* Секция профиля */}
-      <section className="space-y-6">
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-          <UserIcon className="w-5 h-5 text-primary" />
-          <h2 className="text-xl font-semibold text-white">Личные данные</h2>
+      <section className="space-y-8">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+            <UserIcon className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-white uppercase tracking-tight">Личные данные</h2>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Основная информация и контакты</p>
+          </div>
         </div>
         
-        <form action={profileAction} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form action={profileAction} className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-900/40 p-8 rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden">
+           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
            <CsrfTokenField />
+           
            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 ml-1">Имя</label>
-              <div className="relative">
-                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Ваше имя</label>
+              <div className="relative group">
+                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-primary transition-colors" />
                 <input 
                   type="text" 
                   name="name"
                   defaultValue={user.name || ""} 
-                  className="w-full bg-slate-900/50 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" 
-                  placeholder="Ваше имя"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-4 py-3.5 text-white focus:border-primary outline-none transition-all font-bold placeholder:text-gray-800" 
+                  placeholder="Как к вам обращаться?"
                 />
               </div>
            </div>
            
            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 ml-1">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Email (Логин)</label>
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-primary transition-colors" />
                 <input 
                   type="email" 
                   name="email"
                   defaultValue={user.email} 
-                  className="w-full bg-slate-900/50 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" 
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-4 py-3.5 text-white focus:border-primary outline-none transition-all font-bold placeholder:text-gray-800" 
                   required
-                  placeholder="email@example.com"
+                  placeholder="example@mail.ru"
                 />
               </div>
            </div>
            
            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 ml-1">Телефон</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Телефон для связи</label>
+              <div className="relative group">
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-primary transition-colors" />
                 <input 
                   type="tel" 
                   name="phone"
                   defaultValue={user.phone || ""} 
-                  className="w-full bg-slate-900/50 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" 
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-4 py-3.5 text-white focus:border-primary outline-none transition-all font-bold placeholder:text-gray-800" 
                   placeholder="+7 (___) ___-__-__"
                 />
               </div>
            </div>
            
            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 ml-1">Адрес доставки</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <input 
-                  type="text" 
-                  name="address"
-                  defaultValue={user.address || ""} 
-                  className="w-full bg-slate-900/50 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" 
-                  placeholder="Город, улица, дом, квартира"
-                />
-              </div>
-           </div>
-
-           <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 ml-1">Город</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Город</label>
+              <div className="relative group">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-primary transition-colors" />
                 <input 
                   type="text" 
                   name="city"
                   defaultValue={user.city || ""} 
-                  className="w-full bg-slate-900/50 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" 
-                  placeholder="Санкт-Петербург"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-4 py-3.5 text-white focus:border-primary outline-none transition-all font-bold placeholder:text-gray-800" 
+                  placeholder="Например: Санкт-Петербург"
                   maxLength={100}
                 />
               </div>
            </div>
+
+           <div className="space-y-2 md:col-span-2">
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Адрес доставки</label>
+              <div className="relative group">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-primary transition-colors" />
+                <input 
+                  type="text" 
+                  name="address"
+                  defaultValue={user.address || ""} 
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-4 py-3.5 text-white focus:border-primary outline-none transition-all font-bold placeholder:text-gray-800" 
+                  placeholder="Улица, дом, корпус, квартира..."
+                />
+              </div>
+           </div>
            
-           <div className="md:col-span-2">
-              {profileState.error && (
-                <div className="text-red-500 text-sm bg-red-500/10 border border-red-500/20 p-3 rounded-lg mb-4">
-                   {profileState.error}
-                </div>
-              )}
-              {profileState.success && profileState.message && (
-                 <div className="text-green-500 text-sm bg-green-500/10 border border-green-500/20 p-3 rounded-lg mb-4">
-                   {profileState.message}
-                 </div>
-              )}
+           <div className="md:col-span-2 pt-4 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex-1">
+                {profileState.error && (
+                  <Badge variant="error" className="px-4 py-2 rounded-xl w-full md:w-auto text-xs font-bold">
+                     {profileState.error}
+                  </Badge>
+                )}
+                {profileState.success && profileState.message && (
+                   <Badge variant="success" className="px-4 py-2 rounded-xl w-full md:w-auto text-xs font-bold flex items-center gap-2">
+                     <Check className="w-3.5 h-3.5" />
+                     {profileState.message}
+                   </Badge>
+                )}
+              </div>
               
-              <button 
+              <Button 
                 type="submit" 
                 disabled={isProfilePending}
-                className="neon-button px-8 py-2.5 flex items-center justify-center gap-2"
+                className="h-12 px-10 font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-primary/20"
               >
-                {isProfilePending ? 'Сохранение...' : 'Обновить профиль'}
-              </button>
+                {isProfilePending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+                Сохранить изменения
+              </Button>
            </div>
         </form>
       </section>
 
       {/* Секция безопасности (Пароль) */}
-      <section className="space-y-6">
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-          <ShieldCheck className="w-5 h-5 text-primary" />
-          <h2 className="text-xl font-semibold text-white">Безопасность</h2>
+      <section className="space-y-8">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+            <ShieldCheck className="w-5 h-5 text-blue-400" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-white uppercase tracking-tight">Безопасность</h2>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Управление паролем доступа</p>
+          </div>
         </div>
         
-        <form ref={passwordFormRef} action={passwordAction} className="max-w-md space-y-5">
+        <form ref={passwordFormRef} action={passwordAction} className="max-w-2xl space-y-6 bg-slate-900/40 p-8 rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden">
+           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
            <CsrfTokenField />
-           <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 ml-1">Текущий пароль</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <input 
-                  type={showCurrentPassword ? "text" : "password"}
-                  name="currentPassword"
-                  className="w-full bg-slate-900/50 border border-slate-800 rounded-xl pl-10 pr-12 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" 
-                  placeholder="••••••••"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-           </div>
-
-           <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 ml-1">Новый пароль</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <input 
-                  type={showNewPassword ? "text" : "password"}
-                  name="newPassword"
-                  maxLength={25}
-                  className="w-full bg-slate-900/50 border border-slate-800 rounded-xl pl-10 pr-12 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" 
-                  placeholder="Минимум 6 символов"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <p className="text-[10px] text-gray-500 ml-1">Максимум 25 символов</p>
-           </div>
-
-           <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 ml-1">Подтверждение пароля</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <input 
-                  type={showConfirmPassword ? "text" : "password"}
-                  name="confirmPassword"
-                  maxLength={25}
-                  className="w-full bg-slate-900/50 border border-slate-800 rounded-xl pl-10 pr-12 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" 
-                  placeholder="Повторите новый пароль"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-           </div>
-
-           {passwordState.error && (
-             <div className="text-red-500 text-sm bg-red-500/10 border border-red-500/20 p-3 rounded-lg">
-                {passwordState.error}
-             </div>
-           )}
-           {passwordState.success && passwordState.message && (
-              <div className="text-green-500 text-sm bg-green-500/10 border border-green-500/20 p-3 rounded-lg">
-                {passwordState.message}
-              </div>
-           )}
            
-           <button 
-             type="submit" 
-             disabled={isPasswordPending}
-             className="neon-button px-8 py-2.5 flex items-center justify-center gap-2"
-           >
-             {isPasswordPending ? 'Смена пароля...' : 'Изменить пароль'}
-           </button>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div className="space-y-2 md:col-span-2">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Текущий пароль</label>
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-blue-400 transition-colors" />
+                  <input 
+                    type={showCurrentPassword ? "text" : "password"}
+                    name="currentPassword"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-12 py-3.5 text-white focus:border-blue-500 outline-none transition-all font-bold placeholder:text-gray-800" 
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-white transition-colors"
+                  >
+                    {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+             </div>
+
+             <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Новый пароль</label>
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-blue-400 transition-colors" />
+                  <input 
+                    type={showNewPassword ? "text" : "password"}
+                    name="newPassword"
+                    maxLength={25}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-12 py-3.5 text-white focus:border-blue-500 outline-none transition-all font-bold placeholder:text-gray-800" 
+                    placeholder="Минимум 6 знаков"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-white transition-colors"
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+             </div>
+
+             <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Повторите пароль</label>
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-blue-400 transition-colors" />
+                  <input 
+                    type={showConfirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    maxLength={25}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-12 py-3.5 text-white focus:border-blue-500 outline-none transition-all font-bold placeholder:text-gray-800" 
+                    placeholder="Еще раз новый пароль"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-white transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+             </div>
+           </div>
+
+           <div className="pt-4 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex-1">
+                {passwordState.error && (
+                  <Badge variant="error" className="px-4 py-2 rounded-xl w-full md:w-auto text-xs font-bold">
+                     {passwordState.error}
+                  </Badge>
+                )}
+                {passwordState.success && passwordState.message && (
+                   <Badge variant="success" className="px-4 py-2 rounded-xl w-full md:w-auto text-xs font-bold flex items-center gap-2">
+                     <Check className="w-3.5 h-3.5" />
+                     {passwordState.message}
+                   </Badge>
+                )}
+              </div>
+              
+              <Button 
+                type="submit" 
+                disabled={isPasswordPending}
+                variant="secondary"
+                className="h-12 px-10 font-black uppercase tracking-[0.2em] text-[10px] border-blue-500/20 text-blue-400 hover:bg-blue-500/10 shadow-xl shadow-blue-900/10"
+              >
+                {isPasswordPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
+                Обновить пароль
+              </Button>
+           </div>
         </form>
       </section>
+    </div>
+  )
+}
     </div>
   )
 }

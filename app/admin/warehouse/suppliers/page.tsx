@@ -1,9 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getPrisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/access";
 import { SuppliersClient } from "./suppliers-client";
+import { LinkButton } from "@/components/ui/button";
+import { Receipt, Boxes } from "lucide-react";
 
 export default async function AdminWarehouseSuppliersPage() {
   const session = await getSession();
@@ -20,16 +21,21 @@ export default async function AdminWarehouseSuppliersPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-white">Поставщики</h1>
-        <div className="flex items-center gap-3">
-          <Link href="/admin/warehouse/receipts" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+        <div>
+          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Поставщики</h1>
+          <p className="text-gray-500 mt-1 font-bold uppercase tracking-widest text-[10px]">Vendor & Supply Management</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <LinkButton href="/admin/warehouse/receipts" variant="secondary" size="sm" className="font-bold uppercase tracking-widest text-[10px]">
+            <Receipt className="mr-2 h-3.5 w-3.5" />
             Приходы
-          </Link>
-          <Link href="/admin/warehouse/catalog" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+          </LinkButton>
+          <LinkButton href="/admin/warehouse/catalog" variant="secondary" size="sm" className="font-bold uppercase tracking-widest text-[10px]">
+            <Boxes className="mr-2 h-3.5 w-3.5" />
             Каталог
-          </Link>
+          </LinkButton>
         </div>
       </div>
 

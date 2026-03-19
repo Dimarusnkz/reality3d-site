@@ -10,6 +10,9 @@ import { ServerMetricsPanel } from "./server-metrics-panel";
 import { cn } from "@/lib/utils";
 import { getShopOrderStatusMeta, getShopPaymentStatusMeta } from "@/lib/shop/order-status";
 
+import { Badge } from "@/components/ui/badge";
+import { Button, LinkButton } from "@/components/ui/button";
+
 export default async function AdminDashboard() {
   const session = await getSession();
   if (!session?.userId) redirect("/login");
@@ -64,78 +67,82 @@ export default async function AdminDashboard() {
   const revenueWeek = revenueWeekAgg._sum.amountKopeks ?? 0;
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-10">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Панель управления</h1>
-          <p className="text-gray-400">Ключевые показатели магазина</p>
+          <h1 className="text-4xl font-black text-white tracking-tight uppercase">Панель управления</h1>
+          <p className="text-gray-500 mt-1 font-bold uppercase tracking-widest text-[10px]">Reality3D Global Metrics</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Link href="/admin/warehouse" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+        <div className="flex flex-wrap items-center gap-3">
+          <LinkButton href="/admin/warehouse" variant="secondary" size="sm" className="font-bold uppercase tracking-widest text-[10px]">
             Склад
-          </Link>
-          <Link href="/admin/finance" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+          </LinkButton>
+          <LinkButton href="/admin/finance" variant="secondary" size="sm" className="font-bold uppercase tracking-widest text-[10px]">
             Касса
-          </Link>
-          <Link href="/admin/shop/orders" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
+          </LinkButton>
+          <LinkButton href="/admin/shop/orders" variant="primary" size="sm" className="font-bold uppercase tracking-widest text-[10px]">
             Заказы
-          </Link>
+          </LinkButton>
         </div>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/50">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <ShoppingBag className="h-5 w-5 text-blue-500" />
-            </div>
+        <div className="neon-card p-6 rounded-2xl border border-slate-800 bg-slate-900/40 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <ShoppingBag className="h-12 w-12 text-blue-500" />
           </div>
-          <div className="text-3xl font-bold text-white mb-1">{ordersToday}</div>
-          <p className="text-sm text-gray-400">Заказов сегодня (МСК)</p>
+          <div className="relative z-10">
+            <div className="text-3xl font-black text-white mb-1 tracking-tighter">{ordersToday}</div>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Заказов сегодня (МСК)</p>
+          </div>
         </div>
 
-        <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/50">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 bg-emerald-500/10 rounded-lg">
-              <DollarSign className="h-5 w-5 text-emerald-500" />
-            </div>
+        <div className="neon-card p-6 rounded-2xl border border-slate-800 bg-slate-900/40 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <DollarSign className="h-12 w-12 text-emerald-500" />
           </div>
-          <div className="text-3xl font-bold text-white mb-1">{canSeeFinance ? formatRub(revenueWeek) : "—"}</div>
-          <p className="text-sm text-gray-400">Выручка за 7 дней</p>
+          <div className="relative z-10">
+            <div className="text-3xl font-black text-white mb-1 tracking-tighter">{canSeeFinance ? formatRub(revenueWeek) : "—"}</div>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Выручка за 7 дней</p>
+          </div>
         </div>
 
-        <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/50">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 bg-purple-500/10 rounded-lg">
-              <CreditCard className="h-5 w-5 text-purple-500" />
-            </div>
+        <div className="neon-card p-6 rounded-2xl border border-slate-800 bg-slate-900/40 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <CreditCard className="h-12 w-12 text-purple-500" />
           </div>
-          <div className="text-3xl font-bold text-white mb-1">{paidOrdersToday}</div>
-          <p className="text-sm text-gray-400">Оплачено сегодня</p>
+          <div className="relative z-10">
+            <div className="text-3xl font-black text-white mb-1 tracking-tighter">{paidOrdersToday}</div>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Оплачено сегодня</p>
+          </div>
         </div>
 
-        <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/50">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 bg-orange-500/10 rounded-lg">
-              <Users className="h-5 w-5 text-orange-500" />
-            </div>
+        <div className="neon-card p-6 rounded-2xl border border-slate-800 bg-slate-900/40 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Users className="h-12 w-12 text-orange-500" />
           </div>
-          <div className="text-3xl font-bold text-white mb-1">{customersCount}</div>
-          <p className="text-sm text-gray-400">Клиентов в базе</p>
+          <div className="relative z-10">
+            <div className="text-3xl font-black text-white mb-1 tracking-tighter">{customersCount}</div>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Клиентов в базе</p>
+          </div>
         </div>
       </div>
 
-      {session.role === "admin" ? <ServerMetricsPanel /> : null}
+      {session.role === "admin" ? (
+        <div className="neon-card rounded-2xl border border-slate-800 overflow-hidden bg-slate-900/20">
+          <ServerMetricsPanel />
+        </div>
+      ) : null}
 
       <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 border border-slate-800 bg-slate-900/30 rounded-xl p-6">
-          <div className="flex items-center justify-between gap-4 mb-6">
-            <h3 className="text-xl font-bold text-white">Последние заказы магазина</h3>
-            <div className="text-sm text-gray-500">Неделя: {ordersWeek}</div>
+        <div className="lg:col-span-2 neon-card border border-slate-800/50 bg-slate-900/30 rounded-2xl overflow-hidden flex flex-col shadow-xl">
+          <div className="p-6 border-b border-slate-800/50 flex items-center justify-between bg-slate-950/30">
+            <h3 className="text-xl font-black text-white tracking-tight uppercase">Последние заказы</h3>
+            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Неделя: {ordersWeek}</div>
           </div>
-          <div className="space-y-3">
+          <div className="flex-1 overflow-y-auto max-h-[600px] custom-scrollbar divide-y divide-slate-800/30">
             {recentShopOrders.length === 0 ? (
-              <div className="text-gray-500 text-sm">Нет заказов</div>
+              <div className="p-10 text-center text-gray-600 font-bold uppercase tracking-widest text-xs italic">Нет заказов</div>
             ) : (
               recentShopOrders.map((o) => {
                 const statusMeta = getShopOrderStatusMeta(o.status);
@@ -144,27 +151,27 @@ export default async function AdminDashboard() {
                 <Link
                   key={o.id}
                   href={`/admin/shop/orders`}
-                  className="block p-4 rounded-lg bg-slate-900/50 border border-slate-800 hover:border-slate-700 transition-colors"
+                  className="block p-5 hover:bg-primary/[0.02] transition-colors group"
                 >
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center justify-between gap-6">
                     <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-sm font-bold text-gray-400 shrink-0">
+                      <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-sm font-black text-gray-400 group-hover:text-primary transition-colors shrink-0 shadow-inner">
                         #{o.orderNo}
                       </div>
                       <div className="min-w-0">
-                        <div className="font-medium text-white truncate">{o.contactName || "Заказ"}</div>
-                        <div className="text-xs text-gray-500 mt-0.5">{new Date(o.createdAt).toLocaleString("ru-RU")}</div>
+                        <div className="font-bold text-white text-base group-hover:text-primary transition-colors truncate">{o.contactName || "Заказ"}</div>
+                        <div className="text-[10px] font-bold text-gray-500 mt-1 uppercase tracking-tight">{new Date(o.createdAt).toLocaleString("ru-RU")}</div>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="font-bold text-white">{formatRub(o.totalKopeks)}</div>
-                      <div className="flex flex-wrap justify-end gap-1.5 mt-1">
-                        <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium", payMeta.className)}>
+                      <div className="font-black text-white text-lg tracking-tight">{formatRub(o.totalKopeks)}</div>
+                      <div className="flex flex-wrap justify-end gap-1.5 mt-2">
+                        <Badge variant={o.paymentStatus === "paid" ? "success" : "warning"} className="px-1.5 py-0">
                           {payMeta.label}
-                        </span>
-                        <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium", statusMeta.className)}>
+                        </Badge>
+                        <Badge variant={o.status === "completed" ? "secondary" : o.status === "cancelled" ? "error" : "info"} className="px-1.5 py-0">
                           {statusMeta.label}
-                        </span>
+                        </Badge>
                       </div>
                     </div>
                   </div>
@@ -173,37 +180,42 @@ export default async function AdminDashboard() {
               })
             )}
           </div>
+          <div className="p-4 bg-slate-950/30 border-t border-slate-800/50 text-center">
+             <Link href="/admin/shop/orders" className="text-[10px] font-black text-primary hover:text-white transition-colors uppercase tracking-[0.2em]">Смотреть все заказы</Link>
+          </div>
         </div>
 
-        <div className="border border-slate-800 bg-slate-900/30 rounded-xl p-6">
-          <div className="flex items-center justify-between gap-4 mb-6">
-            <h3 className="text-xl font-bold text-white">Касса</h3>
-            <Link href="/admin/finance" className="text-sm text-primary hover:underline">
+        <div className="neon-card border border-slate-800/50 bg-slate-900/30 rounded-2xl overflow-hidden flex flex-col shadow-xl">
+          <div className="p-6 border-b border-slate-800/50 flex items-center justify-between bg-slate-950/30">
+            <h3 className="text-xl font-black text-white tracking-tight uppercase">Касса</h3>
+            <LinkButton href="/admin/finance" variant="secondary" size="sm" className="font-bold uppercase tracking-widest text-[9px] h-7 px-3">
               Открыть
-            </Link>
+            </LinkButton>
           </div>
           {!canSeeFinance ? (
-            <div className="text-gray-500 text-sm">Нет доступа к финансовым данным</div>
+            <div className="p-10 text-center text-gray-600 font-bold uppercase tracking-widest text-xs italic">Нет доступа</div>
           ) : (
-            <div className="space-y-3">
-              <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-800">
-                <div className="text-gray-400 text-sm">Выручка сегодня</div>
-                <div className="text-white font-bold text-xl mt-1">{formatRub(revenueToday)}</div>
+            <div className="flex-1 overflow-y-auto max-h-[600px] custom-scrollbar p-6 space-y-4">
+              <div className="p-5 rounded-2xl bg-slate-950/50 border border-slate-800 shadow-inner group">
+                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 group-hover:text-emerald-500 transition-colors">Выручка сегодня</div>
+                <div className="text-white font-black text-2xl tracking-tight">{formatRub(revenueToday)}</div>
               </div>
-              {recentCashEntries.map((e) => (
-                <div key={e.id} className="p-3 rounded-lg bg-slate-900/50 border border-slate-800">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-xs text-gray-500">{e.account.name}</div>
-                    <div className="text-xs text-gray-500">{new Date(e.createdAt).toLocaleString("ru-RU")}</div>
+              <div className="space-y-3">
+                {recentCashEntries.map((e) => (
+                  <div key={e.id} className="p-4 rounded-xl bg-slate-900/30 border border-slate-800/30 hover:border-slate-700 transition-colors group/entry">
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div className="text-[9px] font-bold text-gray-600 uppercase tracking-widest truncate">{e.account.name}</div>
+                      <div className="text-[9px] font-bold text-gray-600 uppercase tracking-tighter">{new Date(e.createdAt).toLocaleDateString("ru-RU")}</div>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-xs font-bold text-white group-hover/entry:text-primary transition-colors truncate">{e.entryType}</div>
+                      <div className="text-sm font-black text-white">{formatRub(e.amountKopeks)}</div>
+                    </div>
+                    {e.description ? <div className="text-[10px] text-gray-500 mt-2 italic truncate opacity-60">{e.description}</div> : null}
                   </div>
-                  <div className="flex items-center justify-between gap-3 mt-1">
-                    <div className="text-white text-sm truncate">{e.entryType}</div>
-                    <div className="text-white font-semibold">{formatRub(e.amountKopeks)}</div>
-                  </div>
-                  {e.description ? <div className="text-xs text-gray-500 mt-1 truncate">{e.description}</div> : null}
-                </div>
-              ))}
-              {recentCashEntries.length === 0 ? <div className="text-gray-500 text-sm">Нет операций</div> : null}
+                ))}
+                {recentCashEntries.length === 0 ? <div className="p-10 text-center text-gray-600 font-bold uppercase tracking-widest text-xs italic">Нет операций</div> : null}
+              </div>
             </div>
           )}
         </div>

@@ -114,6 +114,76 @@ export async function getClientShopOrders() {
   })
 }
 
+export async function getClientFiles() {
+  const prisma = getPrisma()
+  const session = await getSession()
+  if (!session || !session.userId) {
+    return []
+  }
+
+  const userId = parseInt(session.userId)
+
+  // 1. Get files from Order details
+  const orders = await prisma.order.findMany({
+    where: { userId },
+    select: { id: true, title: true, details: true, createdAt: true }
+  })
+
+  const files: any[] = []
+
+  orders.forEach(order => {
+    try {
+      const details = JSON.parse(order.details || '{}')
+      if (details.files && Array.isArray(details.files)) {
+        details.files.forEach((file: any) => {
+          files.push({
+            ...file,
+            orderId: order.id,
+            orderTitle: order.title,
+            createdAt: order.createdAt
+          })
+        })
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+  })
+
+  // 2. Get files from Chat attachments
+  const chatSessions = await prisma.chatSession.findMany({
+    where: { userId },
+    include: {
+      messages: {
+        where: { attachments: { not: null } },
+        select: { attachments: true, createdAt: true }
+      }
+    }
+  })
+
+  chatSessions.forEach(session => {
+    session.messages.forEach(msg => {
+      try {
+        const attachments = JSON.parse(msg.attachments || '[]')
+        if (Array.isArray(attachments)) {
+          attachments.forEach((file: any) => {
+            files.push({
+              ...file,
+              chatSessionId: session.id,
+              orderId: session.orderId,
+              createdAt: msg.createdAt
+            })
+          })
+        }
+      } catch (e) {
+        // Ignore
+      }
+    })
+  })
+
+  // Sort by date descending
+  return files.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+}
+
 // --- Admin/Employee Actions ---
 
 export async function getOrders() {

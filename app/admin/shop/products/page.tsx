@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getPrisma } from "@/lib/prisma";
 import ShopProductsTable from "./products-table";
+import { LinkButton } from "@/components/ui/button";
 
 export default async function AdminShopProductsPage() {
   const prisma = getPrisma();
@@ -11,22 +12,37 @@ export default async function AdminShopProductsPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Карточки товаров</h1>
-        <div className="flex items-center gap-3">
-          <Link
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+        <div>
+          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Карточки товаров</h1>
+          <p className="text-gray-500 mt-1 font-bold uppercase tracking-widest text-[10px]">E-commerce Showcase Management</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <LinkButton
             href="/admin/warehouse/catalog"
-            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+            variant="secondary"
+            size="sm"
+            className="font-bold uppercase tracking-widest text-[10px]"
           >
             Каталог (склад)
-          </Link>
-          <Link
+          </LinkButton>
+          <LinkButton
             href="/admin/warehouse/categories"
-            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+            variant="secondary"
+            size="sm"
+            className="font-bold uppercase tracking-widest text-[10px]"
           >
             Категории
-          </Link>
+          </LinkButton>
+          <LinkButton
+            href="/admin/shop/products/new"
+            variant="primary"
+            size="sm"
+            className="font-bold uppercase tracking-widest text-[10px]"
+          >
+            Добавить товар
+          </LinkButton>
         </div>
       </div>
 
