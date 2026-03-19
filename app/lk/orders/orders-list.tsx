@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { Search, Plus, Eye, Package } from "lucide-react";
 import { CreateOrderModal } from "./create-order-modal";
 import { cn } from "@/lib/utils";
@@ -22,7 +23,7 @@ export default function OrdersList({ initialOrders }: { initialOrders: any[] }) 
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [orders, setOrders] = useState(initialOrders);
-  const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
+  const [filter, setFilter] = useState<"all" | "active" | "completed" | "payment">("all");
 
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
@@ -38,6 +39,9 @@ export default function OrdersList({ initialOrders }: { initialOrders: any[] }) 
       if (filter === "completed") {
         return ["completed", "cancelled"].includes(order.status);
       }
+      if (filter === "payment") {
+        return order.status === "payment_pending";
+      }
       return true;
     });
   }, [orders, searchTerm, filter]);
@@ -46,8 +50,11 @@ export default function OrdersList({ initialOrders }: { initialOrders: any[] }) 
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Заказы 3D-печати</h1>
-          <div className="text-sm text-gray-400 mt-1">Заказы из калькулятора и проекты</div>
+          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+            Заказы 3D‑печати
+            <Badge variant="secondary" className="font-mono">CALC</Badge>
+          </h2>
+          <p className="text-sm text-gray-400 mt-1">Индивидуальные проекты и расчёты</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-64">
@@ -62,102 +69,108 @@ export default function OrdersList({ initialOrders }: { initialOrders: any[] }) 
           </div>
           <button 
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center gap-2 font-medium shadow-[0_0_15px_rgba(255,94,0,0.3)]"
+            className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center gap-2 font-bold shadow-lg shadow-primary/20"
           >
-             <Plus className="h-5 w-5" />
+             <Plus className="h-4 w-4" />
              <span className="hidden sm:inline">Новый заказ</span>
           </button>
         </div>
       </div>
 
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
-        <button
-          onClick={() => setFilter("all")}
-          className={cn("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors", filter === "all" ? "bg-primary text-white" : "bg-slate-900/50 text-gray-400 hover:text-white hover:bg-slate-800")}
-        >
-          Все заказы
-        </button>
-        <button
-          onClick={() => setFilter("active")}
-          className={cn("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors", filter === "active" ? "bg-primary text-white" : "bg-slate-900/50 text-gray-400 hover:text-white hover:bg-slate-800")}
-        >
-          Активные
-        </button>
-        <button
-          onClick={() => setFilter("completed")}
-          className={cn("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors", filter === "completed" ? "bg-primary text-white" : "bg-slate-900/50 text-gray-400 hover:text-white hover:bg-slate-800")}
-        >
-          Завершённые
-        </button>
+      <div className="flex gap-2 mb-2 overflow-x-auto pb-2 scrollbar-none">
+        {[
+          { id: "all", label: "Все" },
+          { id: "active", label: "Активные" },
+          { id: "payment", label: "Ожидают оплаты" },
+          { id: "completed", label: "Завершённые" },
+        ].map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setFilter(f.id as any)}
+            className={cn(
+              "px-4 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all border",
+              filter === f.id 
+                ? "bg-primary/10 text-primary border-primary/30" 
+                : "bg-slate-900/40 text-gray-400 border-slate-800 hover:text-white hover:bg-slate-800"
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
-      <div className="neon-card rounded-xl overflow-hidden min-h-[400px]">
+      <div className="neon-card rounded-2xl overflow-hidden border border-slate-800/50">
         {filteredOrders.length === 0 ? (
             <EmptyState
               icon={Package}
-              title="Пока нет заказов 3D‑печати"
-              description="Сделайте расчёт в калькуляторе или создайте заказ вручную — он появится в личном кабинете."
+              title="Заказы не найдены"
+              description="Попробуйте изменить параметры поиска или фильтры."
               actions={
-                <>
-                  <ButtonLink href="/calculator" size="sm">
-                    Рассчитать в калькуляторе
-                  </ButtonLink>
-                  <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm font-semibold text-white hover:bg-slate-900/50 transition-all"
-                  >
-                    Создать заказ вручную
-                  </button>
-                </>
+                <Button variant="outline" size="sm" onClick={() => { setSearchTerm(""); setFilter("all"); }}>
+                  Сбросить фильтры
+                </Button>
               }
             />
         ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="text-gray-400 bg-slate-900/50 border-b border-slate-800">
+            <thead className="text-gray-500 bg-slate-900/30 border-b border-slate-800/50">
               <tr>
-                <th className="px-6 py-4 font-medium">№</th>
-                <th className="px-6 py-4 font-medium">Название</th>
-                <th className="px-6 py-4 font-medium">Статус</th>
-                <th className="px-6 py-4 font-medium">Стоимость</th>
-                <th className="px-6 py-4 font-medium">Дата</th>
-                <th className="px-6 py-4 font-medium text-right">Действия</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Заказ</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Название</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Статус</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Сумма</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px] text-right">Действия</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-slate-800/30">
               {filteredOrders.map((order) => {
-                const statusMeta = getCalcOrderStatusMeta(order.status);
+                const s = getCalcOrderStatusMeta(order.status);
+                const isWaitingPayment = order.status === "payment_pending";
                 
                 return (
-                  <tr key={order.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors group">
-                    <td className="px-6 py-4 font-bold text-white">#{order.id}</td>
-                    <td className="px-6 py-4 text-gray-300">
-                        <div className="font-medium text-white">{order.title || "Без названия"}</div>
-                        {/* <div className="text-xs text-gray-500 truncate max-w-[200px]">Description here...</div> */}
+                  <tr key={order.id} className="hover:bg-primary/[0.02] transition-colors group">
+                    <td className="px-6 py-5">
+                      <div className="font-bold text-white text-base">#{order.id}</div>
+                      <div className="text-[10px] text-gray-500 mt-0.5">{new Date(order.createdAt).toLocaleDateString('ru-RU')}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={cn(
-                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                        statusMeta.className
-                      )}>
-                        {statusMeta.label}
-                      </span>
+                    <td className="px-6 py-5">
+                        <div className="font-bold text-gray-200 group-hover:text-white transition-colors">{order.title || "Проект 3D‑печати"}</div>
                     </td>
-                    <td className="px-6 py-4 text-white font-medium">
-                      {order.price > 0 ? `${order.price.toLocaleString()} ₽` : '—'}
+                    <td className="px-6 py-5">
+                      <Badge variant={
+                        order.status === "completed" ? "success" : 
+                        order.status === "cancelled" ? "error" : 
+                        order.status === "payment_pending" ? "warning" : "info"
+                      }>
+                        {s.label}
+                      </Badge>
                     </td>
-                    <td className="px-6 py-4 text-gray-500">
-                        {new Date(order.createdAt).toLocaleDateString('ru-RU')}
+                    <td className="px-6 py-5">
+                      <div className="font-bold text-white text-base">
+                        {order.price > 0 ? `${order.price.toLocaleString()} ₽` : '—'}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-5 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Link 
+                        {isWaitingPayment && (
+                          <LinkButton 
+                            href={`/lk/orders/${order.id}`} 
+                            size="sm" 
+                            className="bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20"
+                          >
+                            Оплатить
+                          </LinkButton>
+                        )}
+                        <LinkButton 
                             href={`/lk/orders/${order.id}`}
-                            className="p-2 text-gray-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" 
-                            title="Подробнее"
+                            variant="secondary"
+                            size="sm"
+                            className="group-hover:bg-slate-700"
                         >
                            <Eye className="h-4 w-4" />
-                        </Link>
+                           <span className="ml-2 hidden md:inline">Открыть</span>
+                        </LinkButton>
                       </div>
                     </td>
                   </tr>

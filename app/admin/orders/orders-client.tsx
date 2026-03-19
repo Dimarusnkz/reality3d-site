@@ -13,13 +13,19 @@ function getCsrfToken() {
   return parts.pop()?.split(';').shift() || '';
 }
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+
 const STATUS_OPTIONS = [
-  { value: "pending", label: "Ожидает", color: "text-yellow-500 bg-yellow-500/10" },
-  { value: "processing", label: "В работе", color: "text-blue-500 bg-blue-500/10" },
-  { value: "completed", label: "Завершен", color: "text-green-500 bg-green-500/10" },
-  { value: "paid", label: "Оплачен", color: "text-purple-500 bg-purple-500/10" },
-  { value: "shipped", label: "Отправлен", color: "text-indigo-500 bg-indigo-500/10" },
-  { value: "cancelled", label: "Отменен", color: "text-red-500 bg-red-500/10" },
+  { value: "pending", label: "В обработке", variant: "warning" as const },
+  { value: "processing", label: "В работе", variant: "info" as const },
+  { value: "payment_pending", label: "Ожидает оплаты", variant: "warning" as const },
+  { value: "paid", label: "Оплачен", variant: "success" as const },
+  { value: "in_production", label: "В производстве", variant: "info" as const },
+  { value: "ready", label: "Готов", variant: "success" as const },
+  { value: "shipped", label: "Отправлен", variant: "info" as const },
+  { value: "completed", label: "Завершен", variant: "secondary" as const },
+  { value: "cancelled", label: "Отменен", variant: "error" as const },
 ];
 
 export default function OrdersClient({ initialOrders, currentUserRole }: { initialOrders: any[], currentUserRole: string }) {
@@ -192,9 +198,9 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
   const getStatusBadge = (status: string) => {
     const option = STATUS_OPTIONS.find(o => o.value === status) || STATUS_OPTIONS[0];
     return (
-        <span className={cn("px-2 py-1 rounded-full text-xs font-medium", option.color)}>
+        <Badge variant={option.variant}>
             {option.label}
-        </span>
+        </Badge>
     );
   };
 

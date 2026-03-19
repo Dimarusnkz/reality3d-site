@@ -10,13 +10,14 @@ import { PayTbankButton } from "../pay-tbank-button";
 import { PayTbankLinkButton } from "../pay-tbank-link-button";
 import { OrderLayout, OrderSection, OrderInfoRow } from "@/components/order/order-layout";
 import { Badge } from "@/components/ui/badge";
+import { Check } from "lucide-react";
 
 export default async function ShopOrderPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ payment?: string; token?: string }>;
+  searchParams: Promise<{ payment?: string; token?: string; justCreated?: string }>;
 }) {
   const session = await getSession();
   const { id } = await params;
@@ -43,16 +44,50 @@ export default async function ShopOrderPage({
   const statusMeta = getShopOrderStatusMeta(order.status);
   const payMeta = getShopPaymentStatusMeta(order.paymentStatus);
 
+  const steps = [
+    { 
+      title: "Заказ", 
+      isCompleted: ["paid", "shipped", "completed"].includes(order.status) || order.paymentStatus === "paid",
+      isActive: order.status === "pending" && order.paymentStatus === "unpaid"
+    },
+    { 
+      title: "Оплата", 
+      isCompleted: order.paymentStatus === "paid",
+      isActive: order.paymentStatus === "unpaid" && order.status !== "cancelled"
+    },
+    { 
+      title: "Сборка", 
+      isCompleted: ["shipped", "completed"].includes(order.status),
+      isActive: order.paymentStatus === "paid" && order.status === "pending"
+    },
+    { 
+      title: "Доставка", 
+      isCompleted: order.status === "completed",
+      isActive: order.status === "shipped"
+    },
+  ];
+
   return (
-    <OrderLayout
-      title={`Заказ #${order.orderNo}`}
-      subtitle={`От ${order.createdAt.toLocaleString("ru-RU", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}`}
-      backUrl="/shop"
-      backLabel="В магазин"
-      statusBadge={<Badge className={statusMeta.className}>{statusMeta.label}</Badge>}
-      paymentBadge={<Badge className={payMeta.className}>{payMeta.label}</Badge>}
-      mainContent={
-        <div className="space-y-6 md:space-y-8">
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
+      {sp.justCreated === "1" && (
+        <div className="mb-10 p-8 rounded-3xl bg-green-500/10 border border-green-500/20 text-center animate-in fade-in slide-in-from-top-4">
+          <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check className="h-8 w-8 text-green-500" />
+          </div>
+          <h2 className="text-3xl font-black text-white mb-2">Заказ успешно оформлен!</h2>
+          <p className="text-gray-400">Спасибо за покупку в Reality3D. Мы уже начали подготовку вашего заказа.</p>
+        </div>
+      )}
+      <OrderLayout
+        title={`Заказ #${order.orderNo}`}
+        subtitle={`От ${order.createdAt.toLocaleString("ru-RU", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}`}
+        backUrl="/lk/orders"
+        backLabel="Все заказы"
+        statusBadge={<Badge variant={order.status === "completed" ? "success" : order.status === "cancelled" ? "error" : "info"}>{statusMeta.label}</Badge>}
+        paymentBadge={<Badge variant={order.paymentStatus === "paid" ? "success" : "warning"}>{payMeta.label}</Badge>}
+        statusSteps={steps}
+        mainContent={
+          <div className="space-y-6 md:space-y-8">
           {sp.payment === "failed" ? (
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl p-4 text-sm">
               Оплата не прошла. Попробуй ещё раз или выбери другой способ.
@@ -161,5 +196,6 @@ export default async function ShopOrderPage({
         </div>
       }
     />
+    </div>
   );
 }

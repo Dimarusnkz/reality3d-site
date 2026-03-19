@@ -24,6 +24,29 @@ export default async function PrintOrderPage({ params }: { params: Promise<{ id:
 
   const statusMeta = getCalcOrderStatusMeta(order.status);
   
+  const steps = [
+    { 
+      title: "Заказ", 
+      isCompleted: ["processing", "payment_pending", "paid", "in_production", "ready", "shipped", "completed"].includes(order.status),
+      isActive: ["pending", "processing"].includes(order.status)
+    },
+    { 
+      title: "Оплата", 
+      isCompleted: ["paid", "in_production", "ready", "shipped", "completed"].includes(order.status),
+      isActive: order.status === "payment_pending"
+    },
+    { 
+      title: "Производство", 
+      isCompleted: ["ready", "shipped", "completed"].includes(order.status),
+      isActive: order.status === "in_production"
+    },
+    { 
+      title: "Доставка", 
+      isCompleted: order.status === "completed",
+      isActive: ["ready", "shipped"].includes(order.status)
+    },
+  ];
+
   let details: any = {};
   try {
     details = JSON.parse(order.details || "{}");
@@ -36,11 +59,12 @@ export default async function PrintOrderPage({ params }: { params: Promise<{ id:
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
       <OrderLayout
-        title={`Заказ 3D-печати #${order.id}`}
+        title={`Заказ #${order.id}`}
         subtitle={`Создан ${order.createdAt.toLocaleString("ru-RU", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}`}
         backUrl="/lk/orders"
-        backLabel="К списку заказов"
-        statusBadge={<Badge className={statusMeta.className}>{statusMeta.label}</Badge>}
+        backLabel="Все заказы"
+        statusBadge={<Badge variant={order.status === "completed" ? "success" : order.status === "cancelled" ? "error" : "info"}>{statusMeta.label}</Badge>}
+        statusSteps={steps}
         mainContent={
           <div className="space-y-6">
             <OrderSection title="Детали заказа">

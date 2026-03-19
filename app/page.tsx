@@ -3,7 +3,7 @@
 import RequestForm from "@/components/request-form";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Clock, Truck, ShieldCheck, Cpu, FileText, Layers, Zap, Upload, Calculator, Printer, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Clock, Truck, ShieldCheck, Cpu, FileText, Layers, Zap, Upload, Calculator, Printer, CheckCircle2, ShoppingCart } from "lucide-react";
 import { motion } from "framer-motion";
 import { usePortfolio } from "@/app/context/portfolio-context";
 import Image from "next/image";
@@ -112,20 +112,60 @@ export default function Home() {
                 FDM, SLA, SLS технологии. Доставка по всей России.
               </p>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                <ButtonLink href="/calculator" size="lg" className="group">
-                  Рассчитать 3D‑печать
-                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-0.5" />
-                </ButtonLink>
-                <ButtonLink href="/shop" variant="outline" size="lg">
-                  Купить в магазине
-                </ButtonLink>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-8">
+                <Link 
+                  href="/calculator" 
+                  className="group relative flex flex-col p-8 rounded-3xl bg-slate-900/40 border border-slate-800 hover:border-primary/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_40px_rgba(255,94,0,0.15)]"
+                >
+                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all">
+                    <Calculator className="w-24 h-24 text-primary" />
+                  </div>
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
+                      <Calculator className="w-6 h-6 text-primary" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-primary transition-colors">Рассчитать 3D‑печать</h3>
+                    <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                      Загрузите STL модель или укажите параметры для мгновенного расчета стоимости
+                    </p>
+                    <div className="flex items-center text-primary font-bold text-sm uppercase tracking-wider group-hover:gap-2 transition-all">
+                      Начать расчет <ArrowRight className="ml-2 h-4 w-4" />
+                    </div>
+                  </div>
+                </Link>
+
+                <Link 
+                  href="/shop" 
+                  className="group relative flex flex-col p-8 rounded-3xl bg-slate-900/40 border border-slate-800 hover:border-blue-500/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_40px_rgba(59,130,246,0.15)]"
+                >
+                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all">
+                    <ShoppingCart className="w-24 h-24 text-blue-400" />
+                  </div>
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-6 group-hover:bg-blue-500/20 transition-colors">
+                      <ShoppingCart className="w-6 h-6 text-blue-400" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">Купить в магазине</h3>
+                    <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                      Готовые детали, материалы и оборудование в наличии с доставкой
+                    </p>
+                    <div className="flex items-center text-blue-400 font-bold text-sm uppercase tracking-wider group-hover:gap-2 transition-all">
+                      Перейти в каталог <ArrowRight className="ml-2 h-4 w-4" />
+                    </div>
+                  </div>
+                </Link>
               </div>
 
-              <div className="text-sm text-gray-500">
-                <Link href="/login" className="hover:text-white transition-colors">Войти</Link>
-                <span className="mx-2">•</span>
-                <Link href="/register" className="hover:text-white transition-colors">Регистрация</Link>
+              <div className="text-sm text-gray-500 flex items-center gap-4">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Принимаем заказы</span>
+                </div>
+                <div className="h-4 w-px bg-slate-800"></div>
+                <div className="space-x-4">
+                  <Link href="/login" className="hover:text-white transition-colors">Войти</Link>
+                  <Link href="/register" className="hover:text-white transition-colors">Регистрация</Link>
+                </div>
               </div>
               
               <div className="flex items-center gap-6 pt-4 text-sm text-gray-500">

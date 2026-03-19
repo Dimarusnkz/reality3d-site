@@ -1,228 +1,78 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { createGuestShopOrder, createShopOrder } from "@/app/actions/shop";
+import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { 
+  User, 
+  Truck, 
+  CreditCard, 
+  Check, 
+  ArrowRight, 
+  Info, 
+  Loader2, 
+  ShoppingCart,
+  Package
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import { formatRub } from "@/lib/shop/money";
-import { PICKUP_ADDRESS, PICKUP_PHONE, ShippingMethod, calcShippingCostKopeks } from "@/lib/shop/shipping";
-import { Loader2 } from "lucide-react";
-import { guestCartClear, guestCartRead } from "@/lib/shop/guest-cart";
-import { Steps } from "@/components/ui/steps";
-import { ButtonLink } from "@/components/ui/button";
+import { createShopOrder } from "@/app/actions/shop-order";
+import { guestCartClear } from "@/lib/shop/guest-cart";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
-function getCsrfToken() {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; csrf_token=`);
-  if (parts.length !== 2) return "";
-  return parts.pop()?.split(";").shift() || "";
-}
+const PICKUP_ADDRESS = "Санкт-Петербург, пр. Современников, д. 1, к. 3";
+const PICKUP_PHONE = "+7 (999) 000-00-00";
 
-type CheckoutItem = { name: string; quantity: number; unitPriceKopeks: number };
+type CheckoutClientProps = {
+  cart: any;
+  user: any;
+  isAuthenticated: boolean;
+};
 
-export function CheckoutClient({
-  items,
-  initial,
-  isAuthenticated = true,
-}: {
-  items: CheckoutItem[];
-  initial?: {
-    contactName?: string;
-    contactPhone?: string;
-    contactEmail?: string;
-    deliveryCity?: string;
-    deliveryAddress?: string;
-    deliveryPhone?: string;
-  };
-  isAuthenticated?: boolean;
-}) {
-  const normalizePhone = (input: string) => {
-    const raw = input.trim();
-    const digits = raw.replace(/[^\d+]/g, "");
-    let onlyDigits = digits.startsWith("+") ? `+${digits.slice(1).replace(/\D/g, "")}` : digits.replace(/\D/g, "");
-
-    if (onlyDigits.startsWith("+7")) {
-      const d = onlyDigits.slice(2).replace(/\D/g, "").slice(0, 10);
-      return `+7${d}`;
-    }
-
-    const d = onlyDigits.replace(/\D/g, "");
-    if (d.startsWith("8")) {
-      const rest = d.slice(1).slice(0, 10);
-      return `+7${rest}`;
-    }
-    if (d.startsWith("7")) {
-      const rest = d.slice(1).slice(0, 10);
-      return `+7${rest}`;
-    }
-    if (d.startsWith("9")) {
-      return `+7${d.slice(0, 10)}`;
-    }
-    return raw.startsWith("+") ? `+${d.slice(0, 11)}` : d.slice(0, 11);
-  };
-
-  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("pickup");
-  const paymentProvider = "tbank_link" as const;
-  const [contactName, setContactName] = useState(initial?.contactName || "");
-  const [contactPhone, setContactPhone] = useState(initial?.contactPhone ? normalizePhone(initial.contactPhone) : "");
-  const [contactEmail, setContactEmail] = useState((initial?.contactEmail || "").trim());
-  const [deliveryCity, setDeliveryCity] = useState(
-    initial?.deliveryCity ||
-      (initial?.deliveryAddress ? initial.deliveryAddress.split(",")[0]?.trim() || "" : "")
-  );
-  const [deliveryAddress, setDeliveryAddress] = useState(initial?.deliveryAddress || "");
-  const [deliveryPostalCode, setDeliveryPostalCode] = useState("");
-  const [deliveryPhone, setDeliveryPhone] = useState(
-    initial?.deliveryPhone ? normalizePhone(initial.deliveryPhone) : initial?.contactPhone ? normalizePhone(initial.contactPhone) : ""
-  );
-  const [comment, setComment] = useState("");
+export default function CheckoutClient({ cart, user, isAuthenticated }: CheckoutClientProps) {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+
+  // Form state
+  const [contactName, setContactName] = useState(user?.name || "");
+  const [contactPhone, setContactPhone] = useState(user?.phone || "");
+  const [contactEmail, setContactEmail] = useState(user?.email || "");
+
+  const [shippingMethod, setShippingMethod] = useState<"pickup" | "cdek" | "courier_spb" | "russian_post" | "yandex">("pickup");
+  const [deliveryCity, setDeliveryCity] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryPickupPoint, setDeliveryPickupPoint] = useState("");
-  const [courierNote, setCourierNote] = useState("");
-  const [runtimeItems, setRuntimeItems] = useState(items);
-  const [guestLines, setGuestLines] = useState<{ productId: number; quantity: number }[]>([]);
-  const [loadingItems, setLoadingItems] = useState(!isAuthenticated);
 
-  useEffect(() => {
-    if (isAuthenticated) return;
-    let cancelled = false;
+  const normalizePhone = (val: string) => {
+    let s = val.replace(/[^\d+]/g, "");
+    if (s.startsWith("8")) s = "+7" + s.slice(1);
+    if (s.length > 0 && !s.startsWith("+")) s = "+" + s;
+    return s.slice(0, 12);
+  };
 
-    const load = async () => {
-      const lines = guestCartRead();
-      if (!cancelled) setGuestLines(lines);
-      if (lines.length === 0) {
-        if (!cancelled) {
-          setRuntimeItems([]);
-          setLoadingItems(false);
-        }
-        return;
-      }
-      try {
-        const res = await fetch("/api/shop/products/bulk", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ ids: lines.map((l) => l.productId) }),
-        });
-        const data = (await res.json().catch(() => null)) as { ok?: boolean; products?: any[] } | null;
-        const products = Array.isArray(data?.products) ? data?.products : [];
-        const byId = new Map<number, any>(products.map((p) => [p.id, p]));
-        const mapped = lines
-          .map((l) => {
-            const p = byId.get(l.productId);
-            if (!p) return null;
-            return { name: p.name as string, quantity: l.quantity, unitPriceKopeks: p.priceKopeks as number } as CheckoutItem;
-          })
-          .filter(Boolean) as CheckoutItem[];
-        if (!cancelled) setRuntimeItems(mapped);
-      } finally {
-        if (!cancelled) setLoadingItems(false);
-      }
-    };
+  const isValidName = contactName.trim().length >= 2;
+  const isValidPhone = /^\+7\d{10}$/.test(contactPhone);
+  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail);
+  const isValidDelivery = shippingMethod === "pickup" || (deliveryCity.trim().length > 0 && (deliveryAddress.trim().length > 0 || deliveryPickupPoint.trim().length > 0));
 
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated]);
+  const currentStep = !isValidName || !isValidPhone || !isValidEmail ? 1 : !isValidDelivery ? 2 : 3;
 
-  const subtotal = useMemo(
-    () => runtimeItems.reduce((sum, i) => sum + i.unitPriceKopeks * i.quantity, 0),
-    [runtimeItems]
-  );
-  const shippingCost = useMemo(() => calcShippingCostKopeks(shippingMethod), [shippingMethod]);
-  const total = subtotal + shippingCost;
-
-  const PHONE_RE = /^\+7\d{10}$/;
-  const NAME_RE = /^[A-Za-zА-Яа-яЁё\s\-]{2,50}$/;
-  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-  const isValidName = NAME_RE.test(contactName.trim());
-  const isValidPhone = PHONE_RE.test(contactPhone.trim());
-  const isValidEmail = contactEmail.trim().length <= 100 && EMAIL_RE.test(contactEmail.trim());
-  const isValidDeliveryPhone = shippingMethod === "pickup" ? true : PHONE_RE.test(deliveryPhone.trim());
-  const isValidComment = comment.length <= 200;
-  const isTk = shippingMethod === "cdek" || shippingMethod === "yandex";
-  const isValidPickupPoint = isTk ? deliveryPickupPoint.trim().length > 0 && deliveryPickupPoint.trim().length <= 200 : true;
-  const isValidCourierNote = courierNote.length <= 200;
-  const isValidDelivery =
-    shippingMethod === "pickup" ? true : deliveryCity.trim().length > 0 && deliveryAddress.trim().length > 0 && isValidDeliveryPhone;
-
-  const hasItems = runtimeItems.length > 0;
-  const canSubmit =
-    isAuthenticated &&
-    hasItems &&
-    !loadingItems &&
-    isValidName &&
-    isValidPhone &&
-    isValidEmail &&
-    isValidComment &&
-    isValidDelivery &&
-    isValidPickupPoint &&
-    isValidCourierNote;
-
-  const currentStep =
-    !isValidName || !isValidPhone || !isValidEmail
-      ? 1
-      : !isValidDelivery || !isValidPickupPoint
-        ? 2
-        : 3;
-
-  const submit = async () => {
-    if (!isAuthenticated) {
-      window.location.href = "/login?redirectTo=/checkout";
-      return;
-    }
-    if (!canSubmit) {
-      if (!isValidName) setFormError("Имя: только буквы (2–50 символов)");
-      else if (!isValidPhone) setFormError("Телефон: формат +7XXXXXXXXXX");
-      else if (!isValidEmail) setFormError("Email указан неверно");
-      else if (!isValidDelivery) setFormError("Заполните город, адрес и телефон для доставки");
-      else if (!isValidPickupPoint) setFormError("Укажите пункт выдачи / адрес для СДЭК или Яндекс");
-      else if (!isValidCourierNote) setFormError("Комментарий курьеру не более 200 символов");
-      else if (!isValidComment) setFormError("Комментарий не более 200 символов");
-      return;
-    }
+  const handleCreateOrder = async () => {
+    if (currentStep < 3) return;
     setIsLoading(true);
-    setFormError(null);
+
     try {
-      const deliveryAddressFinal =
-        shippingMethod === "pickup"
-          ? undefined
-          : isTk
-            ? `${deliveryAddress}${deliveryPickupPoint.trim() ? `, ${deliveryPickupPoint.trim()}` : ""}`
-            : deliveryAddress;
+      const res = await createShopOrder({
+        contactName,
+        contactPhone,
+        contactEmail,
+        shippingMethod,
+        deliveryCity,
+        deliveryAddress: shippingMethod === "pickup" ? PICKUP_ADDRESS : (deliveryAddress || deliveryPickupPoint),
+      });
 
-      const commentFinal = [comment.trim(), courierNote.trim() ? `Комментарий курьеру: ${courierNote.trim()}` : ""].filter(Boolean).join("\n");
-
-      const res = isAuthenticated
-        ? await createShopOrder({
-            shippingMethod,
-            paymentProvider,
-            contactName,
-            contactPhone,
-            contactEmail,
-            deliveryPhone: shippingMethod === "pickup" ? undefined : deliveryPhone,
-            deliveryCity: shippingMethod === "pickup" ? undefined : deliveryCity,
-            deliveryAddress: deliveryAddressFinal,
-            deliveryPostalCode: shippingMethod === "pickup" ? undefined : deliveryPostalCode,
-            comment: commentFinal,
-            csrfToken: getCsrfToken(),
-          })
-        : await createGuestShopOrder({
-            items: guestLines,
-            shippingMethod,
-            paymentProvider,
-            contactName,
-            contactPhone,
-            contactEmail,
-            deliveryPhone: shippingMethod === "pickup" ? undefined : deliveryPhone,
-            deliveryCity: shippingMethod === "pickup" ? undefined : deliveryCity,
-            deliveryAddress: deliveryAddressFinal,
-            deliveryPostalCode: shippingMethod === "pickup" ? undefined : deliveryPostalCode,
-            comment: commentFinal,
-            csrfToken: getCsrfToken(),
-          });
-      if (!res.ok) {
-        setFormError(res.error || "Не удалось создать заказ");
+      if (res.error) {
+        alert(res.error);
         return;
       }
 
@@ -232,350 +82,273 @@ export function CheckoutClient({
       }
 
       const tokenPart = isAuthenticated ? "" : `?token=${encodeURIComponent((res as any).publicAccessToken)}`;
-      window.location.href = `/shop/order/${res.orderId}${tokenPart}${tokenPart ? "&" : "?"}pay=1`;
+      window.location.href = `/shop/order/${res.orderId}${tokenPart}${tokenPart ? "&" : "?"}pay=1&justCreated=1`;
+    } catch (e) {
+      console.error(e);
+      alert("Произошла ошибка при создании заказа");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const steps = [
+    { title: "Контакты", icon: User },
+    { title: "Доставка", icon: Truck },
+    { title: "Оплата", icon: CreditCard },
+  ];
+
+  if (!cart || cart.items.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-20 text-center">
+        <ShoppingCart className="h-16 w-16 text-slate-800 mx-auto mb-6" />
+        <h1 className="text-3xl font-bold text-white mb-4">Ваша корзина пуста</h1>
+        <p className="text-gray-500 mb-8 text-lg">Добавьте товары в корзину, чтобы продолжить</p>
+        <Button onClick={() => router.push("/shop")} size="lg">Перейти в магазин</Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-      <div className="lg:col-span-7 space-y-8">
-        <Steps
-          current={currentStep}
-          steps={[
-            { title: "Контакты", description: "Кому передать заказ" },
-            { title: "Доставка", description: "Самовывоз или доставка" },
-            { title: "Оплата", description: "Ссылка / QR и подтверждение" },
-          ]}
-        />
-        {!isAuthenticated ? (
-          <div className="bg-orange-500/10 border border-orange-500/20 text-orange-300 rounded-xl p-4 text-sm">
-            Войдите в личный кабинет, чтобы оформить заказ и видеть его в разделе «Мои заказы».
-            <div className="mt-3 flex flex-wrap gap-2">
-              <ButtonLink href="/login?redirectTo=/checkout" size="sm">
-                Войти
-              </ButtonLink>
-              <ButtonLink href="/register?redirectTo=/checkout" variant="secondary" size="sm">
-                Регистрация
-              </ButtonLink>
-            </div>
-          </div>
-        ) : null}
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-white">Контакты</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Имя</label>
-              <input
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                className={`w-full bg-slate-950 border ${isValidName ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40`}
-                placeholder="Иван"
-                maxLength={50}
-                inputMode="text"
-              />
-              {!isValidName ? <div className="text-xs text-red-400 mt-1">Только буквы (латиница/кириллица), 2–50 символов</div> : null}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Телефон</label>
-              <input
-                value={contactPhone}
-                onChange={(e) => setContactPhone(normalizePhone(e.target.value))}
-                className={`w-full bg-slate-950 border ${isValidPhone ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40`}
-                placeholder="+79000000000"
-                inputMode="tel"
-                pattern="^\+7\d{10}$"
-                maxLength={12}
-              />
-              {!isValidPhone ? <div className="text-xs text-red-400 mt-1">Формат: +7XXXXXXXXXX</div> : null}
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-400 mb-1">Email</label>
-              <input
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value.trim())}
-                className={`w-full bg-slate-950 border ${isValidEmail ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40`}
-                placeholder="mail@example.com"
-                inputMode="email"
-                maxLength={100}
-              />
-              {!isValidEmail ? <div className="text-xs text-red-400 mt-1">Неверный email (макс. 100 символов)</div> : null}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-white">Доставка</h2>
-          <div className="space-y-3">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="shipping"
-                checked={shippingMethod === "pickup"}
-                onChange={() => setShippingMethod("pickup")}
-              />
-              <div>
-                <div className="text-white font-medium">Самовывоз</div>
-                <div className="text-sm text-gray-400">{PICKUP_ADDRESS}</div>
-                <div className="text-xs text-gray-500 mt-1">При прибытии звонить: {PICKUP_PHONE}</div>
-              </div>
-            </label>
-
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="shipping"
-                checked={shippingMethod === "courier_spb"}
-                onChange={() => setShippingMethod("courier_spb")}
-              />
-              <div>
-                <div className="text-white font-medium">Курьер по СПб</div>
-                <div className="text-sm text-gray-400">399 ₽, 1–2 дня (в пределах КАД)</div>
-              </div>
-            </label>
-
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="shipping"
-                checked={shippingMethod === "russian_post"}
-                onChange={() => setShippingMethod("russian_post")}
-              />
-              <div>
-                <div className="text-white font-medium">Почта России</div>
-                <div className="text-sm text-gray-400">Оплата доставки получателем</div>
-                <a
-                  href="https://www.pochta.ru/shipment?type=PARCEL&weight=200"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-primary hover:underline"
-                >
-                  Рассчитать самостоятельно
-                </a>
-              </div>
-            </label>
-
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="shipping"
-                checked={shippingMethod === "cdek"}
-                onChange={() => setShippingMethod("cdek")}
-              />
-              <div>
-                <div className="text-white font-medium">СДЭК</div>
-                <div className="text-sm text-gray-400">Оплата доставки получателем</div>
-                <a href="https://www.cdek-calc.ru/" target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
-                  Рассчитать самостоятельно
-                </a>
-              </div>
-            </label>
-
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="shipping"
-                checked={shippingMethod === "yandex"}
-                onChange={() => setShippingMethod("yandex")}
-              />
-              <div>
-                <div className="text-white font-medium">Яндекс Доставка</div>
-                <div className="text-sm text-gray-400">Оплата доставки получателем</div>
-                <a href="https://dostavka.yandex.ru/order/" target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
-                  Рассчитать самостоятельно
-                </a>
-              </div>
-            </label>
-          </div>
-
-          <div className="text-xs text-gray-500 pt-2">
-            Доставка СДЭК/Яндекс/Почта — оплачивается получателем, мы передаём заказ в ТК.
-          </div>
-
-          {shippingMethod !== "pickup" ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Город</label>
-                <input
-                  value={deliveryCity}
-                  onChange={(e) => setDeliveryCity(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  maxLength={100}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Индекс</label>
-                <input
-                  value={deliveryPostalCode}
-                  onChange={(e) => setDeliveryPostalCode(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  maxLength={12}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-400 mb-1">Телефон для доставки</label>
-                <input
-                  value={deliveryPhone}
-                  onChange={(e) => setDeliveryPhone(normalizePhone(e.target.value))}
-                  className={`w-full bg-slate-950 border ${isValidDeliveryPhone ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40`}
-                  placeholder="+79000000000"
-                  inputMode="tel"
-                  pattern="^\+7\d{10}$"
-                  maxLength={12}
-                />
-                {!isValidDeliveryPhone ? <div className="text-xs text-red-400 mt-1">Формат: +7XXXXXXXXXX</div> : null}
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-400 mb-1">Адрес</label>
-                <input
-                  value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  placeholder="Улица, дом, квартира / ПВЗ"
-                  maxLength={200}
-                />
-              </div>
-              {isTk ? (
-                <>
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Пункт выдачи / адрес</label>
-                    <input
-                      value={deliveryPickupPoint}
-                      onChange={(e) => setDeliveryPickupPoint(e.target.value)}
-                      className={`w-full bg-slate-950 border ${isValidPickupPoint ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40`}
-                      placeholder="Например: СДЭК ПВЗ, код/адрес"
-                      maxLength={200}
-                    />
-                    {!isValidPickupPoint ? <div className="text-xs text-red-400 mt-1">Укажите пункт выдачи/адрес</div> : null}
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Комментарий курьеру (опц.)</label>
-                    <input
-                      value={courierNote}
-                      onChange={(e) => setCourierNote(e.target.value)}
-                      className={`w-full bg-slate-950 border ${isValidCourierNote ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40`}
-                      maxLength={200}
-                      placeholder="Например: звонок за 30 минут, подъезд, этаж"
-                    />
-                    {!isValidCourierNote ? <div className="text-xs text-red-400 mt-1">Не более 200 символов</div> : null}
-                  </div>
-                </>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 space-y-3">
-          <h2 className="text-lg font-semibold text-white">Оплата</h2>
-          {(() => {
-            const payUrl =
-              process.env.NEXT_PUBLIC_TBANK_SELFEMPLOYED_PAYMENT_URL || "https://www.tinkoff.ru/rm/r_JESjEcBisx.CSUFIGiBXm/5zoeh15252";
-            return (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-start">
-                  <div className="space-y-3">
-                    <ol className="text-sm text-gray-300 space-y-1 list-decimal list-inside">
-                      <li>Оплатите переводом на карту по ссылке (Т‑Банк) или наведите камеру на QR‑код.</li>
-                      <li>После оплаты нажмите «ОФОРМИТЬ ЗАКАЗ».</li>
-                      <li>Заказ получит статус «ждёт оплаты», товар резервируется.</li>
-                    </ol>
-
-                    <a
-                      href={payUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-white shadow-[0_0_15px_rgba(255,94,0,0.3)] hover:bg-primary/90 transition-all"
-                    >
-                      Перейдите к оплате в Т-Банк
-                    </a>
-
-                    <div className="text-xs text-gray-500">Администратор подтверждает оплату после поступления средств.</div>
-                  </div>
-
-                  <div className="md:justify-self-end">
-                    <div className="bg-white rounded-xl p-2 inline-flex">
-                      <img
-                        src={`/api/qr?size=180&data=${encodeURIComponent(payUrl)}`}
-                        alt="QR-код для оплаты (Т‑Банк)"
-                        width={180}
-                        height={180}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </>
-            );
-          })()}
-        </div>
-
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-3">
-          <h2 className="text-lg font-semibold text-white">Комментарий</h2>
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            className={`w-full bg-slate-950 border ${isValidComment ? "border-slate-800" : "border-red-500/60"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[100px]`}
-            placeholder="Например: позвонить за 30 минут до доставки"
-            maxLength={200}
-          />
-          {!isValidComment ? <div className="text-xs text-red-400 mt-1">Комментарий не более 200 символов</div> : null}
+    <div className="container mx-auto px-4 py-12 max-w-6xl">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+        <div>
+          <Badge variant="secondary" className="mb-2">Reality3D Checkout</Badge>
+          <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight">Оформление заказа</h1>
         </div>
       </div>
 
-      <div className="lg:col-span-5">
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-5 sticky top-24">
-          <h2 className="text-lg font-semibold text-white">Итог</h2>
-          <div className="space-y-2">
-            {loadingItems ? (
-              <div className="text-sm text-gray-500">
-                <Loader2 className="w-4 h-4 inline-block animate-spin mr-2" />
-                Загрузка…
-              </div>
-            ) : null}
-            {!loadingItems && runtimeItems.length === 0 ? (
-              <div className="text-sm text-gray-500">Корзина пуста</div>
-            ) : null}
-            {runtimeItems.map((i, idx) => (
-              <div key={idx} className="flex items-start justify-between gap-4 text-sm">
-                <div className="text-gray-300">
-                  {i.name} <span className="text-gray-500">× {i.quantity}</span>
+      <div className="grid lg:grid-cols-[1fr_380px] gap-12 items-start">
+        <div className="space-y-12">
+          {/* Progress Indicator */}
+          <div className="flex items-center justify-between relative px-4">
+            <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-800 -translate-y-1/2 z-0"></div>
+            {steps.map((s, idx) => {
+              const num = idx + 1;
+              const isCompleted = currentStep > num;
+              const isActive = currentStep === num;
+              return (
+                <div key={s.title} className="relative z-10 flex flex-col items-center">
+                  <div className={cn(
+                    "w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all duration-500 shadow-xl",
+                    isCompleted ? "bg-green-500 border-green-500 text-white" :
+                    isActive ? "bg-primary border-primary text-white scale-110 shadow-primary/20" :
+                    "bg-slate-950 border-slate-800 text-gray-500"
+                  )}>
+                    {isCompleted ? <Check className="h-7 w-7" /> : <s.icon className="h-6 w-6" />}
+                  </div>
+                  <div className={cn(
+                    "absolute top-18 whitespace-nowrap text-[10px] font-black uppercase tracking-[0.2em] transition-colors mt-4",
+                    isActive ? "text-primary" : isCompleted ? "text-green-500" : "text-gray-500"
+                  )}>
+                    {s.title}
+                  </div>
                 </div>
-                <div className="text-white font-medium">{formatRub(i.unitPriceKopeks * i.quantity)}</div>
+              );
+            })}
+          </div>
+
+          <div className="pt-10 space-y-12">
+            {/* Step 1: Contacts */}
+            <div className={cn("space-y-6 transition-all duration-500", currentStep !== 1 && "opacity-40 grayscale pointer-events-none scale-[0.98]")}>
+              <h2 className="text-2xl font-bold text-white flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-gray-400 font-bold">1</div>
+                Контактные данные
+              </h2>
+              <div className="grid sm:grid-cols-2 gap-6 p-8 bg-slate-900/40 border border-slate-800 rounded-3xl backdrop-blur-sm shadow-inner">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Ваше имя</label>
+                  <input
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-white focus:border-primary outline-none transition-all placeholder:text-gray-700"
+                    placeholder="Иван Иванов"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Телефон</label>
+                  <input
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(normalizePhone(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-white focus:border-primary outline-none transition-all placeholder:text-gray-700"
+                    placeholder="+7 (999) 000-00-00"
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Email для уведомлений</label>
+                  <input
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value.trim())}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-white focus:border-primary outline-none transition-all placeholder:text-gray-700"
+                    placeholder="example@mail.ru"
+                  />
+                </div>
               </div>
-            ))}
+            </div>
+
+            {/* Step 2: Delivery */}
+            <div className={cn("space-y-6 transition-all duration-500", currentStep !== 2 && "opacity-40 grayscale pointer-events-none scale-[0.98]")}>
+              <h2 className="text-2xl font-bold text-white flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-gray-400 font-bold">2</div>
+                Способ получения
+              </h2>
+              <div className="space-y-8 p-8 bg-slate-900/40 border border-slate-800 rounded-3xl backdrop-blur-sm shadow-inner">
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <button
+                    onClick={() => setShippingMethod("pickup")}
+                    className={cn(
+                      "p-6 rounded-2xl border text-left transition-all relative group overflow-hidden",
+                      shippingMethod === "pickup" ? "border-primary bg-primary/5 shadow-xl shadow-primary/5" : "border-slate-800 bg-slate-950 hover:border-slate-700"
+                    )}
+                  >
+                    <div className="font-bold text-white mb-1 group-hover:text-primary transition-colors">Самовывоз</div>
+                    <div className="text-xs text-gray-500">Бесплатно, Санкт-Петербург</div>
+                    {shippingMethod === "pickup" && <Check className="absolute top-4 right-4 h-5 w-5 text-primary" />}
+                  </button>
+                  <button
+                    onClick={() => setShippingMethod("cdek")}
+                    className={cn(
+                      "p-6 rounded-2xl border text-left transition-all relative group overflow-hidden",
+                      shippingMethod === "cdek" ? "border-primary bg-primary/5 shadow-xl shadow-primary/5" : "border-slate-800 bg-slate-950 hover:border-slate-700"
+                    )}
+                  >
+                    <div className="font-bold text-white mb-1 group-hover:text-primary transition-colors">СДЭК</div>
+                    <div className="text-xs text-gray-500">До пункта выдачи или двери</div>
+                    {shippingMethod === "cdek" && <Check className="absolute top-4 right-4 h-5 w-5 text-primary" />}
+                  </button>
+                </div>
+
+                {shippingMethod === "pickup" ? (
+                  <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 flex items-start gap-5">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Info className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="text-sm text-gray-400 leading-relaxed">
+                      <div className="text-white font-bold mb-1">Reality3D Студия:</div>
+                      {PICKUP_ADDRESS} <br/>
+                      <span className="text-xs mt-2 block">Звонить при прибытии: {PICKUP_PHONE}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-top-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Город</label>
+                      <input
+                        value={deliveryCity}
+                        onChange={(e) => setDeliveryCity(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-white focus:border-primary outline-none transition-all placeholder:text-gray-700"
+                        placeholder="Москва"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Адрес или ПВЗ СДЭК</label>
+                      <textarea
+                        value={deliveryPickupPoint}
+                        onChange={(e) => setDeliveryPickupPoint(e.target.value)}
+                        rows={2}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-white focus:border-primary outline-none transition-all placeholder:text-gray-700"
+                        placeholder="Укажите точный адрес или номер пункта выдачи"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Step 3: Payment */}
+            <div className={cn("space-y-6 transition-all duration-500", currentStep !== 3 && "opacity-40 grayscale pointer-events-none scale-[0.98]")}>
+              <h2 className="text-2xl font-bold text-white flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-gray-400 font-bold">3</div>
+                Оплата
+              </h2>
+              <div className="p-8 bg-slate-900/40 border border-slate-800 rounded-3xl backdrop-blur-sm shadow-inner space-y-6">
+                <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 border-dashed">
+                  <div className="font-bold text-white mb-3 flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    Как оплатить:
+                  </div>
+                  <ul className="text-xs text-gray-500 space-y-3 list-none">
+                    <li className="flex gap-3"><span className="text-primary font-bold">01.</span> Нажмите кнопку "Оформить" ниже</li>
+                    <li className="flex gap-3"><span className="text-primary font-bold">02.</span> Откроется страница оплаты (карта или QR)</li>
+                    <li className="flex gap-3"><span className="text-primary font-bold">03.</span> После оплаты статус заказа обновится в ЛК</li>
+                  </ul>
+                </div>
+                
+                <div className="flex items-center gap-4 p-5 rounded-2xl bg-blue-500/5 border border-blue-500/20">
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+                    <CreditCard className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-white">Банковская карта / СБП</div>
+                    <div className="text-xs text-gray-500">Безопасная оплата через шлюз Т-Банка</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="border-t border-slate-800 pt-4 space-y-2 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400">Товары</span>
-              <span className="text-white">{formatRub(subtotal)}</span>
+        </div>
+
+        {/* Summary Card */}
+        <div className="lg:sticky lg:top-24 h-fit">
+          <div className="neon-card p-8 rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 shadow-2xl space-y-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
+            
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest border-b border-slate-800/50 pb-4">Ваш заказ</h3>
+            
+            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              {cart.items.map((it: any) => (
+                <div key={it.productId} className="flex justify-between gap-4 text-sm">
+                  <div className="text-gray-400 line-clamp-2 flex-1">{it.product.name}</div>
+                  <div className="text-white font-bold whitespace-nowrap">
+                    {it.quantity} × {formatRub(it.product.priceKopeks)}
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400">Доставка</span>
-              <span className="text-white">
-                {formatRub(shippingCost)}
-              </span>
+
+            <div className="pt-6 border-t border-slate-800/50 space-y-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Товары ({cart.items.length})</span>
+                <span className="text-white font-bold">{formatRub(cart.totalKopeks)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Доставка</span>
+                <span className="text-white font-bold">{shippingMethod === "pickup" ? "Бесплатно" : "Расчет в ТК"}</span>
+              </div>
+              <div className="flex justify-between items-end pt-4">
+                <span className="text-lg font-bold text-white">Итого</span>
+                <span className="text-3xl font-black text-primary tracking-tighter shadow-primary/20">{formatRub(cart.totalKopeks)}</span>
+              </div>
             </div>
-            <div className="flex items-center justify-between text-base font-bold">
-              <span className="text-white">Итого</span>
-              <span className="text-white">{formatRub(total)}</span>
+
+            <div className="pt-2">
+              <Button
+                onClick={handleCreateOrder}
+                disabled={isLoading || currentStep < 3}
+                className="w-full h-16 rounded-2xl text-lg font-black shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  <>
+                    Оформить заказ
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </>
+                )}
+              </Button>
             </div>
+            
+            <p className="text-[10px] text-gray-600 text-center leading-relaxed px-4">
+              Нажимая кнопку, вы подтверждаете согласие с правилами работы сервиса Reality3D.
+            </p>
           </div>
-
-          <button
-            onClick={submit}
-            disabled={!canSubmit || isLoading}
-            className="w-full h-11 rounded-lg bg-primary text-white font-semibold shadow-[0_0_15px_rgba(255,94,0,0.3)] hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            ОФОРМИТЬ ЗАКАЗ
-          </button>
-
-          {formError ? (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl p-3 text-sm">{formError}</div>
-          ) : null}
-
-          <div className="text-xs text-gray-500">
-            После оформления откроется страница заказа со ссылкой на оплату.
+          
+          <div className="mt-6 p-6 rounded-2xl bg-slate-900/30 border border-slate-800/50 flex items-start gap-4">
+             <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center shrink-0">
+               <Package className="h-5 w-5 text-gray-500" />
+             </div>
+             <div className="text-[11px] text-gray-500 leading-relaxed">
+               После оформления заказа вы сможете отслеживать его статус в личном кабинете. Срок сборки обычно составляет 1-2 рабочих дня.
+             </div>
           </div>
         </div>
       </div>

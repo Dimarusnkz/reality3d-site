@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 export function getCalcOrderStatusMeta(status: string | null | undefined) {
   const s = String(status || "").toLowerCase();
-  if (s === "pending") return { label: "На проверке", className: cn("text-yellow-400 bg-yellow-500/10 border border-yellow-500/20") };
+  if (s === "pending") return { label: "В обработке", className: cn("text-yellow-400 bg-yellow-500/10 border border-yellow-500/20") };
   if (s === "processing") return { label: "В работе", className: cn("text-blue-400 bg-blue-500/10 border border-blue-500/20") };
   if (s === "payment_pending") return { label: "Ожидает оплаты", className: cn("text-orange-400 bg-orange-500/10 border border-orange-500/20") };
   if (s === "paid") return { label: "Оплачен", className: cn("text-green-400 bg-green-500/10 border border-green-500/20") };

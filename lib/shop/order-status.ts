@@ -13,7 +13,7 @@ export function getShopOrderStatusMeta(status: string | null | undefined) {
 export function getShopPaymentStatusMeta(status: string | null | undefined) {
   const s = String(status || "").toLowerCase();
   if (s === "paid") return { label: "Оплачено", className: cn("text-green-400 bg-green-500/10 border border-green-500/20") };
-  if (s === "unpaid") return { label: "Ждёт оплаты", className: cn("text-orange-400 bg-orange-500/10 border border-orange-500/20") };
+  if (s === "unpaid") return { label: "Ожидает оплаты", className: cn("text-orange-400 bg-orange-500/10 border border-orange-500/20") };
   if (s === "failed") return { label: "Ошибка оплаты", className: cn("text-red-400 bg-red-500/10 border border-red-500/20") };
   return { label: status ? String(status) : "—", className: cn("text-gray-300 bg-slate-500/10 border border-slate-500/20") };
 }

@@ -32,7 +32,7 @@ export function Button({
   return <button className={cn(base, variantClass[variant], sizeClass[size], className)} {...props} />;
 }
 
-export function ButtonLink({
+export function LinkButton({
   href,
   variant = "primary",
   size = "md",
@@ -41,4 +41,6 @@ export function ButtonLink({
 }: React.ComponentProps<typeof Link> & { variant?: Variant; size?: Size }) {
   return <Link href={href} className={cn(base, variantClass[variant], sizeClass[size], className)} {...props} />;
 }
+
+export const ButtonLink = LinkButton;
 
