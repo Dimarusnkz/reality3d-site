@@ -44,7 +44,7 @@ export async function submitRequest(formData: FormData) {
 
   try {
     const notificationMessage = `
-<b>🔔 Новая заявка с сайта</b>
+<b>🔔 НОВАЯ ЗАЯВКА С САЙТА</b>
 
 👤 <b>Имя:</b> ${escapeHtml(name)}
 📞 <b>Телефон:</b> ${escapeHtml(phone)}
@@ -52,6 +52,8 @@ export async function submitRequest(formData: FormData) {
 
 📝 <b>Описание:</b>
 ${escapeHtml(description)}
+
+<a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin">Перейти в админ-панель</a>
     `
 
     await sendTelegramMessage(notificationMessage)

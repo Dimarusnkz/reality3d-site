@@ -417,13 +417,19 @@ export async function createShopOrder(data: {
 
   revalidatePath('/cart')
   revalidatePath('/checkout')
+  
+  // Detailed list of products
+  const itemsList = items.map(i => `- ${i.productName} (${i.quantity} шт.)`).join('\n');
+
   sendTelegramMessage(
-    `<b>Новый заказ</b> #${order.orderNo}\n` +
-      `Сумма: <b>${(totalKopeks / 100).toFixed(2)} ₽</b>\n` +
-      `Доставка: ${getShippingMethodLabel(data.shippingMethod)}\n` +
-      `Контакт: ${data.contactName} ${data.contactPhone}\n` +
-      `${data.deliveryCity ? `Город: ${data.deliveryCity}\n` : ''}` +
-      `${data.deliveryAddress ? `Адрес: ${data.deliveryAddress}\n` : ''}`
+    `<b>🛒 ПРОДАЖА ИЗ МАГАЗИНА</b> #${order.orderNo}\n\n` +
+      `💰 Сумма: <b>${(totalKopeks / 100).toFixed(2)} ₽</b>\n` +
+      `🚚 Доставка: ${getShippingMethodLabel(data.shippingMethod)}\n` +
+      `👤 Контакт: ${data.contactName} ${data.contactPhone}\n` +
+      `${data.deliveryCity ? `🏙 Город: ${data.deliveryCity}\n` : ''}` +
+      `${data.deliveryAddress ? `📍 Адрес: ${data.deliveryAddress}\n` : ''}\n` +
+      `<b>📦 Состав заказа:</b>\n${itemsList}\n\n` +
+      `<a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin/shop/orders">Открыть в админ-панели</a>`
   ).catch(() => {})
   {
     const from = process.env.SENDGRID_FROM_EMAIL || ''

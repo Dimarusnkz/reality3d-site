@@ -54,15 +54,27 @@ export async function createOrder(data: {
     const safeEmail = escapeHtml(order.user.email)
     const safePhone = escapeHtml(order.user.phone || 'Не указан')
     const safeDetails = escapeHtml(JSON.stringify(data.details, null, 2))
+    
+    // Detailed list of files if present
+    let filesList = '';
+    try {
+      if (data.details.files && Array.isArray(data.details.files)) {
+        filesList = '\n<b>📁 Файлы:</b>\n' + data.details.files.map((f: any) => `- <a href="${process.env.NEXT_PUBLIC_SITE_URL}/api/public/${f.fileUrl}">${f.fileName}</a>`).join('\n');
+      }
+    } catch (e) {}
+
     const message = `
-<b>📦 Новый заказ #${order.id}</b>
+<b>📦 НОВЫЙ ЗАКАЗ (РАСЧЕТ) #${order.id}</b>
 
 📝 <b>Название:</b> ${safeTitle}
 👤 <b>Клиент:</b> ${safeName} (${safeEmail})
 📱 <b>Телефон:</b> ${safePhone}
+${filesList}
 
-📝 <b>Детали заказа:</b>
+📝 <b>Детали:</b>
 <pre>${safeDetails}</pre>
+
+<a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin/orders">Открыть в админ-панели</a>
     `
 
     await sendTelegramMessage(message)

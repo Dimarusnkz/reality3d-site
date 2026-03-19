@@ -18,7 +18,8 @@ import {
   Box,
   Database,
   Wallet,
-  KeyRound
+  KeyRound,
+  Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logout } from "@/app/actions/auth";
@@ -29,6 +30,7 @@ const ADMIN_NAV_ITEMS = [
   { href: "/admin/orders", label: "Заказы", icon: ShoppingBag, permission: 'orders.view' },
   { href: "/admin/shop", label: "Магазин", icon: Box, permission: 'shop.orders.view' },
   { href: "/admin/warehouse", label: "Склад", icon: Database, permission: 'warehouse.view' },
+  { href: "/admin/automation", label: "Автоматизация", icon: Zap, permission: 'roles.manage' },
   { href: "/admin/logs", label: "Логи", icon: FileText, permission: 'logs.view' },
   { href: "/admin/finance", label: "Касса", icon: Wallet, permission: 'finance.view' },
   { href: "/admin/roles", label: "Роли", icon: KeyRound, permission: 'roles.manage' },
