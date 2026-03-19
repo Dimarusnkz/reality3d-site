@@ -2,6 +2,7 @@ import { getPrisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 
 export type PermissionKey =
+  // Warehouse & Inventory
   | 'warehouse.view'
   | 'warehouse.receipt'
   | 'warehouse.writeoff'
@@ -11,16 +12,45 @@ export type PermissionKey =
   | 'warehouse.recipes.manage'
   | 'warehouse.production'
   | 'warehouse.inventory'
-  | 'logs.view'
-  | 'logs.export'
+  
+  // Shop & Orders
   | 'shop.orders.manage'
+  | 'shop.orders.view'
+  | 'shop.orders.edit'
+  | 'shop.orders.delete'
   | 'shop.orders.export'
+  | 'shop.products.manage'
+  | 'shop.categories.manage'
+  
+  // Service Orders (3D Printing)
+  | 'orders.view'
+  | 'orders.edit'
+  | 'orders.assign'
+  | 'orders.delete'
+  | 'orders.chat.view'
+  | 'orders.chat.write'
+  
+  // Finance
   | 'finance.view'
   | 'finance.entry.create'
   | 'finance.reconcile.create'
+  | 'finance.reports.view'
+  
+  // Products Pricing
   | 'products.purchase_price.view'
   | 'products.purchase_price.edit'
+  
+  // Content Management
+  | 'blog.manage'
+  | 'portfolio.manage'
+  | 'reviews.manage'
+  
+  // User & Access Management
+  | 'users.view'
+  | 'users.edit'
   | 'roles.manage'
+  | 'logs.view'
+  | 'logs.export'
 
 export async function getUserAccessContext() {
   const session = await getSession()

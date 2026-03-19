@@ -19,17 +19,33 @@ export default async function AdminRolesPage() {
         name: true,
         role: true,
         accessGroups: { select: { group: { select: { id: true, name: true } } } },
+        accessPermissions: { select: { permissionKey: true, allow: true } },
       },
       orderBy: { id: "asc" },
       take: 500,
     }),
-    prisma.accessGroup.findMany({ select: { id: true, name: true, description: true }, orderBy: { name: "asc" }, take: 500 }),
+    prisma.accessGroup.findMany({ 
+      select: { 
+        id: true, 
+        name: true, 
+        description: true,
+        permissions: { select: { permissionKey: true } }
+      }, 
+      orderBy: { name: "asc" }, 
+      take: 500 
+    }),
     prisma.permission.findMany({ select: { key: true, description: true }, orderBy: { key: "asc" }, take: 500 }),
   ]);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-white">Роли и права</h1>
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+        <div>
+          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Роли и права</h1>
+          <p className="text-gray-500 mt-1 font-bold uppercase tracking-widest text-[10px]">Access Control & Permission Management</p>
+        </div>
+      </div>
+
       <RolesClient
         users={users.map((u) => ({
           id: u.id,
@@ -37,8 +53,12 @@ export default async function AdminRolesPage() {
           name: u.name,
           role: u.role,
           groups: u.accessGroups.map((g) => ({ id: g.group.id, name: g.group.name })),
+          overrides: u.accessPermissions.map(p => ({ key: p.permissionKey, allow: p.allow })),
         }))}
-        groups={groups}
+        groups={groups.map(g => ({
+          ...g,
+          permissions: g.permissions.map(p => p.permissionKey)
+        }))}
         permissions={permissions}
       />
     </div>

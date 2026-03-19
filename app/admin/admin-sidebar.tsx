@@ -25,23 +25,19 @@ import { logout } from "@/app/actions/auth";
 import { CsrfTokenField } from "@/components/ui/csrf-token-field";
 
 const ADMIN_NAV_ITEMS = [
-  { href: "/admin", label: "Обзор", icon: LayoutDashboard, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery', 'accountant'] },
-  { href: "/admin/orders", label: "Заказы", icon: ShoppingBag, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery', 'accountant'] },
-  { href: "/admin/shop", label: "Магазин", icon: Box, roles: ['admin', 'manager'] },
-  { href: "/admin/warehouse", label: "Склад", icon: Database, roles: ['admin', 'manager', 'warehouse', 'engineer', 'accountant'] },
-  { href: "/admin/logs", label: "Логи", icon: FileText, roles: ['admin', 'manager', 'accountant'] },
-  { href: "/admin/finance", label: "Касса", icon: Wallet, roles: ['admin', 'manager', 'accountant'] },
-  { href: "/admin/roles", label: "Роли", icon: KeyRound, roles: ['admin'] },
-  { href: "/admin/chat", label: "Чат с клиентами", icon: MessageSquare, roles: ['admin', 'manager', 'engineer', 'warehouse', 'delivery'] },
-  { href: "/admin/clients", label: "Клиенты", icon: Users, roles: ['admin', 'manager'] },
-  { href: "/admin/reviews", label: "Отзывы", icon: Star, roles: ['admin', 'manager'] },
-  { href: "/admin/security", label: "Безопасность", icon: ShieldCheck, roles: ['admin'] },
-  { href: "/admin/team", label: "Сотрудники", icon: Shield, roles: ['admin'] },
-  { href: "/admin/blog", label: "Блог", icon: PenTool, roles: ['admin', 'manager'] },
-  { href: "/admin/portfolio", label: "Портфолио", icon: ImageIcon, roles: ['admin', 'manager'] },
-  { href: "/admin/databases", label: "Базы данных", icon: Database, roles: ['admin'] },
-  { href: "/admin/telegram", label: "Телеграм", icon: Send, roles: ['admin', 'manager'] },
-  { href: "/admin/max", label: "MAX", icon: Box, roles: ['admin', 'manager'] },
+  { href: "/admin", label: "Обзор", icon: LayoutDashboard },
+  { href: "/admin/orders", label: "Заказы", icon: ShoppingBag, permission: 'orders.view' },
+  { href: "/admin/shop", label: "Магазин", icon: Box, permission: 'shop.orders.view' },
+  { href: "/admin/warehouse", label: "Склад", icon: Database, permission: 'warehouse.view' },
+  { href: "/admin/logs", label: "Логи", icon: FileText, permission: 'logs.view' },
+  { href: "/admin/finance", label: "Касса", icon: Wallet, permission: 'finance.view' },
+  { href: "/admin/roles", label: "Роли", icon: KeyRound, permission: 'roles.manage' },
+  { href: "/admin/chat", label: "Чат с клиентами", icon: MessageSquare, permission: 'orders.chat.view' },
+  { href: "/admin/clients", label: "Клиенты", icon: Users, permission: 'users.view' },
+  { href: "/admin/reviews", label: "Отзывы", icon: Star, permission: 'reviews.manage' },
+  { href: "/admin/team", label: "Сотрудники", icon: Shield, permission: 'roles.manage' },
+  { href: "/admin/blog", label: "Блог", icon: PenTool, permission: 'blog.manage' },
+  { href: "/admin/portfolio", label: "Портфолио", icon: ImageIcon, permission: 'portfolio.manage' },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -55,9 +51,15 @@ const ROLE_LABELS: Record<string, string> = {
   client: 'Клиент'
 };
 
-export default function AdminSidebar({ user }: { user: any }) {
+export default function AdminSidebar({ user, permissions = [] }: { user: any, permissions?: string[] }) {
   const pathname = usePathname();
   const roleLabel = ROLE_LABELS[user.role as string] || user.role;
+
+  const hasItemPermission = (item: typeof ADMIN_NAV_ITEMS[0]) => {
+    if (user.role === 'admin') return true;
+    if (!item.permission) return true;
+    return permissions.includes(item.permission);
+  };
 
   return (
     <aside className="w-64 border-r border-slate-800 bg-slate-950 hidden md:flex flex-col fixed h-full z-40 shadow-2xl">
@@ -74,7 +76,7 @@ export default function AdminSidebar({ user }: { user: any }) {
       
       <div className="p-4 flex-1 space-y-1 overflow-y-auto custom-scrollbar">
         {ADMIN_NAV_ITEMS.map((item) => {
-          if (!item.roles.includes(user.role)) return null;
+          if (!hasItemPermission(item)) return null;
           
           const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
           

@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,150 +8,145 @@ datasource db {
 }
 
 model User {
-  id           Int           @id @default(autoincrement())
-  email        String        @unique
-  password     String        // Хэш пароля
-  name         String?
-  role         String        @default("user") // admin, user, engineer, manager, warehouse, delivery
-  phone        String?       // Телефон
-  address      String?       // Адрес доставки
-  city         String?       // Город доставки
-  tokenVersion Int           @default(0)
-  createdAt    DateTime      @default(now())
-  orders       Order[]
-  assignedOrders Order[]     @relation("OrderAssignee")
-  chatSessions ChatSession[] // Чаты пользователя (как клиента)
-  messages     ChatMessage[] // Сообщения, отправленные пользователем
-  comments     OrderComment[] // Комментарии к заказам
-  reviews      Review[]       // Отзывы пользователя
-  articles     Article[]      // Статьи автора
-  sessions     Session[]
-  auditEvents  AuditEvent[]   @relation("AuditActor")
-  shopWishlistItems ShopWishlistItem[]
-  shopCart     ShopCart?
-  shopOrders   ShopOrder[]
-  shopWarehouseLogs ShopWarehouseLog[]
-  shopClientLogs ShopClientLog[]
-  cashEntries  CashEntry[]
-  cashReconciliations CashReconciliation[]
-  accessGroups UserAccessGroup[]
-  accessPermissions UserAccessPermission[]
-  createdGroups AccessGroup[] @relation("AccessGroupCreator")
-  warehouseReceiptsCreated WarehouseReceipt[] @relation("WarehouseReceiptCreator")
-  warehouseReceiptsPosted  WarehouseReceipt[] @relation("WarehouseReceiptPoster")
-  warehouseProductionCreated WarehouseProductionOrder[] @relation("WarehouseProductionCreator")
-  warehouseProductionPosted  WarehouseProductionOrder[] @relation("WarehouseProductionPoster")
-  warehouseInventoriesCreated WarehouseInventoryCount[] @relation("WarehouseInventoryCreator")
-  warehouseInventoriesPosted  WarehouseInventoryCount[] @relation("WarehouseInventoryPoster")
-  warehouseTransfersCreated WarehouseTransfer[] @relation("WarehouseTransferCreator")
-  warehouseTransfersPosted  WarehouseTransfer[] @relation("WarehouseTransferPoster")
+  id                          Int                        @id @default(autoincrement())
+  email                       String                     @unique
+  password                    String
+  name                        String?
+  role                        String                     @default("user")
+  createdAt                   DateTime                   @default(now())
+  phone                       String?
+  address                     String?
+  tokenVersion                Int                        @default(0)
+  city                        String?
+  createdGroups               AccessGroup[]              @relation("AccessGroupCreator")
+  articles                    Article[]
+  cashEntries                 CashEntry[]
+  cashReconciliations         CashReconciliation[]
+  messages                    ChatMessage[]
+  chatSessions                ChatSession[]
+  assignedOrders              Order[]                    @relation("OrderAssignee")
+  orders                      Order[]
+  comments                    OrderComment[]
+  reviews                     Review[]
+  shopCart                    ShopCart?
+  shopClientLogs              ShopClientLog[]
+  shopOrders                  ShopOrder[]
+  shopWarehouseLogs           ShopWarehouseLog[]
+  shopWishlistItems           ShopWishlistItem[]
+  accessGroups                UserAccessGroup[]
+  accessPermissions           UserAccessPermission[]
+  warehouseInventoriesCreated WarehouseInventoryCount[]  @relation("WarehouseInventoryCreator")
+  warehouseInventoriesPosted  WarehouseInventoryCount[]  @relation("WarehouseInventoryPoster")
+  warehouseProductionCreated  WarehouseProductionOrder[] @relation("WarehouseProductionCreator")
+  warehouseProductionPosted   WarehouseProductionOrder[] @relation("WarehouseProductionPoster")
+  warehouseReceiptsCreated    WarehouseReceipt[]         @relation("WarehouseReceiptCreator")
+  warehouseReceiptsPosted     WarehouseReceipt[]         @relation("WarehouseReceiptPoster")
+  warehouseTransfersCreated   WarehouseTransfer[]        @relation("WarehouseTransferCreator")
+  warehouseTransfersPosted    WarehouseTransfer[]        @relation("WarehouseTransferPoster")
 }
 
 model Session {
-  id         String   @id @default(uuid())
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId     Int
-  user       User     @relation(fields: [userId], references: [id])
-  createdAt  DateTime @default(now())
-  lastUsedAt DateTime @default(now())
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime  @default(now())
   expiresAt  DateTime
   revokedAt  DateTime?
   ipHash     String?
   userAgent  String?
 
-  @@index([userId, revokedAt])
   @@index([expiresAt])
+  @@index([userId])
 }
 
 model AuditEvent {
   id          String   @id @default(uuid())
   actorUserId Int?
-  actor       User?    @relation("AuditActor", fields: [actorUserId], references: [id])
   action      String
   target      String?
   metadata    String?
   createdAt   DateTime @default(now())
 
   @@index([createdAt])
-  @@index([actorUserId, createdAt])
 }
 
 model Article {
-  id          Int      @id @default(autoincrement())
-  title       String
-  slug        String   @unique
-  excerpt     String?
-  content     String
-  coverImage  String?
-  published   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  authorId    Int
-  author      User     @relation(fields: [authorId], references: [id])
+  id         Int      @id @default(autoincrement())
+  title      String
+  slug       String   @unique
+  excerpt    String?
+  content    String
+  coverImage String?
+  published  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  authorId   Int
+  author     User     @relation(fields: [authorId], references: [id])
 }
 
 model Review {
   id        Int      @id @default(autoincrement())
   userId    Int
-  user      User     @relation(fields: [userId], references: [id])
-  rating    Int      // 1-5
+  rating    Int
   text      String
-  photos    String?  // JSON массив ссылок на фото
-  status    String   @default("pending") // pending, approved, rejected
+  photos    String?
+  status    String   @default("pending")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model Order {
-  id        Int          @id @default(autoincrement())
-  userId    Int
-  user      User         @relation(fields: [userId], references: [id])
-  title     String?      // Short description/name of the order
-  status    String       @default("pending") // "pending", "processing", "completed", "paid", "shipped"
-  details   String?      // JSON or text description
-  price     Float?
-  deadline  DateTime?    // Expected completion date
-  assignedToId Int?      // Employee assigned to this order
-  assignedTo   User?     @relation("OrderAssignee", fields: [assignedToId], references: [id])
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt @default(now())
-  chat      ChatSession? // Связанный чат заказа
-  comments  OrderComment[]
+  id                Int                @id @default(autoincrement())
+  userId            Int
+  status            String             @default("pending")
+  details           String?
+  price             Float?
+  createdAt         DateTime           @default(now())
+  assignedToId      Int?
+  deadline          DateTime?
+  title             String?
+  updatedAt         DateTime           @default(now()) @updatedAt
+  chat              ChatSession?
+  assignedTo        User?              @relation("OrderAssignee", fields: [assignedToId], references: [id])
+  user              User               @relation(fields: [userId], references: [id])
+  comments          OrderComment[]
   shopWarehouseLogs ShopWarehouseLog[]
 }
 
 model OrderComment {
   id        Int      @id @default(autoincrement())
   orderId   Int
-  order     Order    @relation(fields: [orderId], references: [id])
   userId    Int
-  user      User     @relation(fields: [userId], references: [id])
   text      String
   createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model ChatSession {
   id        Int           @id @default(autoincrement())
   userId    Int
-  user      User          @relation(fields: [userId], references: [id])
   orderId   Int?          @unique
-  order     Order?        @relation(fields: [orderId], references: [id])
-  status    String        @default("active") // "active", "archived"
+  status    String        @default("active")
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   messages  ChatMessage[]
+  order     Order?        @relation(fields: [orderId], references: [id])
+  user      User          @relation(fields: [userId], references: [id])
 }
 
 model ChatMessage {
   id          Int         @id @default(autoincrement())
   sessionId   Int
-  session     ChatSession @relation(fields: [sessionId], references: [id])
-  senderId    Int?        // Null для системных сообщений
-  sender      User?       @relation(fields: [senderId], references: [id])
+  senderId    Int?
   content     String
-  isInternal  Boolean     @default(false) // true = скрыто от клиента (для общения команды)
-  attachments String?     // JSON массив ссылок на файлы
+  isInternal  Boolean     @default(false)
+  attachments String?
   read        Boolean     @default(false)
   createdAt   DateTime    @default(now())
+  sender      User?       @relation(fields: [senderId], references: [id])
+  session     ChatSession @relation(fields: [sessionId], references: [id])
 }
 
 model TelegramSubscriber {
@@ -176,50 +168,52 @@ model ShopCategory {
   name      String
   slug      String         @unique
   parentId  Int?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @default(now()) @updatedAt
   parent    ShopCategory?  @relation("ShopCategoryParent", fields: [parentId], references: [id])
   children  ShopCategory[] @relation("ShopCategoryParent")
   products  ShopProduct[]
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+
+  @@index([parentId])
 }
 
 model ShopProduct {
-  id               Int                @id @default(autoincrement())
-  name             String
-  slug             String             @unique
-  sku              String?
-  itemType         String             @default("product")
-  description      String?
-  shortDescription String?
-  priceKopeks      Int
+  id                  Int                              @id @default(autoincrement())
+  name                String
+  slug                String                           @unique
+  sku                 String?
+  description         String?
+  shortDescription    String?
+  priceKopeks         Int
+  compareAtKopeks     Int?
+  stock               Int                              @default(0)
+  isActive            Boolean                          @default(true)
+  categoryId          Int?
+  createdAt           DateTime                         @default(now())
+  updatedAt           DateTime                         @default(now()) @updatedAt
   purchasePriceKopeks Int?
-  compareAtKopeks  Int?
-  weightGrams      Int?
-  lengthMm         Int?
-  widthMm          Int?
-  heightMm         Int?
-  stock            Int                @default(0)
-  allowPreorder    Boolean            @default(false)
-  isActive         Boolean            @default(true)
-  categoryId       Int?
-  category         ShopCategory?      @relation(fields: [categoryId], references: [id])
-  images           ShopProductImage[]
-  wishlistItems    ShopWishlistItem[]
-  cartItems        ShopCartItem[]
-  orderItems       ShopOrderItem[]
-  inventoryItems   ShopInventoryItem[]
-  warehouseLogs    ShopWarehouseLog[]
-  clientLogs       ShopClientLog[]
-  receiptItems     WarehouseReceiptItem[]
-  recipes          WarehouseRecipe[]
-  recipeMaterials  WarehouseRecipeItem[] @relation("WarehouseRecipeMaterial")
-  productionOrders WarehouseProductionOrder[]
-  productionConsumes WarehouseProductionConsumeItem[] @relation("WarehouseProductionMaterial")
+  allowPreorder       Boolean                          @default(false)
+  itemType            String                           @default("product")
+  weightGrams         Int?
+  lengthMm            Int?
+  widthMm             Int?
+  heightMm            Int?
+  cartItems           ShopCartItem[]
+  clientLogs          ShopClientLog[]
+  inventoryItems      ShopInventoryItem[]
+  orderItems          ShopOrderItem[]
+  category            ShopCategory?                    @relation(fields: [categoryId], references: [id])
+  images              ShopProductImage[]
+  warehouseLogs       ShopWarehouseLog[]
+  wishlistItems       ShopWishlistItem[]
   inventoryCountItems WarehouseInventoryCountItem[]
-  locationStocks  WarehouseLocationStock[]
-  transferItems   WarehouseTransferItem[]
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  locationStocks      WarehouseLocationStock[]
+  productionConsumes  WarehouseProductionConsumeItem[] @relation("WarehouseProductionMaterial")
+  productionOrders    WarehouseProductionOrder[]
+  receiptItems        WarehouseReceiptItem[]
+  recipes             WarehouseRecipe?
+  recipeMaterials     WarehouseRecipeItem[]            @relation("WarehouseRecipeMaterial")
+  transferItems       WarehouseTransferItem[]
 
   @@index([isActive, priceKopeks])
   @@index([categoryId])
@@ -229,11 +223,11 @@ model ShopProduct {
 model ShopProductImage {
   id        Int         @id @default(autoincrement())
   productId Int
-  product   ShopProduct @relation(fields: [productId], references: [id])
   url       String
   alt       String?
   sortOrder Int         @default(0)
   createdAt DateTime    @default(now())
+  product   ShopProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId, sortOrder])
 }
@@ -241,187 +235,188 @@ model ShopProductImage {
 model ShopWishlistItem {
   id        Int         @id @default(autoincrement())
   userId    Int
-  user      User        @relation(fields: [userId], references: [id])
   productId Int
-  product   ShopProduct @relation(fields: [productId], references: [id])
   createdAt DateTime    @default(now())
+  product   ShopProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
   @@index([productId])
 }
 
 model ShopCart {
-  id        String         @id @default(uuid())
+  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    Int            @unique
-  user      User           @relation(fields: [userId], references: [id])
-  items     ShopCartItem[]
   createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  updatedAt DateTime       @default(now()) @updatedAt
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     ShopCartItem[]
 }
 
 model ShopCartItem {
-  id              String      @id @default(uuid())
-  cartId          String
-  cart            ShopCart    @relation(fields: [cartId], references: [id])
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cartId          String      @db.Uuid
   productId       Int
-  product         ShopProduct @relation(fields: [productId], references: [id])
   quantity        Int         @default(1)
   unitPriceKopeks Int
   createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  updatedAt       DateTime    @default(now()) @updatedAt
+  cart            ShopCart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product         ShopProduct @relation(fields: [productId], references: [id])
 
   @@unique([cartId, productId])
   @@index([productId])
 }
 
 model ShopOrder {
-  id                 String          @id @default(uuid())
-  orderNo            Int             @unique @default(autoincrement())
-  userId             Int?
-  user               User?           @relation(fields: [userId], references: [id])
-  status             String          @default("pending")
-  paymentStatus      String          @default("unpaid")
-  paymentProvider    String?
-  shippingMethod     String          @default("pickup")
-  shippingCostKopeks Int             @default(0)
-  totalKopeks        Int             @default(0)
-  contactName        String?
-  contactPhone       String?
-  contactEmail       String?
-  deliveryPhone      String?
-  deliveryCity       String?
-  deliveryAddress    String?
-  deliveryPostalCode String?
-  comment            String?
-  publicAccessToken  String?         @unique
-  shippingCarrier    String?
-  shippingTrackingNo String?
-  shippingStatus     String?          @default("new")
+  id                      String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderNo                 Int                @unique @default(autoincrement())
+  userId                  Int?
+  status                  String             @default("pending")
+  paymentStatus           String             @default("unpaid")
+  paymentProvider         String?
+  shippingMethod          String             @default("pickup")
+  shippingCostKopeks      Int                @default(0)
+  totalKopeks             Int                @default(0)
+  contactName             String?
+  contactPhone            String?
+  contactEmail            String?
+  deliveryCity            String?
+  deliveryAddress         String?
+  deliveryPostalCode      String?
+  comment                 String?
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @default(now()) @updatedAt
+  deliveryPhone           String?
+  shippingCarrier         String?
+  shippingTrackingNo      String?
+  shippingStatus          String             @default("new")
   shippingCostFinalKopeks Int?
-  shippingQuoteMinKopeks Int?
-  shippingQuoteMaxKopeks Int?
-  items              ShopOrderItem[]
-  payments           ShopPayment[]
-  warehouseLogs      ShopWarehouseLog[]
-  clientLogs         ShopClientLog[]
-  cashEntries        CashEntry[]
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  shippingQuoteMinKopeks  Int?
+  shippingQuoteMaxKopeks  Int?
+  publicAccessToken       String?            @unique
+  cashEntries             CashEntry[]
+  clientLogs              ShopClientLog[]
+  user                    User?              @relation(fields: [userId], references: [id])
+  items                   ShopOrderItem[]
+  payments                ShopPayment[]
+  warehouseLogs           ShopWarehouseLog[]
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
 }
 
 model ShopOrderItem {
-  id              String      @id @default(uuid())
-  orderId         String
-  order           ShopOrder   @relation(fields: [orderId], references: [id])
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId         String       @db.Uuid
   productId       Int?
-  product         ShopProduct? @relation(fields: [productId], references: [id])
   productName     String
   sku             String?
   quantity        Int
   unitPriceKopeks Int
   totalKopeks     Int
-  createdAt       DateTime    @default(now())
+  createdAt       DateTime     @default(now())
+  order           ShopOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         ShopProduct? @relation(fields: [productId], references: [id])
 
   @@index([orderId])
 }
 
 model ShopPayment {
-  id                String    @id @default(uuid())
-  orderId           String
-  order             ShopOrder @relation(fields: [orderId], references: [id])
+  id                String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId           String     @db.Uuid
   provider          String
-  status            String    @default("pending")
+  status            String     @default("pending")
   amountKopeks      Int
-  currency          String    @default("RUB")
+  currency          String     @default("RUB")
   externalPaymentId String?
   paymentUrl        String?
   rawPayload        String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @default(now()) @updatedAt
+  CashEntry         CashEntry?
+  order             ShopOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([provider, status, createdAt])
   @@index([externalPaymentId])
 }
 
 model ShopInventoryItem {
-  id           Int        @id @default(autoincrement())
-  productId    Int
-  product      ShopProduct @relation(fields: [productId], references: [id])
-  warehouseId  Int
-  warehouse    Warehouse  @relation(fields: [warehouseId], references: [id])
-  locationId   Int?
-  location     WarehouseLocation? @relation(fields: [locationId], references: [id])
-  unit         String     @default("pcs")
-  quantity     Decimal    @default(0) @db.Decimal(18, 3)
-  reserved     Decimal    @default(0) @db.Decimal(18, 3)
-  minThreshold Decimal    @default(0) @db.Decimal(18, 3)
+  id                         Int                @id @default(autoincrement())
+  productId                  Int
+  unit                       String             @default("pcs")
+  quantity                   Decimal            @default(0) @db.Decimal(18, 3)
+  minThreshold               Decimal            @default(0) @db.Decimal(18, 3)
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime           @default(now()) @updatedAt
   lastPurchaseUnitCostKopeks Int?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  reserved                   Decimal            @default(0) @db.Decimal(18, 3)
+  warehouseId                Int                @default(1)
+  locationId                 Int?
+  location                   WarehouseLocation? @relation(fields: [locationId], references: [id])
+  product                    ShopProduct        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse                  Warehouse          @relation(fields: [warehouseId], references: [id])
 
+  @@unique([productId, warehouseId])
   @@index([unit])
   @@index([quantity])
   @@index([warehouseId])
-  @@unique([productId, warehouseId])
 }
 
 model ShopWarehouseLog {
-  id            String      @id @default(uuid())
-  createdAt     DateTime    @default(now())
-  actorUserId   Int?
-  actor         User?       @relation(fields: [actorUserId], references: [id])
-  actorRole     String?
-  actionType    String
-  reason        String?
-  productId     Int?
-  product       ShopProduct? @relation(fields: [productId], references: [id])
-  warehouseId   Int?
-  warehouse     Warehouse?  @relation(fields: [warehouseId], references: [id])
-  locationId    Int?
-  location      WarehouseLocation? @relation(fields: [locationId], references: [id])
-  sku           String?
-  productName   String?
-  quantityDelta Decimal     @db.Decimal(18, 3)
-  unit          String
-  unitCostKopeks Int?
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt       DateTime           @default(now())
+  actorUserId     Int?
+  actorRole       String?
+  actionType      String
+  reason          String?
+  productId       Int?
+  sku             String?
+  productName     String?
+  quantityDelta   Decimal            @db.Decimal(18, 3)
+  unit            String
+  shopOrderId     String?            @db.Uuid
+  serviceOrderId  Int?
+  supplier        String?
+  documentNo      String?
+  comment         String?
+  ipHash          String?
+  userAgent       String?
+  unitCostKopeks  Int?
   totalCostKopeks Int?
-  shopOrderId   String?
-  shopOrder     ShopOrder?  @relation(fields: [shopOrderId], references: [id])
-  serviceOrderId Int?
-  serviceOrder  Order?      @relation(fields: [serviceOrderId], references: [id])
-  supplier      String?
-  documentNo    String?
-  comment       String?
-  ipHash        String?
-  userAgent     String?
+  warehouseId     Int?               @default(1)
+  locationId      Int?
+  cashEntries     CashEntry[]
+  actor           User?              @relation(fields: [actorUserId], references: [id])
+  location        WarehouseLocation? @relation(fields: [locationId], references: [id])
+  product         ShopProduct?       @relation(fields: [productId], references: [id])
+  serviceOrder    Order?             @relation(fields: [serviceOrderId], references: [id])
+  shopOrder       ShopOrder?         @relation(fields: [shopOrderId], references: [id])
+  warehouse       Warehouse?         @relation(fields: [warehouseId], references: [id])
 
   @@index([createdAt])
   @@index([actorRole, createdAt])
   @@index([actionType, createdAt])
   @@index([productId, createdAt])
   @@index([shopOrderId])
-  cashEntries CashEntry[]
 }
 
 model ShopClientLog {
-  id         String      @id @default(uuid())
-  createdAt  DateTime    @default(now())
-  userId     Int?
-  user       User?       @relation(fields: [userId], references: [id])
-  actionType String
-  productId  Int?
-  product    ShopProduct? @relation(fields: [productId], references: [id])
-  shopOrderId String?
-  shopOrder  ShopOrder?  @relation(fields: [shopOrderId], references: [id])
-  quantity   Decimal?    @db.Decimal(18, 3)
-  unit       String?
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt   DateTime     @default(now())
+  userId      Int?
+  actionType  String
+  productId   Int?
+  shopOrderId String?      @db.Uuid
+  quantity    Decimal?     @db.Decimal(18, 3)
+  unit        String?
   orderStatus String?
-  ipHash     String?
-  userAgent  String?
-  message    String?
+  ipHash      String?
+  userAgent   String?
+  message     String?
+  product     ShopProduct? @relation(fields: [productId], references: [id])
+  shopOrder   ShopOrder?   @relation(fields: [shopOrderId], references: [id])
+  user        User?        @relation(fields: [userId], references: [id])
 
   @@index([createdAt])
   @@index([actionType, createdAt])
@@ -431,55 +426,55 @@ model ShopClientLog {
 }
 
 model Warehouse {
-  id           Int                @id @default(autoincrement())
-  code         String             @unique
-  name         String
-  isActive     Boolean            @default(true)
-  locations    WarehouseLocation[]
-  inventory    ShopInventoryItem[]
-  locationStocks WarehouseLocationStock[]
-  receipts     WarehouseReceipt[]
-  transfersFrom WarehouseTransfer[] @relation("WarehouseTransferFromWarehouse")
-  transfersTo   WarehouseTransfer[] @relation("WarehouseTransferToWarehouse")
-  productionOrders WarehouseProductionOrder[]
+  id               Int                        @id @default(autoincrement())
+  code             String                     @unique
+  name             String
+  isActive         Boolean                    @default(true)
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @default(now()) @updatedAt
+  inventory        ShopInventoryItem[]
+  logs             ShopWarehouseLog[]
   inventoryCounts  WarehouseInventoryCount[]
-  logs         ShopWarehouseLog[]
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  locations        WarehouseLocation[]
+  locationStocks   WarehouseLocationStock[]
+  productionOrders WarehouseProductionOrder[]
+  receipts         WarehouseReceipt[]
+  transfersFrom    WarehouseTransfer[]        @relation("WarehouseTransferFromWarehouse")
+  transfersTo      WarehouseTransfer[]        @relation("WarehouseTransferToWarehouse")
 }
 
 model WarehouseLocation {
-  id          Int       @id @default(autoincrement())
-  warehouseId Int
-  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
-  code        String
-  name        String
-  isActive    Boolean   @default(true)
-  inventory   ShopInventoryItem[]
-  stocks      WarehouseLocationStock[]
-  receipts    WarehouseReceipt[]
-  transfersFrom WarehouseTransfer[] @relation("WarehouseTransferFromLocation")
-  transfersTo   WarehouseTransfer[] @relation("WarehouseTransferToLocation")
-  logs        ShopWarehouseLog[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id            Int                      @id @default(autoincrement())
+  warehouseId   Int
+  code          String
+  name          String
+  isActive      Boolean                  @default(true)
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @default(now()) @updatedAt
+  inventory     ShopInventoryItem[]
+  logs          ShopWarehouseLog[]
+  warehouse     Warehouse                @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  stocks        WarehouseLocationStock[]
+  receipts      WarehouseReceipt[]
+  transfersFrom WarehouseTransfer[]      @relation("WarehouseTransferFromLocation")
+  transfersTo   WarehouseTransfer[]      @relation("WarehouseTransferToLocation")
 
   @@unique([warehouseId, code])
   @@index([warehouseId])
 }
 
 model WarehouseLocationStock {
-  id          Int       @id @default(autoincrement())
+  id          Int               @id @default(autoincrement())
   warehouseId Int
-  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
   locationId  Int
-  location    WarehouseLocation @relation(fields: [locationId], references: [id])
   productId   Int
-  product     ShopProduct @relation(fields: [productId], references: [id])
   unit        String
-  quantity    Decimal   @default(0) @db.Decimal(18, 3)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  quantity    Decimal           @default(0) @db.Decimal(18, 3)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @default(now()) @updatedAt
+  location    WarehouseLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  product     ShopProduct       @relation(fields: [productId], references: [id])
+  warehouse   Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
 
   @@unique([warehouseId, locationId, productId])
   @@index([warehouseId, locationId])
@@ -487,40 +482,40 @@ model WarehouseLocationStock {
 }
 
 model WarehouseSupplier {
-  id             Int               @id @default(autoincrement())
-  name           String            @unique
+  id             Int                @id @default(autoincrement())
+  name           String             @unique
   contact        String?
   phone          String?
   email          String?
   contractNumber String?
-  isActive       Boolean           @default(true)
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @default(now()) @updatedAt
   receipts       WarehouseReceipt[]
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
 }
 
 model WarehouseReceipt {
-  id             String              @id @default(uuid())
-  warehouseId    Int
-  warehouse      Warehouse           @relation(fields: [warehouseId], references: [id])
-  locationId     Int?
-  location       WarehouseLocation?  @relation(fields: [locationId], references: [id])
-  supplierId     Int?
-  supplier       WarehouseSupplier?  @relation(fields: [supplierId], references: [id])
-  documentNo     String
-  receivedAt     DateTime            @default(now())
-  status         String              @default("draft")
-  attachmentUrl  String?
-  comment        String?
-  currency       String              @default("RUB")
+  id              String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  supplierId      Int?
+  documentNo      String
+  receivedAt      DateTime               @default(now())
+  status          String                 @default("draft")
+  attachmentUrl   String?
+  comment         String?
+  currency        String                 @default("RUB")
   createdByUserId Int?
-  createdBy      User?               @relation("WarehouseReceiptCreator", fields: [createdByUserId], references: [id])
-  postedAt       DateTime?
-  postedByUserId Int?
-  postedBy       User?               @relation("WarehouseReceiptPoster", fields: [postedByUserId], references: [id])
-  items          WarehouseReceiptItem[]
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  postedAt        DateTime?
+  postedByUserId  Int?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @default(now()) @updatedAt
+  warehouseId     Int                    @default(1)
+  locationId      Int?
+  createdBy       User?                  @relation("WarehouseReceiptCreator", fields: [createdByUserId], references: [id])
+  location        WarehouseLocation?     @relation(fields: [locationId], references: [id])
+  postedBy        User?                  @relation("WarehouseReceiptPoster", fields: [postedByUserId], references: [id])
+  supplier        WarehouseSupplier?     @relation(fields: [supplierId], references: [id])
+  warehouse       Warehouse              @relation(fields: [warehouseId], references: [id])
+  items           WarehouseReceiptItem[]
 
   @@index([receivedAt])
   @@index([status, receivedAt])
@@ -529,25 +524,25 @@ model WarehouseReceipt {
 }
 
 model WarehouseTransfer {
-  id              String      @id @default(uuid())
+  id              String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   fromWarehouseId Int
-  fromWarehouse   Warehouse   @relation("WarehouseTransferFromWarehouse", fields: [fromWarehouseId], references: [id])
   fromLocationId  Int?
-  fromLocation    WarehouseLocation? @relation("WarehouseTransferFromLocation", fields: [fromLocationId], references: [id])
   toWarehouseId   Int
-  toWarehouse     Warehouse   @relation("WarehouseTransferToWarehouse", fields: [toWarehouseId], references: [id])
   toLocationId    Int?
-  toLocation      WarehouseLocation? @relation("WarehouseTransferToLocation", fields: [toLocationId], references: [id])
-  status          String      @default("draft")
+  status          String                  @default("draft")
   comment         String?
   createdByUserId Int?
-  createdBy       User?       @relation("WarehouseTransferCreator", fields: [createdByUserId], references: [id])
   postedAt        DateTime?
   postedByUserId  Int?
-  postedBy        User?       @relation("WarehouseTransferPoster", fields: [postedByUserId], references: [id])
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @default(now()) @updatedAt
+  createdBy       User?                   @relation("WarehouseTransferCreator", fields: [createdByUserId], references: [id])
+  fromLocation    WarehouseLocation?      @relation("WarehouseTransferFromLocation", fields: [fromLocationId], references: [id])
+  fromWarehouse   Warehouse               @relation("WarehouseTransferFromWarehouse", fields: [fromWarehouseId], references: [id])
+  postedBy        User?                   @relation("WarehouseTransferPoster", fields: [postedByUserId], references: [id])
+  toLocation      WarehouseLocation?      @relation("WarehouseTransferToLocation", fields: [toLocationId], references: [id])
+  toWarehouse     Warehouse               @relation("WarehouseTransferToWarehouse", fields: [toWarehouseId], references: [id])
   items           WarehouseTransferItem[]
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
 
   @@index([status, createdAt])
   @@index([fromWarehouseId, createdAt])
@@ -555,134 +550,134 @@ model WarehouseTransfer {
 }
 
 model WarehouseTransferItem {
-  id          String          @id @default(uuid())
-  transferId  String
-  transfer    WarehouseTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  transferId  String            @db.Uuid
   productId   Int
-  product     ShopProduct     @relation(fields: [productId], references: [id])
   sku         String?
   productName String
-  quantity    Decimal         @db.Decimal(18, 3)
+  quantity    Decimal           @db.Decimal(18, 3)
   unit        String
-  createdAt   DateTime        @default(now())
+  createdAt   DateTime          @default(now())
+  product     ShopProduct       @relation(fields: [productId], references: [id])
+  transfer    WarehouseTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
 
   @@index([transferId])
   @@index([productId])
 }
 
 model WarehouseReceiptItem {
-  id             String          @id @default(uuid())
-  receiptId      String
-  receipt        WarehouseReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
-  productId      Int?
-  product        ShopProduct?    @relation(fields: [productId], references: [id])
-  sku            String?
-  productName    String
-  quantity       Decimal         @db.Decimal(18, 3)
-  unit           String
-  unitCostKopeks Int
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  receiptId       String           @db.Uuid
+  productId       Int?
+  sku             String?
+  productName     String
+  quantity        Decimal          @db.Decimal(18, 3)
+  unit            String
+  unitCostKopeks  Int
   totalCostKopeks Int
-  createdAt      DateTime        @default(now())
+  createdAt       DateTime         @default(now())
+  product         ShopProduct?     @relation(fields: [productId], references: [id])
+  receipt         WarehouseReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
 
   @@index([receiptId])
   @@index([productId])
 }
 
 model WarehouseRecipe {
-  id        String      @id @default(uuid())
-  productId Int         @unique
-  product   ShopProduct @relation(fields: [productId], references: [id])
-  version   Int         @default(1)
-  isActive  Boolean     @default(true)
+  id        String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId Int                   @unique
+  version   Int                   @default(1)
+  isActive  Boolean               @default(true)
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @default(now()) @updatedAt
+  product   ShopProduct           @relation(fields: [productId], references: [id], onDelete: Cascade)
   items     WarehouseRecipeItem[]
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
 }
 
 model WarehouseRecipeItem {
-  id                String          @id @default(uuid())
-  recipeId          String
-  recipe            WarehouseRecipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipeId          String          @db.Uuid
   materialProductId Int
-  material          ShopProduct     @relation("WarehouseRecipeMaterial", fields: [materialProductId], references: [id])
   quantity          Decimal         @db.Decimal(18, 3)
   unit              String
   createdAt         DateTime        @default(now())
+  material          ShopProduct     @relation("WarehouseRecipeMaterial", fields: [materialProductId], references: [id])
+  recipe            WarehouseRecipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 
   @@index([recipeId])
   @@index([materialProductId])
 }
 
 model WarehouseProductionOrder {
-  id              String      @id @default(uuid())
+  id              String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   warehouseId     Int
-  warehouse       Warehouse   @relation(fields: [warehouseId], references: [id])
   productId       Int
-  product         ShopProduct @relation(fields: [productId], references: [id])
-  quantity        Decimal     @db.Decimal(18, 3)
+  quantity        Decimal                          @db.Decimal(18, 3)
   unit            String
-  status          String      @default("draft")
+  status          String                           @default("draft")
   comment         String?
   createdByUserId Int?
-  createdBy       User?       @relation("WarehouseProductionCreator", fields: [createdByUserId], references: [id])
   postedAt        DateTime?
   postedByUserId  Int?
-  postedBy        User?       @relation("WarehouseProductionPoster", fields: [postedByUserId], references: [id])
+  createdAt       DateTime                         @default(now())
+  updatedAt       DateTime                         @default(now()) @updatedAt
   consumes        WarehouseProductionConsumeItem[]
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  createdBy       User?                            @relation("WarehouseProductionCreator", fields: [createdByUserId], references: [id])
+  postedBy        User?                            @relation("WarehouseProductionPoster", fields: [postedByUserId], references: [id])
+  product         ShopProduct                      @relation(fields: [productId], references: [id])
+  warehouse       Warehouse                        @relation(fields: [warehouseId], references: [id])
 
   @@index([warehouseId, createdAt])
   @@index([status, createdAt])
 }
 
 model WarehouseProductionConsumeItem {
-  id                String                   @id @default(uuid())
-  productionId      String
-  production        WarehouseProductionOrder @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  id                String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productionId      String                   @db.Uuid
   materialProductId Int
-  material          ShopProduct              @relation("WarehouseProductionMaterial", fields: [materialProductId], references: [id])
   quantity          Decimal                  @db.Decimal(18, 3)
   unit              String
   unitCostKopeks    Int?
   totalCostKopeks   Int?
   createdAt         DateTime                 @default(now())
+  material          ShopProduct              @relation("WarehouseProductionMaterial", fields: [materialProductId], references: [id])
+  production        WarehouseProductionOrder @relation(fields: [productionId], references: [id], onDelete: Cascade)
 
   @@index([productionId])
   @@index([materialProductId])
 }
 
 model WarehouseInventoryCount {
-  id              String      @id @default(uuid())
+  id              String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   warehouseId     Int
-  warehouse       Warehouse   @relation(fields: [warehouseId], references: [id])
-  status          String      @default("draft")
+  status          String                        @default("draft")
   comment         String?
-  startedAt       DateTime    @default(now())
+  startedAt       DateTime                      @default(now())
   createdByUserId Int?
-  createdBy       User?       @relation("WarehouseInventoryCreator", fields: [createdByUserId], references: [id])
   postedAt        DateTime?
   postedByUserId  Int?
-  postedBy        User?       @relation("WarehouseInventoryPoster", fields: [postedByUserId], references: [id])
+  createdAt       DateTime                      @default(now())
+  updatedAt       DateTime                      @default(now()) @updatedAt
+  createdBy       User?                         @relation("WarehouseInventoryCreator", fields: [createdByUserId], references: [id])
+  postedBy        User?                         @relation("WarehouseInventoryPoster", fields: [postedByUserId], references: [id])
+  warehouse       Warehouse                     @relation(fields: [warehouseId], references: [id])
   items           WarehouseInventoryCountItem[]
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
 
   @@index([warehouseId, startedAt])
   @@index([status, startedAt])
 }
 
 model WarehouseInventoryCountItem {
-  id          String                @id @default(uuid())
-  inventoryId String
-  inventory   WarehouseInventoryCount @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  id          String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  inventoryId String                  @db.Uuid
   productId   Int
-  product     ShopProduct           @relation(fields: [productId], references: [id])
-  expectedQty Decimal               @db.Decimal(18, 3)
-  countedQty  Decimal               @db.Decimal(18, 3)
-  delta       Decimal               @db.Decimal(18, 3)
+  expectedQty Decimal                 @db.Decimal(18, 3)
+  countedQty  Decimal                 @db.Decimal(18, 3)
+  delta       Decimal                 @db.Decimal(18, 3)
   unit        String
-  createdAt   DateTime              @default(now())
+  createdAt   DateTime                @default(now())
+  inventory   WarehouseInventoryCount @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  product     ShopProduct             @relation(fields: [productId], references: [id])
 
   @@unique([inventoryId, productId])
   @@index([inventoryId])
@@ -690,54 +685,54 @@ model WarehouseInventoryCountItem {
 }
 
 model Permission {
-  key         String  @id
-  description String?
-  rolePermissions RolePermission[]
+  key              String                  @id
+  description      String?
   groupPermissions AccessGroupPermission[]
-  userPermissions UserAccessPermission[]
+  rolePermissions  RolePermission[]
+  userPermissions  UserAccessPermission[]
 }
 
 model RolePermission {
   id            Int        @id @default(autoincrement())
   roleName      String
   permissionKey String
-  permission    Permission @relation(fields: [permissionKey], references: [key])
   createdAt     DateTime   @default(now())
+  permission    Permission @relation(fields: [permissionKey], references: [key], onDelete: Cascade)
 
   @@unique([roleName, permissionKey])
   @@index([roleName])
 }
 
 model AccessGroup {
-  id              Int        @id @default(autoincrement())
-  name            String     @unique
+  id              Int                     @id @default(autoincrement())
+  name            String                  @unique
   description     String?
   createdByUserId Int?
-  createdBy       User?      @relation("AccessGroupCreator", fields: [createdByUserId], references: [id])
-  createdAt       DateTime   @default(now())
+  createdAt       DateTime                @default(now())
+  createdBy       User?                   @relation("AccessGroupCreator", fields: [createdByUserId], references: [id])
   permissions     AccessGroupPermission[]
   members         UserAccessGroup[]
 }
 
 model AccessGroupPermission {
-  id            Int        @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   groupId       Int
-  group         AccessGroup @relation(fields: [groupId], references: [id])
   permissionKey String
-  permission    Permission @relation(fields: [permissionKey], references: [key])
-  createdAt     DateTime   @default(now())
+  createdAt     DateTime    @default(now())
+  group         AccessGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  permission    Permission  @relation(fields: [permissionKey], references: [key], onDelete: Cascade)
 
   @@unique([groupId, permissionKey])
   @@index([permissionKey])
 }
 
 model UserAccessGroup {
-  id        Int        @id @default(autoincrement())
+  id        Int         @id @default(autoincrement())
   userId    Int
-  user      User       @relation(fields: [userId], references: [id])
   groupId   Int
-  group     AccessGroup @relation(fields: [groupId], references: [id])
-  createdAt DateTime   @default(now())
+  createdAt DateTime    @default(now())
+  group     AccessGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, groupId])
   @@index([groupId])
@@ -746,49 +741,50 @@ model UserAccessGroup {
 model UserAccessPermission {
   id            Int        @id @default(autoincrement())
   userId        Int
-  user          User       @relation(fields: [userId], references: [id])
   permissionKey String
-  permission    Permission @relation(fields: [permissionKey], references: [key])
   allow         Boolean    @default(true)
   createdAt     DateTime   @default(now())
+  permission    Permission @relation(fields: [permissionKey], references: [key], onDelete: Cascade)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, permissionKey])
   @@index([permissionKey, allow])
 }
 
 model CashAccount {
-  id        Int      @id @default(autoincrement())
-  code      String   @unique
-  name      String
-  type      String
-  currency  String   @default("RUB")
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  entries   CashEntry[]
+  id              Int                  @id @default(autoincrement())
+  code            String               @unique
+  name            String
+  type            String
+  currency        String               @default("RUB")
+  isActive        Boolean              @default(true)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @default(now()) @updatedAt
+  entries         CashEntry[]
   reconciliations CashReconciliation[]
 }
 
 model CashEntry {
-  id               String    @id @default(uuid())
-  accountId        Int
-  account          CashAccount @relation(fields: [accountId], references: [id])
-  direction        String
-  entryType        String
-  amountKopeks     Int
-  currency         String    @default("RUB")
-  description      String?
-  status           String    @default("confirmed")
-  shopOrderId      String?
-  shopOrder        ShopOrder? @relation(fields: [shopOrderId], references: [id])
-  shopPaymentId    String?   @unique
-  warehouseLogId   String?
-  warehouseLog     ShopWarehouseLog? @relation(fields: [warehouseLogId], references: [id])
-  createdByUserId  Int?
-  createdBy        User?     @relation(fields: [createdByUserId], references: [id])
-  ipHash           String?
-  userAgent        String?
-  createdAt        DateTime  @default(now())
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId       Int
+  direction       String
+  entryType       String
+  amountKopeks    Int
+  currency        String            @default("RUB")
+  description     String?
+  status          String            @default("confirmed")
+  shopOrderId     String?           @db.Uuid
+  shopPaymentId   String?           @unique @db.Uuid
+  warehouseLogId  String?           @db.Uuid
+  createdByUserId Int?
+  ipHash          String?
+  userAgent       String?
+  createdAt       DateTime          @default(now())
+  account         CashAccount       @relation(fields: [accountId], references: [id])
+  createdBy       User?             @relation(fields: [createdByUserId], references: [id])
+  shopOrder       ShopOrder?        @relation(fields: [shopOrderId], references: [id])
+  ShopPayment     ShopPayment?      @relation(fields: [shopPaymentId], references: [id])
+  warehouseLog    ShopWarehouseLog? @relation(fields: [warehouseLogId], references: [id])
 
   @@index([createdAt])
   @@index([accountId, createdAt])
@@ -798,20 +794,20 @@ model CashEntry {
 }
 
 model CashReconciliation {
-  id              String   @id @default(uuid())
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   accountId       Int
-  account         CashAccount @relation(fields: [accountId], references: [id])
   day             DateTime
-  cutoffAt        DateTime @default(now())
-  openingKopeks   Int      @default(0)
+  openingKopeks   Int         @default(0)
   expectedKopeks  Int
   actualKopeks    Int?
   diffKopeks      Int?
-  status          String   @default("pending")
   createdByUserId Int?
-  createdBy       User?    @relation(fields: [createdByUserId], references: [id])
   note            String?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime    @default(now())
+  cutoffAt        DateTime    @default(now())
+  status          String      @default("pending")
+  account         CashAccount @relation(fields: [accountId], references: [id])
+  createdBy       User?       @relation(fields: [createdByUserId], references: [id])
 
   @@unique([accountId, day])
   @@index([day])

@@ -146,3 +146,75 @@ export async function setUserPermissionOverride(input: unknown, csrfToken: strin
   }
 }
 
+const groupPermissionSchema = z.object({
+  groupId: z.number().int().positive(),
+  permissionKey: z.string().trim().min(2).max(120),
+  action: z.enum(['add', 'remove']),
+})
+
+export async function updateGroupPermission(input: unknown, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { ok: false as const, error: csrf.error }
+
+  const access = await requirePermission('roles.manage')
+  if (!access.ok) return access
+
+  const parsed = groupPermissionSchema.safeParse(input)
+  if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
+
+  try {
+    if (parsed.data.action === 'add') {
+      await prisma.accessGroupPermission.upsert({
+        where: { groupId_permissionKey: { groupId: parsed.data.groupId, permissionKey: parsed.data.permissionKey } },
+        create: { groupId: parsed.data.groupId, permissionKey: parsed.data.permissionKey },
+        update: {},
+      })
+    } else {
+      await prisma.accessGroupPermission.deleteMany({
+        where: { groupId: parsed.data.groupId, permissionKey: parsed.data.permissionKey },
+      })
+    }
+
+    await logAudit({
+      actorUserId: access.userId,
+      action: `access.group.permission.${parsed.data.action}`,
+      target: String(parsed.data.groupId),
+      metadata: { permissionKey: parsed.data.permissionKey },
+    })
+
+    revalidatePath('/admin/roles')
+    return { ok: true as const }
+  } catch {
+    return { ok: false as const, error: 'Не удалось обновить права группы' }
+  }
+}
+
+export async function deleteAccessGroup(groupId: number, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { ok: false as const, error: csrf.error }
+
+  const access = await requirePermission('roles.manage')
+  if (!access.ok) return access
+
+  try {
+    await prisma.$transaction([
+      prisma.userAccessGroup.deleteMany({ where: { groupId } }),
+      prisma.accessGroupPermission.deleteMany({ where: { groupId } }),
+      prisma.accessGroup.delete({ where: { id: groupId } }),
+    ])
+
+    await logAudit({
+      actorUserId: access.userId,
+      action: 'access.group.delete',
+      target: String(groupId),
+    })
+
+    revalidatePath('/admin/roles')
+    return { ok: true as const }
+  } catch {
+    return { ok: false as const, error: 'Не удалось удалить группу' }
+  }
+}
+

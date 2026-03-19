@@ -27,6 +27,7 @@ const ROLE_CONFIG: Record<string, { label: string; icon: any; color: string; bg:
   engineer: { label: "Инженер", icon: Wrench, color: "text-orange-400", bg: "bg-orange-500/10" },
   warehouse: { label: "Склад", icon: Package, color: "text-purple-400", bg: "bg-purple-500/10" },
   delivery: { label: "Доставка", icon: Truck, color: "text-green-400", bg: "bg-green-500/10" },
+  accountant: { label: "Бухгалтер", icon: User, color: "text-emerald-400", bg: "bg-emerald-500/10" },
   user: { label: "Клиент", icon: User, color: "text-gray-400", bg: "bg-gray-500/10" },
 };
 
