@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/session";
 import { getPrisma } from "@/lib/prisma";
-import { CheckoutClient } from "./checkout-client";
+import CheckoutClient from "./checkout-client";
 
 export default async function CheckoutPage() {
   const session = await getSession();
