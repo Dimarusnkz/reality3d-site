@@ -148,7 +148,7 @@ export default function OrdersList({ initialOrders }: { initialOrders: any[] }) 
                     </td>
                     <td className="px-6 py-5">
                       <div className="font-bold text-white text-base">
-                        {order.price > 0 ? `${order.price.toLocaleString()} ₽` : '—'}
+                        {order.price && order.price > 0 ? `${order.price.toLocaleString()} ₽` : '—'}
                       </div>
                     </td>
                     <td className="px-6 py-5 text-right">

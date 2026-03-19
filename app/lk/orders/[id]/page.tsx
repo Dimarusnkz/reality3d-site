@@ -125,10 +125,10 @@ export default async function PrintOrderPage({ params }: { params: Promise<{ id:
           <div className="space-y-6">
             <OrderSection title="Стоимость">
               <div className="text-3xl font-bold text-white mb-1">
-                {order.price > 0 ? `${order.price} ₽` : 'На расчете'}
+                {order.price && order.price > 0 ? `${order.price} ₽` : 'На расчёте'}
               </div>
               <p className="text-sm text-gray-400">
-                {order.price > 0 ? 'Ожидает оплаты' : 'Менеджер рассчитывает стоимость заказа'}
+                {order.price && order.price > 0 ? 'Ожидает оплаты' : 'Менеджер рассчитывает стоимость заказа'}
               </p>
             </OrderSection>
 

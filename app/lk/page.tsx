@@ -159,7 +159,7 @@ export default async function LkDashboard() {
                       <div className="flex flex-wrap items-center gap-3">
                         <Badge variant="info">{s.label}</Badge>
                         <div className="text-white font-bold text-lg md:ml-4">
-                          {o.price > 0 ? `${o.price.toLocaleString("ru-RU")} ₽` : "На расчёте"}
+                          {o.price && o.price > 0 ? `${o.price.toLocaleString("ru-RU")} ₽` : "На расчёте"}
                         </div>
                         <LinkButton href={`/lk/orders/${o.id}`} variant="outline" size="sm" className="ml-2">
                           Детали
