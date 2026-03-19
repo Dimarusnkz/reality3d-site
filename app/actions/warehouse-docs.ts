@@ -8,6 +8,7 @@ import { getUserAccessContext, hasPermission } from '@/lib/access'
 import { getLogMeta } from '@/lib/shop/log-meta'
 import { logAudit } from '@/lib/audit'
 import { toKopeks } from '@/lib/shop/money'
+import { getDefaultWarehouseId } from '@/lib/warehouse/default-warehouse'
 
 const supplierSchema = z.object({
   name: z.string().trim().min(2).max(200),
@@ -222,7 +223,7 @@ export async function addWarehouseReceiptItem(receiptId: string, input: unknown,
   if (!qty) return { ok: false as const, error: 'Некорректное количество' }
   if (parsed.data.unit === 'pcs' && !Number.isInteger(qty)) return { ok: false as const, error: 'Для шт. нужно целое количество' }
 
-  const receipt = await prisma.warehouseReceipt.findUnique({ where: { id: receiptId }, select: { id: true, status: true } })
+  const receipt = await prisma.warehouseReceipt.findUnique({ where: { id: receiptId }, select: { id: true, status: true, warehouseId: true } })
   if (!receipt) return { ok: false as const, error: 'Приход не найден' }
   if (receipt.status !== 'draft') return { ok: false as const, error: 'Нельзя менять проведённый приход' }
 
@@ -285,7 +286,7 @@ export async function addWarehouseReceiptItem(receiptId: string, input: unknown,
           actionType: 'receipt_draft',
           reason: 'purchase',
           productId,
-          warehouseId: 1,
+          warehouseId: receipt.warehouseId,
           sku,
           productName: parsed.data.productName,
           quantityDelta: qty,
@@ -348,6 +349,7 @@ export async function postWarehouseReceipt(receiptId: string, csrfToken: string)
   if (!accessRes.ok) return accessRes
   const { access } = accessRes
 
+  const defaultWarehouseId = await getDefaultWarehouseId(prisma)
   const meta = await getLogMeta()
 
   try {
@@ -391,7 +393,7 @@ export async function postWarehouseReceipt(receiptId: string, csrfToken: string)
           where: { id: it.productId },
           data: {
             purchasePriceKopeks: it.unitCostKopeks,
-            ...(receipt.warehouseId === 1 ? { stock: Math.max(0, Math.trunc(nextQty - currentReserved)) } : {}),
+            ...(receipt.warehouseId === defaultWarehouseId ? { stock: Math.max(0, Math.trunc(nextQty - currentReserved)) } : {}),
           },
         })
 

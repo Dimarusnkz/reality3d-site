@@ -8,6 +8,7 @@ import { requirePermission } from '@/lib/access'
 import { logAudit } from '@/lib/audit'
 import { sendTelegramMessage } from '@/lib/telegram'
 import { sendEmailViaSendGrid } from '@/lib/notifications/sendgrid'
+import { getDefaultWarehouseId } from '@/lib/warehouse/default-warehouse'
 
 const updateSchema = z.object({
   status: z.string().trim().max(40).optional().nullable(),
@@ -88,6 +89,7 @@ export async function confirmShopOrderPaymentAdmin(orderId: string, csrfToken: s
   })
   if (!order) return { ok: false as const, error: 'Заказ не найден' }
   if (order.paymentStatus === 'paid' || order.status === 'paid') return { ok: true as const }
+  const defaultWarehouseId = await getDefaultWarehouseId(prisma)
 
   const from = process.env.SENDGRID_FROM_EMAIL || ''
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
@@ -123,8 +125,8 @@ export async function confirmShopOrderPaymentAdmin(orderId: string, csrfToken: s
         for (const item of order.items) {
           if (!item.productId) continue
           const inv = await tx.shopInventoryItem.upsert({
-            where: { productId_warehouseId: { productId: item.productId, warehouseId: 1 } },
-            create: { productId: item.productId, warehouseId: 1, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
+            where: { productId_warehouseId: { productId: item.productId, warehouseId: defaultWarehouseId } },
+            create: { productId: item.productId, warehouseId: defaultWarehouseId, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
             update: {},
           })
 
@@ -152,7 +154,7 @@ export async function confirmShopOrderPaymentAdmin(orderId: string, csrfToken: s
               actionType: 'writeoff',
               reason: 'sale',
               productId: item.productId,
-              warehouseId: 1,
+              warehouseId: defaultWarehouseId,
               locationId: inv.locationId ?? null,
               sku: item.sku || null,
               productName: item.productName,

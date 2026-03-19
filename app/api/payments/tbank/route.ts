@@ -5,6 +5,7 @@ import { verifyTbankToken } from '@/lib/shop/tbank';
 import crypto from 'crypto';
 import { sendTelegramMessage } from '@/lib/telegram';
 import { sendEmailViaSendGrid } from '@/lib/notifications/sendgrid';
+import { getDefaultWarehouseId } from '@/lib/warehouse/default-warehouse';
 
 function normalizeStatus(status: string | null) {
   const value = (status || '').toUpperCase();
@@ -57,6 +58,8 @@ export async function POST(request: Request) {
     });
     return new Response('OK');
   }
+
+  const defaultWarehouseId = await getDefaultWarehouseId(prisma);
 
   const nextStatus = success === false ? 'failed' : isPaidStatus(status) ? 'succeeded' : status.toLowerCase();
 
@@ -116,8 +119,8 @@ export async function POST(request: Request) {
           for (const item of orderForWriteoff.items) {
             if (!item.productId) continue
             const inv = await tx.shopInventoryItem.upsert({
-              where: { productId_warehouseId: { productId: item.productId, warehouseId: 1 } },
-              create: { productId: item.productId, warehouseId: 1, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
+              where: { productId_warehouseId: { productId: item.productId, warehouseId: defaultWarehouseId } },
+              create: { productId: item.productId, warehouseId: defaultWarehouseId, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
               update: {},
             })
 
@@ -145,7 +148,7 @@ export async function POST(request: Request) {
                 actionType: 'writeoff',
                 reason: 'sale',
                 productId: item.productId,
-                warehouseId: 1,
+                warehouseId: defaultWarehouseId,
                 locationId: inv.locationId ?? null,
                 sku: item.sku || null,
                 productName: item.productName,
@@ -215,7 +218,7 @@ export async function POST(request: Request) {
       await prisma.$transaction(async (tx) => {
         for (const item of orderForUnreserve.items) {
           if (!item.productId) continue
-          const inv = await tx.shopInventoryItem.findUnique({ where: { productId_warehouseId: { productId: item.productId, warehouseId: 1 } } })
+          const inv = await tx.shopInventoryItem.findUnique({ where: { productId_warehouseId: { productId: item.productId, warehouseId: defaultWarehouseId } } })
           if (!inv) continue
           const currentQty = Number(inv.quantity)
           const currentReserved = Number((inv as any).reserved ?? 0)
@@ -231,7 +234,7 @@ export async function POST(request: Request) {
               actionType: 'unreserve',
               reason: 'sale',
               productId: item.productId,
-              warehouseId: 1,
+              warehouseId: defaultWarehouseId,
               locationId: inv.locationId ?? null,
               sku: item.sku || null,
               productName: item.productName,

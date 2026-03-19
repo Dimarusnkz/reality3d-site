@@ -3,10 +3,14 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const TELEGRAM_BOT_TOKEN = "8575014180:AAHVKypLQcCzj6NRTgY-uAqt6XPJreMENq8";
-const TELEGRAM_CHAT_ID = "8575014180";
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "";
 
 async function sendTelegramMessage(message: string) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.error("TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID are not set");
+    return false;
+  }
   try {
     const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',

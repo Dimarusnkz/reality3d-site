@@ -16,6 +16,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { sendTelegramMessage } from '@/lib/telegram'
 import { sendEmailViaSendGrid } from '@/lib/notifications/sendgrid'
 import { quoteShipping } from '@/lib/shop/shipping-providers'
+import { getDefaultWarehouseId } from '@/lib/warehouse/default-warehouse'
 
 async function requireUserId() {
   const session = await getSession()
@@ -256,6 +257,7 @@ export async function createShopOrder(data: {
 
   const { userId } = await requireUserId()
   const meta = await getLogMeta()
+  const defaultWarehouseId = await getDefaultWarehouseId(prisma)
 
   const cart = await prisma.shopCart.findUnique({
     where: { userId },
@@ -353,8 +355,8 @@ export async function createShopOrder(data: {
     for (const i of items) {
       if (i.allowPreorder) continue
       const inv = await tx.shopInventoryItem.upsert({
-        where: { productId_warehouseId: { productId: i.productId, warehouseId: 1 } },
-        create: { productId: i.productId, warehouseId: 1, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
+        where: { productId_warehouseId: { productId: i.productId, warehouseId: defaultWarehouseId } },
+        create: { productId: i.productId, warehouseId: defaultWarehouseId, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
         update: {},
       })
       const qty = Number(inv.quantity)
@@ -371,7 +373,7 @@ export async function createShopOrder(data: {
           actionType: 'reserve',
           reason: 'sale',
           productId: i.productId,
-          warehouseId: 1,
+          warehouseId: defaultWarehouseId,
           locationId: inv.locationId ?? null,
           sku: i.sku || null,
           productName: i.productName,
@@ -477,6 +479,7 @@ export async function createGuestShopOrder(data: {
   if (!rl.ok) return { ok: false as const, error: 'Слишком много попыток. Подожди и попробуй снова.' }
 
   const meta = await getLogMeta()
+  const defaultWarehouseId = await getDefaultWarehouseId(prisma)
   const ua = await getUserAgent()
 
   const rawItems = Array.isArray(data.items) ? data.items : []
@@ -591,8 +594,8 @@ export async function createGuestShopOrder(data: {
     for (const i of items) {
       if (i.allowPreorder) continue
       const inv = await tx.shopInventoryItem.upsert({
-        where: { productId_warehouseId: { productId: i.productId, warehouseId: 1 } },
-        create: { productId: i.productId, warehouseId: 1, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
+        where: { productId_warehouseId: { productId: i.productId, warehouseId: defaultWarehouseId } },
+        create: { productId: i.productId, warehouseId: defaultWarehouseId, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
         update: {},
       })
       const qty = Number(inv.quantity)
@@ -609,7 +612,7 @@ export async function createGuestShopOrder(data: {
           actionType: 'reserve',
           reason: 'sale',
           productId: i.productId,
-          warehouseId: 1,
+          warehouseId: defaultWarehouseId,
           locationId: inv.locationId ?? null,
           sku: i.sku || null,
           productName: i.productName,

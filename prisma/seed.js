@@ -34,5 +34,69 @@ await prisma.user.upsert({
   create: { email, password: hashedPassword, role: 'admin', name: 'Admin' },
 })
 
+await prisma.warehouse.upsert({
+  where: { code: 'main' },
+  create: { code: 'main', name: 'Основной склад', isActive: true },
+  update: { name: 'Основной склад', isActive: true },
+})
+
+const cashAccounts = [
+  { code: 'office_cash', name: 'Касса офиса (наличные)', type: 'cash' },
+  { code: 'online', name: 'Онлайн-касса', type: 'online' },
+  { code: 'bank', name: 'Банковский счёт', type: 'bank' },
+]
+
+for (const a of cashAccounts) {
+  await prisma.cashAccount.upsert({
+    where: { code: a.code },
+    create: { code: a.code, name: a.name, type: a.type, currency: 'RUB', isActive: true },
+    update: { name: a.name, type: a.type, isActive: true },
+  })
+}
+
+const permissions = [
+  'warehouse.view',
+  'warehouse.receipt',
+  'warehouse.writeoff',
+  'warehouse.transfer',
+  'warehouse.threshold.edit',
+  'warehouse.locations.manage',
+  'warehouse.recipes.manage',
+  'warehouse.production',
+  'warehouse.inventory',
+  'logs.view',
+  'logs.export',
+  'shop.orders.manage',
+  'shop.orders.export',
+  'finance.view',
+  'finance.entry.create',
+  'finance.reconcile.create',
+  'products.purchase_price.view',
+  'products.purchase_price.edit',
+  'roles.manage',
+]
+
+for (const key of permissions) {
+  await prisma.permission.upsert({ where: { key }, create: { key }, update: {} })
+}
+
+const rolePerms = [
+  { role: 'manager', keys: ['warehouse.view', 'warehouse.receipt', 'warehouse.writeoff', 'warehouse.transfer', 'logs.view', 'shop.orders.manage', 'shop.orders.export', 'finance.view', 'finance.entry.create', 'finance.reconcile.create', 'products.purchase_price.view', 'products.purchase_price.edit'] },
+  { role: 'warehouse', keys: ['warehouse.view', 'warehouse.receipt', 'warehouse.writeoff', 'warehouse.transfer', 'warehouse.threshold.edit', 'warehouse.locations.manage', 'logs.view'] },
+  { role: 'accountant', keys: ['finance.view', 'finance.entry.create', 'finance.reconcile.create', 'logs.view', 'logs.export'] },
+  { role: 'delivery', keys: ['shop.orders.manage', 'warehouse.view', 'logs.view'] },
+  { role: 'engineer', keys: ['warehouse.view', 'warehouse.production', 'warehouse.inventory', 'logs.view'] },
+]
+
+for (const r of rolePerms) {
+  for (const key of r.keys) {
+    await prisma.rolePermission.upsert({
+      where: { roleName_permissionKey: { roleName: r.role, permissionKey: key } },
+      create: { roleName: r.role, permissionKey: key },
+      update: {},
+    })
+  }
+}
+
 await prisma.$disconnect()
 

@@ -7,9 +7,16 @@ function toKopeks(rub) {
 async function main() {
   const prisma = new PrismaClient()
   try {
-    const accounts = await prisma.cashAccount.findMany({ select: { id: true, code: true } })
-    const online = accounts.find((a) => a.code === 'online')
-    if (!online) throw new Error('CashAccount online not found')
+    const online =
+      (await prisma.cashAccount.findUnique({ where: { code: 'online' }, select: { id: true, code: true } })) ||
+      (await prisma.cashAccount.create({ data: { code: 'online', name: 'Онлайн-касса', type: 'online', currency: 'RUB', isActive: true }, select: { id: true, code: true } }))
+
+    const warehouse =
+      (await prisma.warehouse.findUnique({ where: { code: 'main' }, select: { id: true } }).catch(() => null)) ||
+      (await prisma.warehouse.findFirst({ orderBy: { id: 'asc' }, select: { id: true } })) ||
+      (await prisma.warehouse.create({ data: { code: 'main', name: 'Основной склад', isActive: true }, select: { id: true } }))
+
+    const warehouseId = warehouse.id
 
     const base = `test-${Date.now()}`
     const products = [
@@ -46,17 +53,20 @@ async function main() {
         select: { id: true, name: true, sku: true, priceKopeks: true, purchasePriceKopeks: true },
       })
       await prisma.shopInventoryItem.upsert({
-        where: { productId: prod.id },
+        where: { productId_warehouseId: { productId: prod.id, warehouseId } },
         create: {
           productId: prod.id,
+          warehouseId,
           unit: 'pcs',
           quantity: p.qty,
+          reserved: 0,
           minThreshold: 0,
           lastPurchaseUnitCostKopeks: prod.purchasePriceKopeks,
         },
         update: {
           unit: 'pcs',
           quantity: p.qty,
+          reserved: 0,
           lastPurchaseUnitCostKopeks: prod.purchasePriceKopeks,
         },
       })
@@ -115,11 +125,13 @@ async function main() {
     await prisma.$transaction(async (tx) => {
       for (const item of order.items) {
         if (!item.productId) continue
-        const inv = await tx.shopInventoryItem.findUnique({ where: { productId: item.productId } })
-        const currentQty = inv ? Number(inv.quantity) : 0
+        const inv = await tx.shopInventoryItem.findUnique({ where: { productId_warehouseId: { productId: item.productId, warehouseId } } })
+        if (!inv) throw new Error('Inventory not found')
+        const currentQty = Number(inv.quantity)
         const nextQty = Math.max(0, currentQty - item.quantity)
-        await tx.shopInventoryItem.update({ where: { productId: item.productId }, data: { quantity: nextQty } })
-        await tx.shopProduct.update({ where: { id: item.productId }, data: { stock: nextQty } })
+        const nextReserved = Math.max(0, Number(inv.reserved || 0) - item.quantity)
+        await tx.shopInventoryItem.update({ where: { id: inv.id }, data: { quantity: nextQty, reserved: nextReserved } })
+        await tx.shopProduct.update({ where: { id: item.productId }, data: { stock: Math.max(0, Math.trunc(nextQty - nextReserved)) } })
         const unitCostKopeks = inv?.lastPurchaseUnitCostKopeks ?? null
         const totalCostKopeks = unitCostKopeks == null ? null : unitCostKopeks * item.quantity
         await tx.shopWarehouseLog.create({
@@ -129,6 +141,7 @@ async function main() {
             actionType: 'writeoff',
             reason: 'sale',
             productId: item.productId,
+            warehouseId,
             sku: item.sku || null,
             productName: item.productName,
             quantityDelta: -item.quantity,
@@ -152,4 +165,3 @@ main().catch((e) => {
   console.error(e)
   process.exit(1)
 })
-

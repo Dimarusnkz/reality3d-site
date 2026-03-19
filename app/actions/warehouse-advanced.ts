@@ -7,6 +7,7 @@ import { assertCsrfTokenValue } from '@/lib/csrf'
 import { getUserAccessContext, hasPermission } from '@/lib/access'
 import { getLogMeta } from '@/lib/shop/log-meta'
 import { logAudit } from '@/lib/audit'
+import { getDefaultWarehouseId } from '@/lib/warehouse/default-warehouse'
 
 function parseDecimal(input: string) {
   const normalized = input.replace(',', '.')
@@ -264,6 +265,7 @@ export async function postWarehouseProductionOrder(id: string, csrfToken: string
   if (!accessRes.ok) return accessRes
   const { access } = accessRes
 
+  const defaultWarehouseId = await getDefaultWarehouseId(prisma)
   const meta = await getLogMeta()
 
   try {
@@ -358,7 +360,7 @@ export async function postWarehouseProductionOrder(id: string, csrfToken: string
       const outNext = outCurrent + outQty
 
       await tx.shopInventoryItem.update({ where: { id: outInv.id }, data: { quantity: outNext } })
-      if (prod.warehouseId === 1) {
+      if (prod.warehouseId === defaultWarehouseId) {
         await tx.shopProduct.update({ where: { id: prod.productId }, data: { stock: Math.max(0, Math.trunc(outNext - outReserved)) } })
       }
 
@@ -498,6 +500,7 @@ export async function postWarehouseInventoryCount(id: string, csrfToken: string)
   if (!accessRes.ok) return accessRes
   const { access } = accessRes
 
+  const defaultWarehouseId = await getDefaultWarehouseId(prisma)
   const meta = await getLogMeta()
 
   try {
@@ -526,7 +529,7 @@ export async function postWarehouseInventoryCount(id: string, csrfToken: string)
         await tx.shopInventoryItem.update({ where: { id: item.id }, data: { quantity: targetQty } })
 
         if (item.unit === 'pcs') {
-          if (inv.warehouseId === 1) {
+          if (inv.warehouseId === defaultWarehouseId) {
             await tx.shopProduct.update({ where: { id: it.productId }, data: { stock: Math.max(0, Math.trunc(targetQty - reserved)) } })
           }
         }

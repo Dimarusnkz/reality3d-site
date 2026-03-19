@@ -8,6 +8,7 @@ import { getLogMeta } from '@/lib/shop/log-meta'
 import { sendEmailViaSendGrid } from '@/lib/notifications/sendgrid'
 import { logAudit } from '@/lib/audit'
 import { hasPermission, getUserAccessContext } from '@/lib/access'
+import { getDefaultWarehouseId } from '@/lib/warehouse/default-warehouse'
 
 type Unit = 'pcs' | 'm' | 'kg'
 
@@ -76,11 +77,12 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
   const permitted = await hasPermission(access.userId, access.role, permissionKey)
   if (!permitted) return { ok: false as const, error: 'Unauthorized' }
 
+  const defaultWarehouseId = await getDefaultWarehouseId(prisma)
   const qty = parseQuantity(parsed.data.quantity)
   if (!qty) return { ok: false as const, error: 'Некорректное количество' }
 
   const unit: Unit = parsed.data.unit
-  const warehouseId = parsed.data.warehouseId == null ? 1 : parsed.data.warehouseId
+  const warehouseId = parsed.data.warehouseId == null ? defaultWarehouseId : parsed.data.warehouseId
   if (unit === 'pcs' && !Number.isInteger(qty)) return { ok: false as const, error: 'Для шт. нужно целое количество' }
 
   if (parsed.data.actionType !== 'receipt' && qty > 10 && !['admin', 'manager'].includes(access.role)) {
@@ -128,7 +130,7 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
       })
 
       if (unit === 'pcs') {
-        if (warehouseId === 1) {
+        if (warehouseId === defaultWarehouseId) {
           await tx.shopProduct.update({
             where: { id: product.id },
             data: { stock: Math.max(0, Math.trunc(next - currentReserved)) },
@@ -217,9 +219,10 @@ export async function updateInventorySettings(input: unknown, csrfToken: string)
   const parsed = inventorySettingsSchema.safeParse(input)
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
 
+  const defaultWarehouseId = await getDefaultWarehouseId(prisma)
   const min = parseQuantity(parsed.data.minThreshold === '' ? '0' : parsed.data.minThreshold) ?? 0
   const unit: Unit = parsed.data.unit
-  const warehouseId = parsed.data.warehouseId == null ? 1 : parsed.data.warehouseId
+  const warehouseId = parsed.data.warehouseId == null ? defaultWarehouseId : parsed.data.warehouseId
   if (unit === 'pcs' && !Number.isInteger(min)) return { ok: false as const, error: 'Для шт. порог должен быть целым' }
 
   const product = await prisma.shopProduct.findUnique({ where: { id: parsed.data.productId }, select: { id: true, sku: true } })
