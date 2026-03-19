@@ -137,34 +137,35 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
                     ? `${Math.round(p.lengthMm / 10) / 10}×${Math.round(p.widthMm / 10) / 10}×${Math.round(p.heightMm / 10) / 10} см`
                     : null;
                 return (
-                  <div key={p.id} className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
-                    <Link href={`/shop/${p.slug}`} className="block">
-                      <div className="aspect-[4/3] bg-slate-950 flex items-center justify-center overflow-hidden">
-                        <img src={image} alt={p.images[0]?.alt || p.name} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="p-4 space-y-2">
-                        <div className="text-white font-semibold line-clamp-2">{p.name}</div>
-                        <div className="text-sm text-gray-400">{formatRub(p.priceKopeks)}</div>
-                        {p.weightGrams != null || dims ? (
-                          <div className="text-xs text-gray-500">
-                            {p.weightGrams != null ? <span>Вес: {(p.weightGrams / 1000).toFixed(2)} кг</span> : null}
-                            {p.weightGrams != null && dims ? <span className="mx-2">•</span> : null}
-                            {dims ? <span>Габариты: {dims}</span> : null}
-                          </div>
-                        ) : null}
-                        {p.stock <= 0 ? (
-                          p.allowPreorder ? (
-                            <div className="text-xs text-yellow-500">Под заказ</div>
-                          ) : (
-                            <div className="text-xs text-red-400">Нет в наличии</div>
-                          )
-                        ) : (
-                          <div className="text-xs text-green-500">В наличии: {p.stock}</div>
-                        )}
-                      </div>
+                  <div key={p.id} className="group neon-card flex flex-col bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden hover:border-primary/40 transition-colors h-full">
+                    <Link href={`/shop/${p.slug}`} className="block flex-shrink-0 relative overflow-hidden aspect-[4/3] bg-slate-950">
+                      <img src={image} alt={p.images[0]?.alt || p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     </Link>
-                    <div className="p-4 pt-0">
-                      <AddToCartButton productId={p.id} disabled={!p.allowPreorder && p.stock <= 0} />
+                    <div className="p-5 flex flex-col flex-1">
+                      <Link href={`/shop/${p.slug}`} className="block mb-2">
+                        <div className="text-white font-semibold line-clamp-2 group-hover:text-primary transition-colors">{p.name}</div>
+                      </Link>
+                      
+                      <div className="mt-auto pt-4 flex items-center justify-between">
+                        <div className="space-y-1">
+                          <div className="text-lg font-bold text-white">{formatRub(p.priceKopeks)}</div>
+                          <div className="text-xs">
+                            {p.stock <= 0 ? (
+                              p.allowPreorder ? (
+                                <span className="text-yellow-500">Под заказ</span>
+                              ) : (
+                                <span className="text-red-400">Нет в наличии</span>
+                              )
+                            ) : (
+                              <span className="text-green-500">В наличии: {p.stock}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4">
+                        <AddToCartButton productId={p.id} disabled={!p.allowPreorder && p.stock <= 0} />
+                      </div>
                     </div>
                   </div>
                 );

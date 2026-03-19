@@ -195,10 +195,23 @@ export default function CalculatorPage() {
 
           {/* Settings */}
           <div className="space-y-6">
-            <h2 className="text-xl font-bold text-white">Настройки печати</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white">Настройки печати</h2>
+            </div>
             
             <div className="space-y-4">
-              <label className="text-sm font-medium text-gray-400">Технология</label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-400">Технология</label>
+                <div className="group relative flex items-center">
+                  <span className="flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-slate-800 text-[10px] text-gray-400">?</span>
+                  <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 w-64 -translate-x-1/2 rounded-lg bg-slate-800 p-3 text-xs text-gray-300 opacity-0 shadow-xl transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 z-10">
+                    <strong className="text-white block mb-1">FDM</strong> - дешево, прочно, видны слои.<br/>
+                    <strong className="text-white block mt-2 mb-1">SLA (Фотополимер)</strong> - высокая точность, гладкая поверхность, хрупче.<br/>
+                    <strong className="text-white block mt-2 mb-1">SLS (Порошок)</strong> - прочно, без поддержек, шершавая поверхность.
+                    <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></div>
+                  </div>
+                </div>
+              </div>
               <div className="grid gap-4 sm:grid-cols-3">
                 {TECHNOLOGIES.map((t) => (
                   <button
@@ -223,7 +236,16 @@ export default function CalculatorPage() {
             </div>
 
             <div className="space-y-4">
-              <label className="text-sm font-medium text-gray-400">Материал</label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-400">Материал</label>
+                <div className="group relative flex items-center">
+                  <span className="flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-slate-800 text-[10px] text-gray-400">?</span>
+                  <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 w-64 -translate-x-1/2 rounded-lg bg-slate-800 p-3 text-xs text-gray-300 opacity-0 shadow-xl transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 z-10">
+                    Выберите материал исходя из требований к детали. PLA — для декоративных изделий, PETG/ABS — для механических нагрузок, TPU — для гибких деталей.
+                    <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></div>
+                  </div>
+                </div>
+              </div>
               <div className="grid gap-4 sm:grid-cols-3">
                  {MATERIALS[tech as keyof typeof MATERIALS]?.map((m) => (
                    <button
@@ -249,8 +271,17 @@ export default function CalculatorPage() {
             {tech === "fdm" && (
               <div className="grid sm:grid-cols-2 gap-6">
                 <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <label className="text-sm font-medium text-gray-400">Заполнение</label>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium text-gray-400">Заполнение</label>
+                      <div className="group relative flex items-center">
+                        <span className="flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-slate-800 text-[10px] text-gray-400">?</span>
+                        <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 w-64 -translate-x-1/2 rounded-lg bg-slate-800 p-3 text-xs text-gray-300 opacity-0 shadow-xl transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 z-10">
+                          Больше заполнение = прочнее и тяжелее. Для декоративных деталей достаточно 15-20%, для нагруженных 50-100%.
+                          <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></div>
+                        </div>
+                      </div>
+                    </div>
                     <span className="text-sm text-primary font-bold">{infill}%</span>
                   </div>
                   <input 
@@ -264,8 +295,17 @@ export default function CalculatorPage() {
                   />
                 </div>
                 <div className="space-y-3">
-                  <div className="flex justify-between">
-                     <label className="text-sm font-medium text-gray-400">Высота слоя</label>
+                  <div className="flex justify-between items-center">
+                     <div className="flex items-center gap-2">
+                       <label className="text-sm font-medium text-gray-400">Высота слоя</label>
+                       <div className="group relative flex items-center">
+                         <span className="flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-slate-800 text-[10px] text-gray-400">?</span>
+                         <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 w-64 -translate-x-1/2 rounded-lg bg-slate-800 p-3 text-xs text-gray-300 opacity-0 shadow-xl transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 z-10">
+                           Меньше слой = более гладкая поверхность, но дольше печать (и дороже). 0.2 мм — оптимальный баланс.
+                           <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></div>
+                         </div>
+                       </div>
+                     </div>
                      <span className="text-sm text-primary font-bold">{layerHeight} мм</span>
                   </div>
                   <select 
