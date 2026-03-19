@@ -7,6 +7,7 @@ import { Edit2, Trash2, Eye, CheckCircle, XCircle, Image } from "lucide-react";
 import { formatRub } from "@/lib/shop/money";
 import { Badge } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;

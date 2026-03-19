@@ -25,7 +25,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       isActive: true,
       itemType: "product"
     },
-    include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
+    include: { 
+      images: { orderBy: { sortOrder: "asc" }, take: 1 },
+      category: true
+    },
     take: 4,
   });
 

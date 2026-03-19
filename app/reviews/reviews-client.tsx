@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Star, Image as ImageIcon, X, Loader2, Send } from 'lucide-react';
+import { Star, Image as ImageIcon, X, Loader2, Send, Quote, Calendar, User, Filter } from 'lucide-react';
 import { uploadPublicFile } from '@/app/actions/upload-public';
 import { createReview } from '@/app/actions/reviews';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -94,24 +95,24 @@ export default function ReviewsClient({ initialReviews, user }: { initialReviews
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+    <div className="max-w-6xl mx-auto px-4 py-16">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 gap-8">
         <div>
-           <h1 className="text-4xl font-bold text-white mb-2">Отзывы клиентов</h1>
-           <p className="text-gray-400">Что говорят о нас наши заказчики</p>
+           <h1 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tight uppercase">Отзывы клиентов</h1>
+           <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">What our clients say about Reality3D</p>
         </div>
         
         {!isFormOpen && !submitSuccess && (
           user ? (
             <button 
               onClick={() => setIsFormOpen(true)}
-              className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full font-bold shadow-[0_0_20px_rgba(255,94,0,0.3)] transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+              className="bg-primary text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1 transition-all duration-300 flex items-center gap-3"
             >
-              <Star className="w-5 h-5 fill-current" />
+              <Star className="w-4 h-4 fill-current" />
               Оставить отзыв
             </button>
           ) : (
-            <Link href="/login" className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-full font-bold transition-all flex items-center gap-2 border border-slate-700">
+            <Link href="/login" className="bg-slate-900 border border-slate-800 text-gray-400 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:text-white hover:border-slate-700 transition-all flex items-center gap-3">
                Войти, чтобы оставить отзыв
             </Link>
           )
@@ -120,104 +121,123 @@ export default function ReviewsClient({ initialReviews, user }: { initialReviews
 
       {/* Submission Form */}
       {isFormOpen && (
-        <div className="mb-12 bg-slate-900/50 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm animate-in fade-in slide-in-from-top-4">
-           <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">Новый отзыв</h2>
-              <button onClick={() => setIsFormOpen(false)} className="text-gray-500 hover:text-white transition-colors">
-                 <X className="w-6 h-6" />
+        <div className="mb-20 neon-card border border-slate-800 bg-slate-900/40 rounded-[2.5rem] p-10 backdrop-blur-md animate-in fade-in slide-in-from-top-4 relative overflow-hidden">
+           <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none">
+              <Quote className="w-32 h-32 text-primary" />
+           </div>
+           
+           <div className="flex justify-between items-center mb-10 relative z-10">
+              <div>
+                <h2 className="text-2xl font-black text-white uppercase tracking-tight">Новый отзыв</h2>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Share your experience</p>
+              </div>
+              <button onClick={() => setIsFormOpen(false)} className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-gray-500 hover:text-white transition-all">
+                 <X className="w-5 h-5" />
               </button>
            </div>
 
            {submitSuccess ? (
-             <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-8 text-center">
-                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-green-500">
-                   <Send className="w-8 h-8" />
+             <div className="bg-primary/5 border border-primary/20 rounded-3xl p-12 text-center relative z-10">
+                <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-primary/20 shadow-inner">
+                   <Send className="w-10 h-10 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold text-green-500 mb-2">Отзыв отправлен!</h3>
-                <p className="text-gray-300">Ваш отзыв появится на сайте после проверки модератором.</p>
+                <h3 className="text-2xl font-black text-primary mb-3 uppercase tracking-tight">Отзыв отправлен!</h3>
+                <p className="text-gray-500 font-medium max-w-md mx-auto">Ваш отзыв появится на сайте сразу после проверки модератором. Спасибо за доверие!</p>
              </div>
            ) : (
-             <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Rating */}
-                <div>
-                   <label className="block text-sm font-medium text-gray-400 mb-2">Ваша оценка</label>
-                   <div className="flex gap-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setRating(star)}
-                          className={`transition-transform hover:scale-110 focus:outline-none ${star <= rating ? 'text-yellow-400' : 'text-slate-700'}`}
-                        >
-                           <Star className={`w-8 h-8 ${star <= rating ? 'fill-current' : ''}`} />
-                        </button>
-                      ))}
-                   </div>
-                </div>
+             <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
+                <div className="grid md:grid-cols-2 gap-10">
+                  <div className="space-y-8">
+                    {/* Rating */}
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black text-gray-600 uppercase tracking-widest ml-1">Ваша оценка</label>
+                       <div className="flex gap-3 bg-slate-950/50 p-4 rounded-2xl border border-slate-800 w-fit">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => setRating(star)}
+                              className={cn(
+                                "transition-all duration-300 hover:scale-125 focus:outline-none",
+                                star <= rating ? 'text-primary' : 'text-slate-800'
+                              )}
+                            >
+                               <Star className={cn("w-8 h-8", star <= rating ? 'fill-current drop-shadow-[0_0_8px_rgba(255,94,0,0.5)]' : '')} />
+                            </button>
+                          ))}
+                       </div>
+                    </div>
 
-                {/* Text */}
-                <div>
-                   <label className="block text-sm font-medium text-gray-400 mb-2">Текст отзыва</label>
-                   <textarea
-                     value={text}
-                     onChange={(e) => setText(e.target.value)}
-                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:outline-none focus:border-primary/50 min-h-[150px]"
-                     placeholder="Расскажите о вашем опыте работы с нами..."
-                     required
-                   />
-                </div>
+                    {/* Photos */}
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black text-gray-600 uppercase tracking-widest ml-1">Фотографии</label>
+                       <div className="flex flex-wrap gap-4">
+                          {files.map((file, idx) => (
+                            <div key={idx} className="relative w-24 h-24 rounded-2xl overflow-hidden border border-slate-800 group shadow-inner">
+                               <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                               <button
+                                 type="button"
+                                 onClick={() => removeFile(idx)}
+                                 className="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                               >
+                                 <X className="w-5 h-5" />
+                               </button>
+                            </div>
+                          ))}
+                          
+                          <label className="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-800 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all group">
+                             <ImageIcon className="w-6 h-6 text-gray-600 mb-1 group-hover:text-primary transition-colors" />
+                             <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest group-hover:text-primary transition-colors">Добавить</span>
+                             <input 
+                               type="file" 
+                               accept="image/*" 
+                               multiple 
+                               className="hidden" 
+                               onChange={handleFileChange}
+                             />
+                          </label>
+                       </div>
+                    </div>
+                  </div>
 
-                {/* Photos */}
-                <div>
-                   <label className="block text-sm font-medium text-gray-400 mb-2">Фотографии (опционально)</label>
-                   <div className="flex flex-wrap gap-4">
-                      {files.map((file, idx) => (
-                        <div key={idx} className="relative w-24 h-24 rounded-lg overflow-hidden border border-slate-700 group">
-                           <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
-                           <button
-                             type="button"
-                             onClick={() => removeFile(idx)}
-                             className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
-                           >
-                             <X className="w-3 h-3" />
-                           </button>
-                        </div>
-                      ))}
-                      
-                      <label className="w-24 h-24 rounded-lg border-2 border-dashed border-slate-700 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-slate-800/50 transition-colors">
-                         <ImageIcon className="w-6 h-6 text-gray-500 mb-1" />
-                         <span className="text-xs text-gray-500">Добавить</span>
-                         <input 
-                           type="file" 
-                           accept="image/*" 
-                           multiple 
-                           className="hidden" 
-                           onChange={handleFileChange}
-                         />
-                      </label>
-                   </div>
+                  {/* Text */}
+                  <div className="space-y-3">
+                     <label className="text-[10px] font-black text-gray-600 uppercase tracking-widest ml-1">Текст отзыва</label>
+                     <textarea
+                       value={text}
+                       onChange={(e) => setText(e.target.value)}
+                       className="w-full bg-slate-950 border border-slate-800 rounded-3xl p-6 text-white text-sm focus:outline-none focus:border-primary/50 min-h-[220px] transition-all placeholder:text-gray-700 resize-none shadow-inner"
+                       placeholder="Расскажите о вашем опыте работы с нами..."
+                       required
+                     />
+                  </div>
                 </div>
 
                 {error && (
-                  <div className="text-red-400 text-sm bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                  <div className="text-red-400 text-[10px] font-black uppercase tracking-widest bg-red-500/5 p-4 rounded-2xl border border-red-500/20 text-center">
                     {error}
                   </div>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Отправка...
-                    </>
-                  ) : (
-                    'Отправить отзыв'
-                  )}
-                </button>
+                <div className="flex justify-end pt-4">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full md:w-auto bg-primary text-white px-12 py-5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Отправка...
+                      </>
+                    ) : (
+                      <>
+                        Отправить отзыв
+                        <Send className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
              </form>
            )}
         </div>
@@ -226,80 +246,86 @@ export default function ReviewsClient({ initialReviews, user }: { initialReviews
       {/* Full Screen Photo Modal */}
       {selectedPhoto && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 backdrop-blur-md p-8 animate-in fade-in duration-300"
           onClick={() => setSelectedPhoto(null)}
         >
           <button 
-            className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors"
+            className="absolute top-8 right-8 w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-white/50 hover:text-white transition-all"
             onClick={() => setSelectedPhoto(null)}
           >
-            <X className="w-8 h-8" />
+            <X className="w-6 h-6" />
           </button>
           <img 
             src={`/api/public/${selectedPhoto}`} 
             alt="Full screen review" 
-            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            className="max-w-full max-h-full object-contain rounded-3xl shadow-[0_0_100px_rgba(0,0,0,0.5)] border border-white/5"
             onClick={(e) => e.stopPropagation()} 
           />
         </div>
       )}
 
       {/* Reviews List */}
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
          {reviews.length === 0 ? (
-           <div className="text-center py-20 text-gray-500 bg-slate-900/30 rounded-2xl border border-slate-800/50">
-              <Star className="w-12 h-12 mx-auto mb-4 opacity-20" />
-              <p className="text-xl">Пока нет отзывов</p>
-              <p className="text-sm">Будьте первым, кто оставит отзыв!</p>
+           <div className="md:col-span-2 text-center py-32 bg-slate-900/20 rounded-[3rem] border border-dashed border-slate-800">
+              <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-slate-800 shadow-inner">
+                <Star className="h-8 w-8 text-gray-700" />
+              </div>
+              <p className="text-gray-500 font-bold uppercase tracking-widest text-xs italic">Отзывов пока нет. Будьте первым!</p>
            </div>
          ) : (
            reviews.map((review) => (
-             <div key={review.id} className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 hover:border-slate-700 transition-colors">
-                <div className="flex justify-between items-start mb-4">
-                   <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center text-white font-bold">
-                         {review.user.name?.[0]?.toUpperCase() || 'U'}
+             <div key={review.id} className="group neon-card border border-slate-800 bg-slate-900/40 p-10 rounded-[2.5rem] flex flex-col hover:border-white/10 transition-all duration-500">
+                <div className="flex justify-between items-start mb-8">
+                   <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center text-primary shadow-inner">
+                         <User className="w-6 h-6" />
                       </div>
                       <div>
-                         <h3 className="font-bold text-white">{review.user.name || 'Пользователь'}</h3>
-                         <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                               <Star 
-                                 key={star} 
-                                 className={`w-4 h-4 ${star <= review.rating ? 'text-yellow-400 fill-current' : 'text-slate-700'}`} 
-                               />
-                            ))}
+                         <h3 className="text-lg font-black text-white tracking-tight uppercase">{review.user.name || 'Анонимный клиент'}</h3>
+                         <div className="flex items-center gap-2 mt-1">
+                            <div className="flex gap-0.5">
+                               {[...Array(5)].map((_, i) => (
+                                 <Star 
+                                   key={i} 
+                                   className={cn(
+                                     "w-3 h-3", 
+                                     i < review.rating ? "text-primary fill-current" : "text-slate-800"
+                                   )} 
+                                 />
+                               ))}
+                            </div>
+                            <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-2 flex items-center gap-1.5">
+                               <Calendar className="w-3 h-3" />
+                               {new Date(review.createdAt).toLocaleDateString('ru-RU')}
+                            </span>
                          </div>
                       </div>
                    </div>
-                   <span className="text-sm text-gray-500">
-                      {new Date(review.createdAt).toLocaleDateString()}
-                   </span>
+                   <Quote className="w-8 h-8 text-slate-800 group-hover:text-primary/20 transition-colors" />
                 </div>
-                
-                <p className="text-gray-300 whitespace-pre-line mb-4 leading-relaxed">
-                   {review.text}
+
+                <p className="text-gray-400 text-sm leading-relaxed mb-8 italic flex-1">
+                   «{review.text}»
                 </p>
 
                 {review.photos && review.photos.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-4">
+                  <div className="flex flex-wrap gap-3 mt-auto pt-6 border-t border-slate-800/30">
                      {review.photos.map((photo, idx) => (
-                        <div 
-                           key={idx} 
-                           className="relative w-24 h-24 rounded-lg overflow-hidden bg-slate-950 border border-slate-800 cursor-zoom-in"
-                           onClick={() => setSelectedPhoto(photo)}
-                        >
-                           <img 
-                             src={`/api/public/${photo}`} 
-                             alt="Review attachment" 
-                             className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" 
-                             onError={(e) => {
-                               // Fallback if image fails to load
-                               (e.target as HTMLImageElement).src = '/placeholder-image.png'; // Optional: placeholder
-                               (e.target as HTMLImageElement).style.display = 'none'; // Or hide it
-                             }}
-                           />
-                        </div>
+                       <div 
+                         key={idx} 
+                         className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-800 cursor-pointer hover:border-primary/50 transition-all group/photo"
+                         onClick={() => setSelectedPhoto(photo)}
+                       >
+                          <img 
+                            src={`/api/public/${photo}`} 
+                            alt={`Review photo ${idx + 1}`} 
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover/photo:scale-110" 
+                          />
+                          <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center">
+                             <ImageIcon className="w-5 h-5 text-white" />
+                          </div>
+                       </div>
                      ))}
                   </div>
                 )}
