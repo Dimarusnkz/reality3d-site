@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Send, Activity } from "lucide-react";
-import { addTelegramSubscriber, deleteTelegramSubscriber, getTelegramSubscribers, sendTestTelegramMessage } from "@/app/actions/telegram";
+import { Plus, Trash2, Send, Activity, Webhook } from "lucide-react";
+import { addTelegramSubscriber, deleteTelegramSubscriber, getTelegramSubscribers, sendTestTelegramMessage, setTelegramWebhook } from "@/app/actions/telegram";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -29,6 +29,7 @@ export default function TelegramSettings({ isBotTokenConfigured, isEnvChatIdConf
   const [newName, setNewName] = useState("");
   const [loading, setLoading] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
+  const [webhookLoading, setWebhookLoading] = useState(false);
 
   const fetchSubscribers = async () => {
     const data = await getTelegramSubscribers();
@@ -38,6 +39,17 @@ export default function TelegramSettings({ isBotTokenConfigured, isEnvChatIdConf
   useEffect(() => {
     fetchSubscribers();
   }, []);
+
+  const handleSetWebhook = async () => {
+    setWebhookLoading(true);
+    const result = await setTelegramWebhook(getCsrfToken());
+    if (result.success) {
+      alert("Webhook установлен успешно: " + result.message);
+    } else {
+      alert(result.error || "Ошибка при установке Webhook");
+    }
+    setWebhookLoading(false);
+  };
 
   const handleAdd = async () => {
     if (!newChatId) return;
@@ -81,14 +93,25 @@ export default function TelegramSettings({ isBotTokenConfigured, isEnvChatIdConf
           <h2 className="text-2xl font-bold text-white mb-2">Настройки Telegram</h2>
           <p className="text-gray-400">Управление получателями уведомлений о новых заказах</p>
         </div>
-        <button
-          onClick={handleTestBot}
-          disabled={testLoading}
-          className="neon-button flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Activity className="h-4 w-4" />
-          {testLoading ? 'Отправка...' : 'Test_bot_TG'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleSetWebhook}
+            disabled={webhookLoading}
+            className="neon-button flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Включить интерактивные кнопки (Confirm Payment)"
+          >
+            <Webhook className="h-4 w-4" />
+            {webhookLoading ? '...' : 'Set Webhook'}
+          </button>
+          <button
+            onClick={handleTestBot}
+            disabled={testLoading}
+            className="neon-button flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Activity className="h-4 w-4" />
+            {testLoading ? 'Отправка...' : 'Test_bot_TG'}
+          </button>
+        </div>
       </div>
 
       {/* Add New Subscriber */}

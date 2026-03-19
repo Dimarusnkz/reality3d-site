@@ -99,3 +99,38 @@ export async function deleteTelegramSubscriber(id: number, csrfToken: string) {
     return { error: 'Failed to delete subscriber' }
   }
 }
+
+export async function setTelegramWebhook(csrfToken: string) {
+  const csrf = await assertCsrfTokenValue(csrfToken)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
+  const session = await getSession()
+  if (!session || !['admin', 'manager'].includes(session.role)) {
+    return { error: 'Unauthorized' }
+  }
+
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+
+  if (!token || !siteUrl) {
+    return { error: 'Bot token or Site URL not configured in environment' }
+  }
+
+  const webhookUrl = `${siteUrl.replace(/\/$/, '')}/api/telegram/webhook`;
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${token}/setWebhook?url=${webhookUrl}`);
+    const data = await response.json();
+
+    if (data.ok) {
+      return { success: true, message: data.description }
+    } else {
+      return { error: data.description || 'Failed to set webhook' }
+    }
+  } catch (error) {
+    console.error('Failed to set telegram webhook:', error)
+    return { error: 'Failed to set webhook' }
+  }
+}

@@ -77,7 +77,15 @@ ${filesList}
 <a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin/orders">Открыть в админ-панели</a>
     `
 
-    await sendTelegramMessage(message)
+    await sendTelegramMessage(message, {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "✅ Подтвердить оплату", callback_data: `confirm_payment:calc:${order.id}` }
+          ]
+        ]
+      }
+    })
 
     revalidatePath('/lk/orders')
     revalidatePath('/admin/orders')

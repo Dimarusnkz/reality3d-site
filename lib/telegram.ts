@@ -2,7 +2,7 @@
 import { getPrisma } from '@/lib/prisma';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
-export async function sendTelegramMessage(message: string) {
+export async function sendTelegramMessage(message: string, options: { reply_markup?: any } = {}) {
   const prisma = getPrisma()
   if (!TELEGRAM_BOT_TOKEN) {
     console.warn('Telegram bot token not set');
@@ -27,16 +27,22 @@ export async function sendTelegramMessage(message: string) {
     }
 
     const results = await Promise.all(chatIds.map(async (chatId) => {
+      const body: any = {
+        chat_id: chatId,
+        text: message,
+        parse_mode: 'HTML',
+      };
+
+      if (options.reply_markup) {
+        body.reply_markup = options.reply_markup;
+      }
+
       const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: message,
-          parse_mode: 'HTML',
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {

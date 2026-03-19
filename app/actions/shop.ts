@@ -429,7 +429,16 @@ export async function createShopOrder(data: {
       `${data.deliveryCity ? `🏙 Город: ${data.deliveryCity}\n` : ''}` +
       `${data.deliveryAddress ? `📍 Адрес: ${data.deliveryAddress}\n` : ''}\n` +
       `<b>📦 Состав заказа:</b>\n${itemsList}\n\n` +
-      `<a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin/shop/orders">Открыть в админ-панели</a>`
+      `<a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin/shop/orders">Открыть в админ-панели</a>`,
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "💰 Подтвердить оплату", callback_data: `confirm_payment:shop:${order.id}` }
+          ]
+        ]
+      }
+    }
   ).catch(() => {})
   {
     const from = process.env.SENDGRID_FROM_EMAIL || ''
