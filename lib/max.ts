@@ -36,33 +36,38 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
   }
 }
 
-async function sendMaxPayload(payload: unknown) {
+async function sendMaxPayload(recipient: { chatId?: number; userId?: number }, body: unknown) {
+  const url = new URL(`${MAX_API_URL}/messages`)
+  if (typeof recipient.chatId === 'number') url.searchParams.set('chat_id', String(recipient.chatId))
+  if (typeof recipient.userId === 'number') url.searchParams.set('user_id', String(recipient.userId))
+
   const init: RequestInit = {
     method: 'POST',
     headers: {
       Authorization: MAX_BOT_TOKEN || '',
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   };
 
+  const tryOnce = async () => {
+    const res = await fetchWithTimeout(url.toString(), init, MAX_TIMEOUT_MS);
+    const bodyText = await res.text().catch(() => '');
+    return { ok: res.ok, status: res.status, bodyText };
+  }
+
   try {
-    const res1 = await fetchWithTimeout(`${MAX_API_URL}/messages`, init, MAX_TIMEOUT_MS);
-    const body1 = await res1.text().catch(() => '');
-    if (res1.ok) return { ok: true, status: res1.status, bodyText: body1 };
+    const res1 = await tryOnce();
+    if (res1.ok) return res1;
     if (res1.status === 429 || res1.status >= 500) {
       await sleep(300);
-      const res2 = await fetchWithTimeout(`${MAX_API_URL}/messages`, init, MAX_TIMEOUT_MS);
-      const body2 = await res2.text().catch(() => '');
-      return { ok: res2.ok, status: res2.status, bodyText: body2 };
+      return await tryOnce();
     }
-    return { ok: false, status: res1.status, bodyText: body1 };
+    return res1;
   } catch {
     await sleep(300);
     try {
-      const res2 = await fetchWithTimeout(`${MAX_API_URL}/messages`, init, MAX_TIMEOUT_MS);
-      const body2 = await res2.text().catch(() => '');
-      return { ok: res2.ok, status: res2.status, bodyText: body2 };
+      return await tryOnce();
     } catch {
       return { ok: false, status: 0, bodyText: '' };
     }
@@ -91,7 +96,15 @@ export async function verifyMaxToken() {
   }
 }
 
-export async function sendMaxMessage(message: string) {
+export async function sendMaxMessage(
+  message: string,
+  options: {
+    attachments?: any[]
+    disable_link_preview?: boolean
+    notify?: boolean
+    format?: 'markdown' | 'html'
+  } = {}
+) {
   const prisma = getPrisma()
   if (!MAX_BOT_TOKEN) {
     return false;
@@ -109,31 +122,37 @@ export async function sendMaxMessage(message: string) {
       return false;
     }
 
-    const ids = subscribers.map((sub: { chatId: string }) => {
-      const asNumber = Number.parseInt(sub.chatId, 10);
-      return Number.isFinite(asNumber) ? asNumber : sub.chatId;
-    });
+    const chatIds = subscribers
+      .map((sub: { chatId: string }) => Number.parseInt(sub.chatId, 10))
+      .filter((v: number) => Number.isFinite(v));
 
     let anyOk = false;
-    for (let i = 0; i < ids.length; i += MAX_SEND_RPS) {
-      const chunk = ids.slice(i, i + MAX_SEND_RPS);
+    for (let i = 0; i < chatIds.length; i += MAX_SEND_RPS) {
+      const chunk = chatIds.slice(i, i + MAX_SEND_RPS);
       const chunkResults = await Promise.all(
         chunk.map(async (idToUse) => {
-          const payload = { chat_id: idToUse, message: { text } };
-          const r1 = await sendMaxPayload(payload);
+          const body: any = {
+            text,
+          }
+          if (options.attachments) body.attachments = options.attachments
+          if (typeof options.disable_link_preview === 'boolean') body.disable_link_preview = options.disable_link_preview
+          if (typeof options.notify === 'boolean') body.notify = options.notify
+          if (options.format) body.format = options.format
+
+          const r1 = await sendMaxPayload({ chatId: idToUse }, body);
           if (r1.ok) return true;
 
           const shouldRetry = r1.bodyText.includes('proto.payload') || r1.status === 400;
           if (!shouldRetry) return false;
 
-          const r2 = await sendMaxPayload({ user_id: idToUse, message: { text } });
+          const r2 = await sendMaxPayload({ userId: idToUse }, body);
           return r2.ok;
         })
       );
 
       if (chunkResults.some(Boolean)) anyOk = true;
 
-      if (i + MAX_SEND_RPS < ids.length) {
+      if (i + MAX_SEND_RPS < chatIds.length) {
         await sleep(1000);
       }
     }

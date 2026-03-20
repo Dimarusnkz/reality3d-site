@@ -35,6 +35,10 @@ describe('lib/max', () => {
     expect(ok).toBe(true)
     expect(fetchMock).toHaveBeenCalledTimes(1)
 
+    const url = (fetchMock as any).mock.calls[0][0] as string
+    expect(url).toContain('/messages')
+    expect(url).toContain('chat_id=123')
+
     const body = (fetchMock as any).mock.calls[0][1].body as string
     expect(body).toContain('hello')
     expect(body).not.toContain('<b>')
@@ -64,6 +68,11 @@ describe('lib/max', () => {
     const ok = await sendMaxMessage('hello')
     expect(ok).toBe(true)
     expect(fetchMock).toHaveBeenCalledTimes(2)
+
+    const url1 = (fetchMock as any).mock.calls[0][0] as string
+    const url2 = (fetchMock as any).mock.calls[1][0] as string
+    expect(url1).toContain('chat_id=123')
+    expect(url2).toContain('user_id=123')
   })
 
   it('handles timeout/abort without throwing', async () => {

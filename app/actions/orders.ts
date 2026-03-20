@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/session'
 import { sendTelegramMessage } from '@/lib/telegram'
+import { sendMaxMessage } from '@/lib/max'
 import { getPrisma } from '@/lib/prisma'
 import { assertCsrfTokenValue } from '@/lib/csrf'
 
@@ -85,6 +86,26 @@ ${filesList}
           ]
         ]
       }
+    })
+
+    await sendMaxMessage(message, {
+      attachments: [
+        {
+          type: 'inline_keyboard',
+          payload: {
+            buttons: [
+              [
+                {
+                  type: 'link',
+                  text: 'Открыть в админ-панели',
+                  url: `${process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')}/admin/orders`,
+                },
+              ],
+            ],
+          },
+        },
+      ],
+      disable_link_preview: true,
     })
 
     revalidatePath('/lk/orders')

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Send, Activity, Box } from "lucide-react";
-import { addMaxSubscriber, deleteMaxSubscriber, getMaxSubscribers, sendTestMaxMessage } from "@/app/actions/max";
+import { Plus, Trash2, Send, Activity, Box, Webhook } from "lucide-react";
+import { addMaxSubscriber, deleteMaxSubscriber, getMaxSubscribers, sendTestMaxMessage, setMaxWebhook } from "@/app/actions/max";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -28,6 +28,7 @@ export default function MaxSettings({ isConfigured }: MaxSettingsProps) {
   const [newName, setNewName] = useState("");
   const [loading, setLoading] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
+  const [webhookLoading, setWebhookLoading] = useState(false);
 
   const fetchSubscribers = async () => {
     const data = await getMaxSubscribers();
@@ -73,6 +74,17 @@ export default function MaxSettings({ isConfigured }: MaxSettingsProps) {
     setTestLoading(false);
   };
 
+  const handleSetWebhook = async () => {
+    setWebhookLoading(true);
+    const result = await setMaxWebhook(getCsrfToken());
+    if (result.success) {
+      alert("Webhook установлен успешно: " + (result.message || "OK"));
+    } else {
+      alert(result.error || "Ошибка при установке Webhook");
+    }
+    setWebhookLoading(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -83,14 +95,25 @@ export default function MaxSettings({ isConfigured }: MaxSettingsProps) {
           </h2>
           <p className="text-gray-400">Управление получателями уведомлений через MAX</p>
         </div>
-        <button
-          onClick={handleTestBot}
-          disabled={testLoading}
-          className="neon-button flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Activity className="h-4 w-4" />
-          {testLoading ? 'Проверка...' : 'Test_bot_MAX'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleSetWebhook}
+            disabled={webhookLoading}
+            className="neon-button flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Включить получение событий и callback-кнопок (Webhook)"
+          >
+            <Webhook className="h-4 w-4" />
+            {webhookLoading ? "..." : "Set Webhook"}
+          </button>
+          <button
+            onClick={handleTestBot}
+            disabled={testLoading}
+            className="neon-button flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Activity className="h-4 w-4" />
+            {testLoading ? "Проверка..." : "Test_bot_MAX"}
+          </button>
+        </div>
       </div>
 
       {/* Add New Subscriber */}

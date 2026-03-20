@@ -24,13 +24,60 @@ export async function sendTestMaxMessage(csrfToken: string) {
     if (verified) {
       // Also try to send a test message if subscribers exist
       const messageSent = await sendMaxMessage('Admin: Test MAX Message')
-      return { success: true, message: messageSent ? 'Message sent' : 'Token verified' }
+      return { success: true, message: messageSent ? 'Message sent' : 'Token verified (no recipients?)' }
     } else {
       return { error: 'Failed to verify MAX token' }
     }
   } catch (error) {
     console.error('Failed to test MAX bot:', error)
     return { error: 'Failed to test bot' }
+  }
+}
+
+export async function setMaxWebhook(csrfToken: string) {
+  const csrf = await assertCsrfTokenValue(csrfToken)
+  if (!csrf.ok) {
+    return { error: csrf.error }
+  }
+
+  const session = await getSession()
+  if (!session || !['admin', 'manager'].includes(session.role)) {
+    return { error: 'Unauthorized' }
+  }
+
+  const token = process.env.MAX_BOT_TOKEN
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  if (!token || !siteUrl) {
+    return { error: 'Bot token or Site URL not configured in environment' }
+  }
+
+  const webhookUrl = `${siteUrl.replace(/\/$/, '')}/api/max/webhook`
+  const secret = process.env.MAX_WEBHOOK_SECRET || undefined
+
+  try {
+    const res = await fetch('https://platform-api.max.ru/subscriptions', {
+      method: 'POST',
+      headers: {
+        Authorization: token,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: webhookUrl,
+        update_types: ['message_callback', 'message_created', 'bot_started'],
+        ...(secret ? { secret } : {}),
+      }),
+    })
+
+    const data = await res.json().catch(() => null) as any
+    if (res.ok) {
+      revalidatePath('/admin/automation')
+      return { success: true, message: data?.description || 'OK' }
+    }
+
+    return { error: data?.description || 'Failed to set webhook' }
+  } catch (e) {
+    console.error('Failed to set MAX webhook:', e)
+    return { error: 'Failed to set webhook' }
   }
 }
 
@@ -70,7 +117,7 @@ export async function addMaxSubscriber(chatId: string, csrfToken: string, name?:
       }
     })
 
-    revalidatePath('/admin/max')
+    revalidatePath('/admin/automation')
     return { success: true, subscriber }
   } catch (error) {
     console.error('Failed to add MAX subscriber:', error)
@@ -95,7 +142,7 @@ export async function deleteMaxSubscriber(id: number, csrfToken: string) {
       where: { id }
     })
 
-    revalidatePath('/admin/max')
+    revalidatePath('/admin/automation')
     return { success: true }
   } catch (error) {
     console.error('Failed to delete MAX subscriber:', error)

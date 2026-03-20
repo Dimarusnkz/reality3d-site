@@ -14,6 +14,7 @@ import crypto from 'crypto'
 import { getClientIp, getUserAgent } from '@/lib/request'
 import { rateLimit } from '@/lib/rate-limit'
 import { sendTelegramMessage } from '@/lib/telegram'
+import { sendMaxMessage } from '@/lib/max'
 import { sendEmailViaSendGrid } from '@/lib/notifications/sendgrid'
 import { quoteShipping } from '@/lib/shop/shipping-providers'
 import { getDefaultWarehouseId } from '@/lib/warehouse/default-warehouse'
@@ -421,25 +422,45 @@ export async function createShopOrder(data: {
   // Detailed list of products
   const itemsList = items.map(i => `- ${i.productName} (${i.quantity} шт.)`).join('\n');
 
-  sendTelegramMessage(
+  const notifyMessage =
     `<b>🛒 ПРОДАЖА ИЗ МАГАЗИНА</b> #${order.orderNo}\n\n` +
-      `💰 Сумма: <b>${(totalKopeks / 100).toFixed(2)} ₽</b>\n` +
-      `🚚 Доставка: ${getShippingMethodLabel(data.shippingMethod)}\n` +
-      `👤 Контакт: ${data.contactName} ${data.contactPhone}\n` +
-      `${data.deliveryCity ? `🏙 Город: ${data.deliveryCity}\n` : ''}` +
-      `${data.deliveryAddress ? `📍 Адрес: ${data.deliveryAddress}\n` : ''}\n` +
-      `<b>📦 Состав заказа:</b>\n${itemsList}\n\n` +
-      `<a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin/shop/orders">Открыть в админ-панели</a>`,
-    {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: "💰 Подтвердить оплату", callback_data: `confirm_payment:shop:${order.id}` }
-          ]
+    `💰 Сумма: <b>${(totalKopeks / 100).toFixed(2)} ₽</b>\n` +
+    `🚚 Доставка: ${getShippingMethodLabel(data.shippingMethod)}\n` +
+    `👤 Контакт: ${data.contactName} ${data.contactPhone}\n` +
+    `${data.deliveryCity ? `🏙 Город: ${data.deliveryCity}\n` : ''}` +
+    `${data.deliveryAddress ? `📍 Адрес: ${data.deliveryAddress}\n` : ''}\n` +
+    `<b>📦 Состав заказа:</b>\n${itemsList}\n\n` +
+    `<a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin/shop/orders">Открыть в админ-панели</a>`
+
+  sendTelegramMessage(notifyMessage, {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "💰 Подтвердить оплату", callback_data: `confirm_payment:shop:${order.id}` }
         ]
-      }
+      ]
     }
-  ).catch(() => {})
+  }).catch(() => {})
+
+  sendMaxMessage(notifyMessage, {
+    attachments: [
+      {
+        type: 'inline_keyboard',
+        payload: {
+          buttons: [
+            [
+              {
+                type: 'link',
+                text: 'Открыть в админ-панели',
+                url: `${process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')}/admin/shop/orders`,
+              },
+            ],
+          ],
+        },
+      },
+    ],
+    disable_link_preview: true,
+  }).catch(() => {})
   {
     const from = process.env.SENDGRID_FROM_EMAIL || ''
     if (from && data.contactEmail) {
@@ -670,14 +691,16 @@ export async function createGuestShopOrder(data: {
 
   revalidatePath('/cart')
   revalidatePath('/checkout')
-  sendTelegramMessage(
+  const guestNotifyMessage =
     `<b>Новый гостевой заказ</b> #${order.orderNo}\n` +
-      `Сумма: <b>${(totalKopeks / 100).toFixed(2)} ₽</b>\n` +
-      `Доставка: ${getShippingMethodLabel(data.shippingMethod)}\n` +
-      `Контакт: ${data.contactName} ${data.contactPhone}\n` +
-      `${data.deliveryCity ? `Город: ${data.deliveryCity}\n` : ''}` +
-      `${data.deliveryAddress ? `Адрес: ${data.deliveryAddress}\n` : ''}`
-  ).catch(() => {})
+    `Сумма: <b>${(totalKopeks / 100).toFixed(2)} ₽</b>\n` +
+    `Доставка: ${getShippingMethodLabel(data.shippingMethod)}\n` +
+    `Контакт: ${data.contactName} ${data.contactPhone}\n` +
+    `${data.deliveryCity ? `Город: ${data.deliveryCity}\n` : ''}` +
+    `${data.deliveryAddress ? `Адрес: ${data.deliveryAddress}\n` : ''}`
+
+  sendTelegramMessage(guestNotifyMessage).catch(() => {})
+  sendMaxMessage(guestNotifyMessage).catch(() => {})
   {
     const from = process.env.SENDGRID_FROM_EMAIL || ''
     if (from && data.contactEmail) {
