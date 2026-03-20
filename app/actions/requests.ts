@@ -57,7 +57,25 @@ ${escapeHtml(description)}
     `
 
     await sendTelegramMessage(notificationMessage)
-    await sendMaxMessage(notificationMessage)
+    await sendMaxMessage(notificationMessage, {
+      attachments: [
+        {
+          type: 'inline_keyboard',
+          payload: {
+            buttons: [
+              [
+                {
+                  type: 'link',
+                  text: 'Открыть админку',
+                  url: `${process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')}/admin`,
+                },
+              ],
+            ],
+          },
+        },
+      ],
+      disable_link_preview: true,
+    })
 
     return { success: true }
   } catch (error) {

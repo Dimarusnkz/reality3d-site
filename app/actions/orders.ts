@@ -96,8 +96,13 @@ ${filesList}
             buttons: [
               [
                 {
+                  type: 'callback',
+                  text: '✅ Подтвердить оплату',
+                  payload: `confirm_payment:calc:${order.id}`,
+                },
+                {
                   type: 'link',
-                  text: 'Открыть в админ-панели',
+                  text: 'Админка',
                   url: `${process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')}/admin/orders`,
                 },
               ],
