@@ -2,9 +2,9 @@
 
 import { getPrisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import { getSession } from '@/lib/session'
 import { sendMaxMessage, verifyMaxToken } from '@/lib/max'
 import { assertCsrfTokenValue } from '@/lib/csrf'
+import { requirePermission } from '@/lib/access'
 
 export async function sendTestMaxMessage(csrfToken: string) {
   const csrf = await assertCsrfTokenValue(csrfToken)
@@ -12,10 +12,8 @@ export async function sendTestMaxMessage(csrfToken: string) {
     return { error: csrf.error }
   }
 
-  const session = await getSession()
-  if (!session || !['admin', 'manager'].includes(session.role)) {
-    return { error: 'Unauthorized' }
-  }
+  const access = await requirePermission('roles.manage')
+  if (!access.ok) return { error: access.error }
 
   try {
     // For now, just verify the token via /me
@@ -40,10 +38,8 @@ export async function setMaxWebhook(csrfToken: string) {
     return { error: csrf.error }
   }
 
-  const session = await getSession()
-  if (!session || !['admin', 'manager'].includes(session.role)) {
-    return { error: 'Unauthorized' }
-  }
+  const access = await requirePermission('roles.manage')
+  if (!access.ok) return { error: access.error }
 
   const token = process.env.MAX_BOT_TOKEN
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
@@ -83,10 +79,8 @@ export async function setMaxWebhook(csrfToken: string) {
 
 export async function getMaxSubscribers() {
   const prisma = getPrisma()
-  const session = await getSession()
-  if (!session || !['admin', 'manager'].includes(session.role)) {
-    return []
-  }
+  const access = await requirePermission('roles.manage')
+  if (!access.ok) return []
 
   return await prisma.maxSubscriber.findMany({
     orderBy: { createdAt: 'desc' }
@@ -100,10 +94,8 @@ export async function addMaxSubscriber(chatId: string, csrfToken: string, name?:
     return { error: csrf.error }
   }
 
-  const session = await getSession()
-  if (!session || !['admin', 'manager'].includes(session.role)) {
-    return { error: 'Unauthorized' }
-  }
+  const access = await requirePermission('roles.manage')
+  if (!access.ok) return { error: access.error }
 
   if (!chatId) {
     return { error: 'Chat ID is required' }
@@ -132,10 +124,8 @@ export async function deleteMaxSubscriber(id: number, csrfToken: string) {
     return { error: csrf.error }
   }
 
-  const session = await getSession()
-  if (!session || !['admin', 'manager'].includes(session.role)) {
-    return { error: 'Unauthorized' }
-  }
+  const access = await requirePermission('roles.manage')
+  if (!access.ok) return { error: access.error }
 
   try {
     await prisma.maxSubscriber.delete({
