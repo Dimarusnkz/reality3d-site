@@ -10,7 +10,9 @@ import { PayTbankButton } from "../pay-tbank-button";
 import { PayTbankLinkButton } from "../pay-tbank-link-button";
 import { OrderLayout, OrderSection, OrderInfoRow } from "@/components/order/order-layout";
 import { Badge } from "@/components/ui/badge";
-import { Check } from "lucide-react";
+import { Check, FileDown } from "lucide-react";
+import { DownloadShopReceiptButton } from "../download-receipt-button";
+import { OrderPaymentWatcher } from "../order-payment-watcher";
 
 export default async function ShopOrderPage({
   params,
@@ -69,6 +71,13 @@ export default async function ShopOrderPage({
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <OrderPaymentWatcher
+        enabled={!isGuestAccess}
+        orderId={order.id}
+        token={isGuestAccess ? sp.token : null}
+        initialPaid={isPaid}
+        redirectTo="/lk"
+      />
       {sp.justCreated === "1" && (
         <div className="mb-10 p-8 rounded-3xl bg-green-500/10 border border-green-500/20 text-center animate-in fade-in slide-in-from-top-4">
           <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -95,8 +104,12 @@ export default async function ShopOrderPage({
           ) : null}
 
           {isPaid ? (
-            <div className="bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl p-4 text-sm">
-              Оплата получена. Мы свяжемся с вами для подтверждения.
+            <div className="bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+              <div>
+                <p className="font-bold text-base mb-1">Оплата получена</p>
+                <p className="text-sm opacity-80 text-green-500/80">Мы свяжемся с вами для подтверждения заказа.</p>
+              </div>
+              <DownloadShopReceiptButton order={order} />
             </div>
           ) : (
             <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, MessageSquare, Loader2, RefreshCw } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, MessageSquare, Loader2, RefreshCw, FileDown } from "lucide-react";
 import { getOrderDetails, addOrderComment, createOrder } from "@/app/actions/orders";
 import { cn } from "@/lib/utils";
 import { getCalcOrderStatusMeta } from "@/lib/orders/calc-order-status";
+import { generateReceiptPDF } from "@/lib/shop/receipt-generator";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -24,6 +25,7 @@ export function ClientOrderDetailsModal({ orderId, onClose }: ClientOrderDetails
   const [commentText, setCommentText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRepeating, setIsRepeating] = useState(false);
+  const wasPaidRef = useRef<boolean | null>(null);
 
   useEffect(() => {
     if (orderId) {
@@ -36,6 +38,39 @@ export function ClientOrderDetailsModal({ orderId, onClose }: ClientOrderDetails
       setOrder(null);
     }
   }, [orderId]);
+
+  useEffect(() => {
+    if (!orderId) return;
+    if (wasPaidRef.current == null && order?.status) {
+      wasPaidRef.current = order.status === "paid";
+    }
+  }, [orderId, order?.status]);
+
+  useEffect(() => {
+    if (!orderId) return;
+
+    let cancelled = false;
+    const tick = async () => {
+      const updated = await getOrderDetails(orderId);
+      if (cancelled) return;
+
+      setOrder(updated);
+      const paid = updated?.status === "paid";
+      if (wasPaidRef.current === false && paid) {
+        onClose();
+        window.location.href = "/lk";
+      }
+    };
+
+    const id = window.setInterval(() => {
+      tick().catch(() => {});
+    }, 3000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [orderId, onClose]);
 
   if (!orderId) return null;
 
@@ -73,6 +108,25 @@ export function ClientOrderDetailsModal({ orderId, onClose }: ClientOrderDetails
       } else {
           alert("Ошибка при копировании заказа");
       }
+  };
+
+  const handleDownloadReceipt = () => {
+    if (!order || order.status !== 'paid') return;
+    
+    generateReceiptPDF({
+      orderNo: String(order.id),
+      date: new Date(order.createdAt).toLocaleDateString('ru-RU'),
+      clientName: order.user.name || "Клиент",
+      clientPhone: order.user.phone || "—",
+      items: [{
+        name: order.title || "3D Печать",
+        quantity: 1,
+        price: order.price,
+        total: order.price
+      }],
+      totalAmount: order.price,
+      paymentMethod: "Карта (онлайн)"
+    });
   };
   
   // Helper to parse details safely
@@ -208,7 +262,16 @@ export function ClientOrderDetailsModal({ orderId, onClose }: ClientOrderDetails
                     </div>
                 </div>
                 
-                <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex justify-end">
+                <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex justify-end gap-3">
+                    {order.status === 'paid' && (
+                      <button
+                          onClick={handleDownloadReceipt}
+                          className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white rounded-lg transition-all text-sm font-bold shadow-lg shadow-primary/5"
+                      >
+                          <FileDown className="h-4 w-4" />
+                          Скачать чек
+                      </button>
+                    )}
                     <button
                         onClick={handleRepeatOrder}
                         disabled={isRepeating}
