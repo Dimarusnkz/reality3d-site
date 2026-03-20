@@ -18,6 +18,40 @@ export async function POST(req: NextRequest) {
 
     const update = Array.isArray(body) ? body[0] : body;
     const updateType = update?.update_type || update?.type;
+    if (updateType === "message_created" || updateType === "bot_started") {
+      const message = update?.message || update?.body?.message || update?.event?.message || null;
+      const recipient = message?.recipient || update?.recipient || null;
+      const sender = message?.sender || update?.sender || null;
+
+      const chatOrUserIdRaw =
+        recipient?.chat_id ??
+        recipient?.user_id ??
+        message?.chat_id ??
+        message?.user_id ??
+        update?.chat_id ??
+        update?.user_id ??
+        null;
+
+      const chatOrUserId = typeof chatOrUserIdRaw === "number" ? chatOrUserIdRaw : Number.parseInt(String(chatOrUserIdRaw || ""), 10);
+      if (Number.isFinite(chatOrUserId)) {
+        const prisma = getPrisma();
+        const name =
+          (typeof sender?.name === "string" ? sender.name : null) ||
+          (typeof sender?.username === "string" ? sender.username : null) ||
+          null;
+
+        await prisma.maxSubscriber.upsert({
+          where: { chatId: String(chatOrUserId) },
+          update: { name: name || undefined },
+          create: { chatId: String(chatOrUserId), name: name || undefined },
+        });
+
+        await sendMaxDirect(chatOrUserId, `✅ MAX подключён.\nВаш MAX ID: ${chatOrUserId}\nПолучатель добавлен — уведомления начнут приходить.`);
+      }
+
+      return NextResponse.json({ ok: true });
+    }
+
     if (updateType !== "message_callback") return NextResponse.json({ ok: true });
 
     const callback = update?.callback || update?.message_callback || update;
@@ -64,6 +98,30 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true });
+}
+
+async function sendMaxDirect(id: number, text: string) {
+  const token = process.env.MAX_BOT_TOKEN;
+  if (!token) return;
+
+  const url = new URL("https://platform-api.max.ru/messages");
+  url.searchParams.set("chat_id", String(id));
+
+  const res1 = await fetch(url.toString(), {
+    method: "POST",
+    headers: { Authorization: token, "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  }).catch(() => null as any);
+
+  if (res1 && res1.ok) return;
+
+  const url2 = new URL("https://platform-api.max.ru/messages");
+  url2.searchParams.set("user_id", String(id));
+  await fetch(url2.toString(), {
+    method: "POST",
+    headers: { Authorization: token, "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  }).catch(() => {});
 }
 
 async function answerMaxCallback(
