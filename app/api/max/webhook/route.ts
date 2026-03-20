@@ -23,6 +23,10 @@ export async function POST(req: NextRequest) {
       const recipient = message?.recipient || update?.recipient || null;
       const sender = message?.sender || update?.sender || null;
 
+      const senderIdRaw = sender?.user_id ?? sender?.id ?? update?.user_id ?? null;
+      const senderId =
+        typeof senderIdRaw === "number" ? senderIdRaw : Number.parseInt(String(senderIdRaw || ""), 10);
+
       const chatOrUserIdRaw =
         recipient?.chat_id ??
         recipient?.user_id ??
@@ -32,7 +36,13 @@ export async function POST(req: NextRequest) {
         update?.user_id ??
         null;
 
-      const chatOrUserId = typeof chatOrUserIdRaw === "number" ? chatOrUserIdRaw : Number.parseInt(String(chatOrUserIdRaw || ""), 10);
+      const chatOrUserId =
+        Number.isFinite(senderId)
+          ? senderId
+          : typeof chatOrUserIdRaw === "number"
+            ? chatOrUserIdRaw
+            : Number.parseInt(String(chatOrUserIdRaw || ""), 10);
+
       if (Number.isFinite(chatOrUserId)) {
         const prisma = getPrisma();
         const name =
@@ -62,16 +72,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    const actorChatId =
-      String(
-        callback?.message?.recipient?.chat_id ??
-          callback?.message?.recipient?.user_id ??
-          callback?.recipient?.chat_id ??
-          callback?.recipient?.user_id ??
-          callback?.chat_id ??
-          callback?.user_id ??
-          ""
-      ) || "";
+    const actorIdRaw =
+      callback?.user_id ??
+      callback?.user?.user_id ??
+      callback?.sender?.user_id ??
+      callback?.from?.user_id ??
+      update?.user_id ??
+      update?.user?.user_id ??
+      update?.sender?.user_id ??
+      null;
+
+    const actorId =
+      typeof actorIdRaw === "number" ? actorIdRaw : Number.parseInt(String(actorIdRaw || ""), 10);
+    const actorChatId = Number.isFinite(actorId) ? String(actorId) : "";
 
     const prisma = getPrisma();
     const authorized = actorChatId
@@ -82,6 +95,13 @@ export async function POST(req: NextRequest) {
       await answerMaxCallback(callbackId, { notification: "Нет прав для этого действия" });
       return NextResponse.json({ ok: true });
     }
+
+    await logAudit({
+      actorUserId: null,
+      action: "max.callback.received",
+      target: actorChatId,
+      metadata: { payload },
+    });
 
     if (payload.startsWith("confirm_payment:")) {
       const [, kind, orderId] = payload.split(":");
