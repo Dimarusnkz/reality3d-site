@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Trash2, Send, Activity, Box, Webhook } from "lucide-react";
-import { addMaxSubscriber, deleteMaxSubscriber, getMaxSubscribers, sendTestMaxMessage, setMaxWebhook } from "@/app/actions/max";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -31,8 +30,9 @@ export default function MaxSettings({ isConfigured }: MaxSettingsProps) {
   const [webhookLoading, setWebhookLoading] = useState(false);
 
   const fetchSubscribers = async () => {
-    const data = await getMaxSubscribers();
-    setSubscribers(data);
+    const res = await fetch("/api/admin/integrations/max/subscribers", { cache: "no-store" });
+    const json = (await res.json().catch(() => null)) as any;
+    setSubscribers(Array.isArray(json?.subscribers) ? json.subscribers : []);
   };
 
   useEffect(() => {
@@ -42,45 +42,65 @@ export default function MaxSettings({ isConfigured }: MaxSettingsProps) {
   const handleAdd = async () => {
     if (!newChatId) return;
     setLoading(true);
-    const result = await addMaxSubscriber(newChatId, getCsrfToken(), newName);
-    if (result.success) {
+    const res = await fetch("/api/admin/integrations/max/subscribers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chatId: newChatId, name: newName, csrfToken: getCsrfToken() }),
+    });
+    const result = (await res.json().catch(() => null)) as any;
+    if (res.ok && result?.ok) {
       setNewChatId("");
       setNewName("");
       fetchSubscribers();
     } else {
-      alert(result.error);
+      alert(result?.error || "Ошибка");
     }
     setLoading(false);
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Удалить этого получателя?")) return;
-    const result = await deleteMaxSubscriber(id, getCsrfToken());
-    if (result.success) {
+    const res = await fetch("/api/admin/integrations/max/subscribers", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, csrfToken: getCsrfToken() }),
+    });
+    const result = (await res.json().catch(() => null)) as any;
+    if (res.ok && result?.ok) {
       fetchSubscribers();
     } else {
-      alert(result.error);
+      alert(result?.error || "Ошибка");
     }
   };
 
   const handleTestBot = async () => {
     setTestLoading(true);
-    const result = await sendTestMaxMessage(getCsrfToken());
-    if (result.success) {
+    const res = await fetch("/api/admin/integrations/max/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ csrfToken: getCsrfToken() }),
+    });
+    const result = (await res.json().catch(() => null)) as any;
+    if (res.ok && result?.ok) {
       alert("MAX Bot успешно протестирован!");
     } else {
-      alert(result.error || "Ошибка тестирования бота");
+      alert(result?.error || "Ошибка тестирования бота");
     }
     setTestLoading(false);
   };
 
   const handleSetWebhook = async () => {
     setWebhookLoading(true);
-    const result = await setMaxWebhook(getCsrfToken());
-    if (result.success) {
-      alert("Webhook установлен успешно: " + (result.message || "OK"));
+    const res = await fetch("/api/admin/integrations/max/webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ csrfToken: getCsrfToken() }),
+    });
+    const result = (await res.json().catch(() => null)) as any;
+    if (res.ok && result?.ok) {
+      alert("Webhook установлен успешно: " + (result?.message || "OK"));
     } else {
-      alert(result.error || "Ошибка при установке Webhook");
+      alert(result?.error || "Ошибка при установке Webhook");
     }
     setWebhookLoading(false);
   };

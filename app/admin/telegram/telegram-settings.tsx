@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Trash2, Send, Activity, Webhook } from "lucide-react";
-import { addTelegramSubscriber, deleteTelegramSubscriber, getTelegramSubscribers, sendTestTelegramMessage, setTelegramWebhook } from "@/app/actions/telegram";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -32,8 +31,9 @@ export default function TelegramSettings({ isBotTokenConfigured, isEnvChatIdConf
   const [webhookLoading, setWebhookLoading] = useState(false);
 
   const fetchSubscribers = async () => {
-    const data = await getTelegramSubscribers();
-    setSubscribers(data);
+    const res = await fetch("/api/admin/integrations/telegram/subscribers", { cache: "no-store" });
+    const json = (await res.json().catch(() => null)) as any;
+    setSubscribers(Array.isArray(json?.subscribers) ? json.subscribers : []);
   };
 
   useEffect(() => {
@@ -42,11 +42,16 @@ export default function TelegramSettings({ isBotTokenConfigured, isEnvChatIdConf
 
   const handleSetWebhook = async () => {
     setWebhookLoading(true);
-    const result = await setTelegramWebhook(getCsrfToken());
-    if (result.success) {
-      alert("Webhook установлен успешно: " + result.message);
+    const res = await fetch("/api/admin/integrations/telegram/webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ csrfToken: getCsrfToken() }),
+    });
+    const result = (await res.json().catch(() => null)) as any;
+    if (res.ok && result?.ok) {
+      alert("Webhook установлен успешно: " + result?.message);
     } else {
-      alert(result.error || "Ошибка при установке Webhook");
+      alert(result?.error || "Ошибка при установке Webhook");
     }
     setWebhookLoading(false);
   };
@@ -54,34 +59,49 @@ export default function TelegramSettings({ isBotTokenConfigured, isEnvChatIdConf
   const handleAdd = async () => {
     if (!newChatId) return;
     setLoading(true);
-    const result = await addTelegramSubscriber(newChatId, getCsrfToken(), newName);
-    if (result.success) {
+    const res = await fetch("/api/admin/integrations/telegram/subscribers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chatId: newChatId, name: newName, csrfToken: getCsrfToken() }),
+    });
+    const result = (await res.json().catch(() => null)) as any;
+    if (res.ok && result?.ok) {
       setNewChatId("");
       setNewName("");
       fetchSubscribers();
     } else {
-      alert(result.error);
+      alert(result?.error || "Ошибка");
     }
     setLoading(false);
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Удалить этого получателя?")) return;
-    const result = await deleteTelegramSubscriber(id, getCsrfToken());
-    if (result.success) {
+    const res = await fetch("/api/admin/integrations/telegram/subscribers", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, csrfToken: getCsrfToken() }),
+    });
+    const result = (await res.json().catch(() => null)) as any;
+    if (res.ok && result?.ok) {
       fetchSubscribers();
     } else {
-      alert(result.error);
+      alert(result?.error || "Ошибка");
     }
   };
 
   const handleTestBot = async () => {
     setTestLoading(true);
-    const result = await sendTestTelegramMessage(getCsrfToken());
-    if (result.success) {
+    const res = await fetch("/api/admin/integrations/telegram/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ csrfToken: getCsrfToken() }),
+    });
+    const result = (await res.json().catch(() => null)) as any;
+    if (res.ok && result?.ok) {
       alert("Тестовое сообщение отправлено успешно!");
     } else {
-      alert(result.error || "Ошибка отправки сообщения");
+      alert(result?.error || "Ошибка отправки сообщения");
     }
     setTestLoading(false);
   };
