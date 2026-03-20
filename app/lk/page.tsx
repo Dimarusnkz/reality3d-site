@@ -53,6 +53,8 @@ export default async function LkDashboard() {
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
     .slice(0, 3);
 
+  const activeTotalCount = shopActiveCount + calcActiveCount;
+
   const name = user?.name || "Пользователь";
 
   return (
@@ -90,7 +92,7 @@ export default async function LkDashboard() {
               Активные заказы
             </h2>
             <Link href="/lk/orders" className="text-sm text-primary hover:text-primary/80 transition-colors font-medium flex items-center">
-              Все заказы <ArrowRight className="ml-1 h-4 w-4" />
+              Все заказы ({activeTotalCount}) <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
 

@@ -1,7 +1,7 @@
 import { getClientOrders, getClientShopOrders } from '@/app/actions/orders';
 import { getSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
-import OrdersTabs from './orders-tabs';
+import UnifiedOrdersList from './unified-orders-list';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,10 +18,7 @@ export default async function OrdersPage() {
         <p className="text-gray-400 mt-2">Управление заказами 3D‑печати и покупками в магазине</p>
       </div>
 
-      <OrdersTabs 
-        calcOrders={orders} 
-        shopOrders={shopOrders as any} 
-      />
+      <UnifiedOrdersList calcOrders={orders} shopOrders={shopOrders as any} />
     </div>
   );
 }
