@@ -36,7 +36,20 @@ export async function GET(request: Request) {
     ...(to && !Number.isNaN(to.getTime()) ? { lte: to } : {}),
   };
 
-  const [warehouse, client] = await Promise.all([
+  const auditCategoryPrefix =
+    type === "finance"
+      ? "finance."
+      : type === "shop"
+        ? "shop."
+        : type === "roles"
+          ? null
+          : type === "staff"
+            ? "orders."
+            : type === "security"
+              ? "sessions."
+              : null;
+
+  const [warehouse, client, audit] = await Promise.all([
     type === "client"
       ? Promise.resolve([])
       : prisma.shopWarehouseLog.findMany({
@@ -70,6 +83,38 @@ export async function GET(request: Request) {
           orderBy: { createdAt: "desc" },
           take: 10000,
         }),
+    type === "warehouse" || type === "client"
+      ? Promise.resolve([])
+      : prisma.auditEvent.findMany({
+          where: {
+            ...(Object.keys(whereTime).length ? { createdAt: whereTime } : {}),
+            ...(action ? { action: { contains: action, mode: "insensitive" } } : {}),
+            ...(role ? { actor: { is: { role } } } : {}),
+            ...(type === "roles"
+              ? {
+                  OR: [
+                    { action: { startsWith: "access." } },
+                    { action: { startsWith: "roles." } },
+                  ],
+                }
+              : auditCategoryPrefix
+                ? { action: { startsWith: auditCategoryPrefix } }
+                : {}),
+            ...(q
+              ? {
+                  OR: [
+                    { action: { contains: q, mode: "insensitive" } },
+                    { target: { contains: q, mode: "insensitive" } },
+                    { metadata: { contains: q, mode: "insensitive" } },
+                    { actor: { is: { email: { contains: q, mode: "insensitive" } } } },
+                  ],
+                }
+              : {}),
+          },
+          include: { actor: { select: { id: true, email: true, role: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 10000,
+        }),
   ]);
 
   const lines: string[] = [];
@@ -91,6 +136,8 @@ export async function GET(request: Request) {
       "comment",
       "message",
       "orderStatus",
+      "auditTarget",
+      "auditMetadata",
     ].join(",")
   );
 
@@ -138,6 +185,33 @@ export async function GET(request: Request) {
         "",
         l.message || "",
         l.orderStatus || "",
+      ]
+        .map(csvEscape)
+        .join(",")
+    );
+  }
+
+  for (const e of audit) {
+    lines.push(
+      [
+        "audit",
+        e.createdAt.toISOString(),
+        e.actor ? `${e.actor.role}:${e.actor.id}` : "system",
+        e.action,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        e.target || "",
+        e.metadata || "",
       ]
         .map(csvEscape)
         .join(",")

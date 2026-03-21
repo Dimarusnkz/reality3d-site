@@ -44,6 +44,7 @@ model User {
   warehouseTransfersCreated   WarehouseTransfer[]        @relation("WarehouseTransferCreator")
   warehouseTransfersPosted    WarehouseTransfer[]        @relation("WarehouseTransferPoster")
   auditEvents                 AuditEvent[]               @relation("UserAuditEvents")
+  printCalculations           PrintCalculation[]
 }
 
 model Session {
@@ -114,6 +115,27 @@ model Order {
   user              User               @relation(fields: [userId], references: [id])
   comments          OrderComment[]
   shopWarehouseLogs ShopWarehouseLog[]
+}
+
+model PrintCalculation {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           Int
+  createdAt        DateTime @default(now())
+  mode             String
+  tech             String
+  material         String
+  count            Int      @default(1)
+  fileName         String?
+  fileSize         Int?
+  manualWeightGrams Int?
+  manualTimeHours  Float?
+  minPriceRub      Int
+  maxPriceRub      Int
+  input            String?
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model OrderComment {

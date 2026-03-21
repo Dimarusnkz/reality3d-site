@@ -6,6 +6,7 @@ import { sendTelegramMessage } from '@/lib/telegram'
 import { sendMaxMessage } from '@/lib/max'
 import { getPrisma } from '@/lib/prisma'
 import { assertCsrfTokenValue } from '@/lib/csrf'
+import { logAudit } from '@/lib/audit'
 
 function escapeHtml(value: string) {
   return value
@@ -303,6 +304,13 @@ export async function updateOrderStatus(orderId: number, status: string, csrfTok
       where: { id: orderId },
       data: { status }
     })
+
+    await logAudit({
+      actorUserId: parseInt(session.userId, 10),
+      action: 'orders.status.update',
+      target: String(orderId),
+      metadata: { status },
+    })
     
     // Notify client? (Optional, maybe later)
     
@@ -332,6 +340,12 @@ export async function updateOrderPrice(orderId: number, price: number, csrfToken
       where: { id: orderId },
       data: { price }
     })
+    await logAudit({
+      actorUserId: parseInt(session.userId, 10),
+      action: 'orders.price.update',
+      target: String(orderId),
+      metadata: { price },
+    })
     revalidatePath('/admin/orders')
     revalidatePath(`/lk/orders`)
     return { success: true }
@@ -358,6 +372,12 @@ export async function assignOrder(orderId: number, employeeId: number | null, cs
       where: { id: orderId },
       data: { assignedToId: employeeId }
     })
+    await logAudit({
+      actorUserId: parseInt(session.userId, 10),
+      action: 'orders.assign.update',
+      target: String(orderId),
+      metadata: { assignedToId: employeeId },
+    })
     revalidatePath('/admin/orders')
     return { success: true }
   } catch (error) {
@@ -382,6 +402,12 @@ export async function updateOrderDeadline(orderId: number, deadline: Date | null
       await prisma.order.update({
         where: { id: orderId },
         data: { deadline }
+      })
+      await logAudit({
+        actorUserId: parseInt(session.userId, 10),
+        action: 'orders.deadline.update',
+        target: String(orderId),
+        metadata: { deadline: deadline ? deadline.toISOString() : null },
       })
       revalidatePath('/admin/orders')
       return { success: true }
@@ -410,6 +436,12 @@ export async function addOrderComment(orderId: number, text: string, csrfToken: 
         userId: parseInt(session.userId),
         text
       }
+    })
+    await logAudit({
+      actorUserId: parseInt(session.userId, 10),
+      action: 'orders.comment.create',
+      target: String(orderId),
+      metadata: { length: text.length },
     })
     revalidatePath('/admin/orders')
     revalidatePath('/lk/orders')
@@ -446,6 +478,11 @@ export async function deleteOrder(orderId: number, csrfToken: string) {
     await prisma.order.delete({
       where: { id: orderId }
     })
+    await logAudit({
+      actorUserId: parseInt(session.userId, 10),
+      action: 'orders.delete',
+      target: String(orderId),
+    })
     revalidatePath('/admin/orders')
     revalidatePath('/lk/orders')
     return { success: true }
@@ -474,6 +511,12 @@ export async function updateOrderDetails(orderId: number, data: { title: string,
         title: data.title,
         details: JSON.stringify(data.details, null, 2)
       }
+    })
+    await logAudit({
+      actorUserId: parseInt(session.userId, 10),
+      action: 'orders.details.update',
+      target: String(orderId),
+      metadata: { title: data.title },
     })
     revalidatePath('/admin/orders')
     revalidatePath('/lk/orders')

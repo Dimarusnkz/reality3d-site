@@ -16,7 +16,8 @@ import {
   Truck,
   MessageSquare,
   CheckCircle2,
-  Plus
+  Plus,
+  Save as SaveIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,7 @@ const MATERIALS = {
 export default function CalculatorPage() {
   const router = useRouter();
   const [isOrdering, setIsOrdering] = useState(false);
+  const [isSavingCalc, setIsSavingCalc] = useState(false);
   const [mode, setMode] = useState<"file" | "manual">("file");
   const [file, setFile] = useState<File | null>(null);
   const [tech, setTech] = useState("fdm");
@@ -112,6 +114,25 @@ export default function CalculatorPage() {
     };
 
     try {
+        fetch("/api/lk/calculations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            csrfToken: getCsrfToken(),
+            mode,
+            tech,
+            material,
+            count,
+            fileName: file?.name,
+            fileSize: file?.size,
+            manualWeightGrams: mode === "manual" ? manualParams.weight : null,
+            manualTimeHours: mode === "manual" ? manualParams.time : null,
+            minPriceRub: priceRange.min,
+            maxPriceRub: priceRange.max,
+            input: details,
+          }),
+        }).catch(() => {});
+
         const result = await createOrder({ 
             title: `Заказ: ${mode === 'file' ? file?.name || 'Новая модель' : 'По параметрам'}`,
             price: priceRange.min, 
@@ -128,6 +149,55 @@ export default function CalculatorPage() {
         console.error(e);
     } finally {
         setIsOrdering(false);
+    }
+  };
+
+  const handleSaveCalculation = async () => {
+    setIsSavingCalc(true);
+    const details = {
+      mode,
+      tech,
+      material,
+      infill: tech === "fdm" ? infill : undefined,
+      layerHeight: tech === "fdm" ? layerHeight : undefined,
+      count,
+      fileName: file?.name,
+      fileSize: file?.size,
+      manualParams: mode === "manual" ? manualParams : undefined,
+    };
+
+    try {
+      const res = await fetch("/api/lk/calculations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          csrfToken: getCsrfToken(),
+          mode,
+          tech,
+          material,
+          count,
+          fileName: file?.name,
+          fileSize: file?.size,
+          manualWeightGrams: mode === "manual" ? manualParams.weight : null,
+          manualTimeHours: mode === "manual" ? manualParams.time : null,
+          minPriceRub: priceRange.min,
+          maxPriceRub: priceRange.max,
+          input: details,
+        }),
+      });
+
+      if (res.status === 401) {
+        router.push("/login?redirectTo=/calculator");
+        return;
+      }
+
+      const json = await res.json().catch(() => null) as any;
+      if (res.ok && json?.ok) {
+        router.push("/lk/calculations");
+        return;
+      }
+    } finally {
+      setIsSavingCalc(false);
     }
   };
 
@@ -351,6 +421,15 @@ export default function CalculatorPage() {
               </div>
 
               <div className="pt-8 space-y-3">
+                <Button
+                  onClick={handleSaveCalculation}
+                  disabled={isSavingCalc || (mode === "file" && !file)}
+                  variant="outline"
+                  className="w-full h-14 rounded-2xl border-slate-800"
+                >
+                  <SaveIcon className="mr-2 h-5 w-5" />
+                  {isSavingCalc ? "Сохранение..." : "Сохранить расчет"}
+                </Button>
                 <Button 
                   onClick={handleOrder} 
                   disabled={isOrdering || (mode === 'file' && !file)}

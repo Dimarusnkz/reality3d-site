@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getPrisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/access";
-import { getClientLogActionLabel, getWarehouseLogActionLabel } from "@/lib/logs/action-labels";
+import { getAuditActionLabel, getClientLogActionLabel, getWarehouseLogActionLabel } from "@/lib/logs/action-labels";
 
 type SearchParams = {
   type?: string;
@@ -41,8 +41,21 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
     ...(to ? { lte: to } : {}),
   };
 
-  const [warehouse, client] = await Promise.all([
-    type === "client"
+  const auditCategoryPrefix =
+    type === "finance"
+      ? "finance."
+      : type === "shop"
+        ? "shop."
+        : type === "roles"
+          ? null
+          : type === "staff"
+            ? "orders."
+            : type === "security"
+              ? "sessions."
+              : null;
+
+  const [warehouse, client, audit] = await Promise.all([
+    type === "client" || type === "finance" || type === "shop" || type === "roles" || type === "staff" || type === "security"
       ? Promise.resolve([])
       : prisma.shopWarehouseLog.findMany({
           where: {
@@ -64,7 +77,7 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
           orderBy: { createdAt: "desc" },
           take: 200,
         }),
-    type === "warehouse"
+    type === "warehouse" || type === "finance" || type === "shop" || type === "roles" || type === "staff" || type === "security"
       ? Promise.resolve([])
       : prisma.shopClientLog.findMany({
           where: {
@@ -76,6 +89,38 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
                 }
               : {}),
           },
+          orderBy: { createdAt: "desc" },
+          take: 200,
+        }),
+    type === "warehouse" || type === "client"
+      ? Promise.resolve([])
+      : prisma.auditEvent.findMany({
+          where: {
+            ...(Object.keys(whereTime).length ? { createdAt: whereTime } : {}),
+            ...(action ? { action: { contains: action, mode: "insensitive" } } : {}),
+            ...(role ? { actor: { is: { role } } } : {}),
+            ...(type === "roles"
+              ? {
+                  OR: [
+                    { action: { startsWith: "access." } },
+                    { action: { startsWith: "roles." } },
+                  ],
+                }
+              : auditCategoryPrefix
+                ? { action: { startsWith: auditCategoryPrefix } }
+                : {}),
+            ...(q
+              ? {
+                  OR: [
+                    { action: { contains: q, mode: "insensitive" } },
+                    { target: { contains: q, mode: "insensitive" } },
+                    { metadata: { contains: q, mode: "insensitive" } },
+                    { actor: { is: { email: { contains: q, mode: "insensitive" } } } },
+                  ],
+                }
+              : {}),
+          },
+          include: { actor: { select: { id: true, email: true, role: true, name: true } } },
           orderBy: { createdAt: "desc" },
           take: 200,
         }),
@@ -99,6 +144,15 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
       target: l.productId ? `Товар #${l.productId}` : l.shopOrderId ? `Заказ ${l.shopOrderId}` : "—",
       delta: l.quantity ? `${l.quantity.toString()} ${l.unit || ""}`.trim() : "",
       note: l.message || l.orderStatus || "",
+    })),
+    ...audit.map((e) => ({
+      kind: "audit" as const,
+      createdAt: e.createdAt,
+      user: e.actor ? `${e.actor.name || e.actor.email} (${e.actor.role})` : "Система",
+      action: e.action,
+      target: e.target || "—",
+      delta: "",
+      note: e.metadata || "",
     })),
   ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
@@ -133,6 +187,11 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
             <option value="all">Все</option>
             <option value="warehouse">Склад</option>
             <option value="client">Клиенты</option>
+            <option value="staff">Сотрудники</option>
+            <option value="finance">Касса</option>
+            <option value="shop">Магазин</option>
+            <option value="roles">Роли</option>
+            <option value="security">Безопасность</option>
           </select>
         </div>
         <div className="md:col-span-1">
@@ -174,18 +233,33 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
           </thead>
           <tbody className="divide-y divide-slate-800">
             {rows.map((r, idx) => (
-              <tr key={idx} className={r.kind === "warehouse" ? "bg-blue-500/5" : "bg-green-500/5"}>
+              <tr
+                key={idx}
+                className={
+                  r.kind === "warehouse"
+                    ? "bg-blue-500/5"
+                    : r.kind === "client"
+                      ? "bg-green-500/5"
+                      : "bg-purple-500/5"
+                }
+              >
                 <td className="p-4 text-gray-300">{r.createdAt.toLocaleString("ru-RU")}</td>
                 <td className="p-4 text-white">{r.user}</td>
                 <td className="p-4">
                   <div className="text-gray-200">
-                    {r.kind === "warehouse" ? getWarehouseLogActionLabel(r.action) : getClientLogActionLabel(r.action)}
+                    {r.kind === "warehouse"
+                      ? getWarehouseLogActionLabel(r.action)
+                      : r.kind === "client"
+                        ? getClientLogActionLabel(r.action)
+                        : getAuditActionLabel(r.action)}
                   </div>
                   <div className="text-xs text-gray-500 font-mono">{r.action}</div>
                 </td>
                 <td className="p-4 text-gray-300">{r.target}</td>
                 <td className="p-4 text-gray-300">{r.delta}</td>
-                <td className="p-4 text-gray-400">{r.note}</td>
+                <td className="p-4 text-gray-400">
+                  {r.note && r.note.length > 220 ? `${r.note.slice(0, 220)}…` : r.note}
+                </td>
               </tr>
             ))}
           </tbody>
