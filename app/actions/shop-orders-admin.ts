@@ -234,3 +234,107 @@ export async function confirmShopOrderPaymentAdmin(orderId: string, csrfToken: s
     return { ok: false as const, error: 'Не удалось подтвердить оплату' }
   }
 }
+
+export async function cancelShopOrderAdmin(orderId: string, reason: string, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { ok: false as const, error: csrf.error }
+
+  const access = await requirePermission('shop.orders.manage')
+  if (!access.ok) return access
+
+  const order = await prisma.shopOrder.findUnique({
+    where: { id: orderId },
+    include: { items: true },
+  })
+  if (!order) return { ok: false as const, error: 'Заказ не найден' }
+  if (order.status === 'cancelled') return { ok: true as const }
+
+  const defaultWarehouseId = await getDefaultWarehouseId(prisma)
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Change status
+      await tx.shopOrder.update({
+        where: { id: order.id },
+        data: { status: 'cancelled' },
+      })
+
+      // 2. Return items to stock/reserve
+      for (const item of order.items) {
+        if (!item.productId) continue
+        
+        const inv = await tx.shopInventoryItem.upsert({
+          where: { productId_warehouseId: { productId: item.productId, warehouseId: defaultWarehouseId } },
+          create: { productId: item.productId, warehouseId: defaultWarehouseId, unit: 'pcs', quantity: 0, reserved: 0, minThreshold: 0 },
+          update: {},
+        })
+
+        const currentQty = Number(inv.quantity)
+        const currentReserved = Number((inv as any).reserved ?? 0)
+        
+        // If order was paid, it was written off. If unpaid, it was reserved.
+        const wasPaid = order.paymentStatus === 'paid'
+        
+        let nextQty = currentQty
+        let nextReserved = currentReserved
+        let actionType: 'receipt' | 'reserve' = 'receipt'
+        let delta = item.quantity
+
+        if (wasPaid) {
+          // It was written off (qty decreased). Return to qty.
+          nextQty = currentQty + item.quantity
+          actionType = 'receipt'
+          delta = item.quantity
+        } else {
+          // It was only reserved (reserved increased). Release reserve.
+          nextReserved = Math.max(0, currentReserved - item.quantity)
+          actionType = 'reserve'
+          delta = -item.quantity
+        }
+
+        await tx.shopInventoryItem.update({
+          where: { id: inv.id },
+          data: { quantity: nextQty, reserved: nextReserved },
+        })
+
+        await tx.shopProduct.update({
+          where: { id: item.productId },
+          data: { stock: Math.max(0, Math.trunc(nextQty - nextReserved)) },
+        })
+
+        await tx.shopWarehouseLog.create({
+          data: {
+            actorUserId: access.userId,
+            actorRole: access.role,
+            actionType,
+            reason: 'internal',
+            productId: item.productId,
+            warehouseId: defaultWarehouseId,
+            sku: item.sku || null,
+            productName: item.productName,
+            quantityDelta: delta,
+            unit: 'pcs',
+            shopOrderId: order.id,
+            comment: `Возврат на склад при отмене заказа #${order.orderNo}. Причина: ${reason}`,
+          },
+        })
+      }
+    })
+
+    await logAudit({
+      actorUserId: access.userId,
+      action: 'shop.order.cancel',
+      target: String(order.orderNo),
+      metadata: { orderId: order.id, reason },
+    })
+
+    revalidatePath('/admin/shop/orders')
+    revalidatePath(`/admin/shop/orders/${order.id}`)
+    return { ok: true as const }
+  } catch (e) {
+    console.error('Cancel error:', e)
+    return { ok: false as const, error: 'Не удалось отменить заказ' }
+  }
+}
+

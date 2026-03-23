@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { confirmShopOrderPaymentAdmin, updateShopOrderAdmin } from "@/app/actions/shop-orders-admin";
-import { Loader2, Save, CheckCircle } from "lucide-react";
+import { confirmShopOrderPaymentAdmin, updateShopOrderAdmin, cancelShopOrderAdmin } from "@/app/actions/shop-orders-admin";
+import { Loader2, Save, CheckCircle, XCircle } from "lucide-react";
 import { formatRub } from "@/lib/shop/money";
 import { getShippingMethodLabel } from "@/lib/shop/shipping";
 import { cn } from "@/lib/utils";
@@ -55,6 +55,7 @@ export function OrderAdminClient({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
+  const [cancelBusy, setCancelBusy] = useState(false);
 
   const itemsTotal = useMemo(() => order.items.reduce((s, i) => s + i.totalKopeks, 0), [order.items]);
 
@@ -108,6 +109,26 @@ export function OrderAdminClient({
       window.location.reload();
     } finally {
       setConfirmBusy(false);
+    }
+  };
+
+  const cancelOrder = async () => {
+    const reason = prompt("Причина отмены заказа:", "Отмена по инициативе клиента");
+    if (reason === null) return;
+    
+    setCancelBusy(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await cancelShopOrderAdmin(order.id, reason, getCsrfToken());
+      if (!res.ok) {
+        setError(res.error || "Ошибка");
+        return;
+      }
+      setSuccess("Заказ отменен, товар возвращен на склад");
+      window.location.reload();
+    } finally {
+      setCancelBusy(false);
     }
   };
 
@@ -213,7 +234,7 @@ export function OrderAdminClient({
                   </span>
                   <span className="text-xs text-gray-500">{getShopPaymentProviderLabel(order.paymentProvider)}</span>
                 </div>
-                {order.paymentStatus !== "paid" ? (
+                {order.paymentStatus !== "paid" && order.status !== "cancelled" ? (
                   <button
                     onClick={confirmPayment}
                     disabled={confirmBusy}
@@ -221,6 +242,17 @@ export function OrderAdminClient({
                   >
                     {confirmBusy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
                     Подтвердить оплату
+                  </button>
+                ) : null}
+
+                {order.status !== "cancelled" ? (
+                  <button
+                    onClick={cancelOrder}
+                    disabled={cancelBusy}
+                    className="inline-flex h-9 items-center justify-center rounded-lg bg-red-600 px-4 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-50 mt-3 ml-2"
+                  >
+                    {cancelBusy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <XCircle className="w-4 h-4 mr-2" />}
+                    Отменить заказ
                   </button>
                 ) : null}
               </div>
