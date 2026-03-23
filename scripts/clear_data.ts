@@ -17,22 +17,26 @@ async function main() {
   // 2. Clear Calc (3D Print) related transactions
   console.log('Clearing Order and Chat data...')
   await prisma.orderComment.deleteMany({})
-  await prisma.message.deleteMany({})
+  await prisma.chatMessage.deleteMany({})
   await prisma.chatSession.deleteMany({})
   await prisma.order.deleteMany({})
   await prisma.printCalculation.deleteMany({})
 
   // 3. Clear Inventory and Warehouse
   console.log('Clearing Inventory and Warehouse data...')
-  await prisma.warehouseLocationStock.deleteMany({})
-  await prisma.shopInventoryItem.deleteMany({})
+  // Deleting in order to avoid FK constraints if any
+  await prisma.warehouseTransferItem.deleteMany({})
+  await prisma.warehouseTransfer.deleteMany({})
+  await prisma.warehouseReceiptItem.deleteMany({})
+  await prisma.warehouseReceipt.deleteMany({})
   await prisma.warehouseProductionConsumeItem.deleteMany({})
   await prisma.warehouseProductionOrder.deleteMany({})
   await prisma.warehouseRecipeItem.deleteMany({})
   await prisma.warehouseRecipe.deleteMany({})
-  await prisma.warehouseReceiptItem.deleteMany({})
-  await prisma.warehouseTransferItem.deleteMany({})
   await prisma.warehouseInventoryCountItem.deleteMany({})
+  await prisma.warehouseInventoryCount.deleteMany({})
+  await prisma.warehouseLocationStock.deleteMany({})
+  await prisma.shopInventoryItem.deleteMany({})
 
   // 4. Clear Logs and Sessions
   console.log('Clearing Logs and Sessions...')
@@ -41,13 +45,20 @@ async function main() {
   await prisma.auditEvent.deleteMany({})
   await prisma.session.deleteMany({})
 
-  // 5. Clear Other Content
+  // 5. Clear Finance
+  console.log('Clearing Finance data...')
+  await prisma.cashEntry.deleteMany({})
+  await prisma.cashReconciliation.deleteMany({})
+
+  // 6. Clear Other Content
   console.log('Clearing Reviews and Articles...')
   await prisma.review.deleteMany({})
   await prisma.article.deleteMany({})
 
-  // 6. Delete Users (Except Admins)
+  // 7. Delete Users (Except Admins)
   console.log('Deleting users except administrators...')
+  // We need to be careful here if admins have references. 
+  // But since we cleared almost everything above, it should be fine.
   const deletedUsers = await prisma.user.deleteMany({
     where: {
       role: {
@@ -57,7 +68,7 @@ async function main() {
   })
   console.log(`Deleted ${deletedUsers.count} non-admin users.`)
 
-  // 7. Reset Product Stock (optional but good practice)
+  // 8. Reset Product Stock
   console.log('Resetting ShopProduct stock to 0...')
   await prisma.shopProduct.updateMany({
     data: {
