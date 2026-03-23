@@ -12,6 +12,9 @@ export type PermissionKey =
   | 'warehouse.recipes.manage'
   | 'warehouse.production'
   | 'warehouse.inventory'
+  | 'warehouse.purchase.view'
+  | 'warehouse.purchase.manage'
+  | 'warehouse.adjustment'
   
   // Shop & Orders
   | 'shop.orders.manage'
