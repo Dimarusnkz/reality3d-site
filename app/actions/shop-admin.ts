@@ -78,7 +78,7 @@ const productSchema = z.object({
   lengthMm: z.number().int().min(0).max(5000).optional().nullable(),
   widthMm: z.number().int().min(0).max(5000).optional().nullable(),
   heightMm: z.number().int().min(0).max(5000).optional().nullable(),
-  stock: z.number().int().min(0).max(100000),
+  stock: z.number().int().min(0).max(100000).optional().nullable(),
   allowPreorder: z.boolean().optional().nullable(),
   isActive: z.boolean(),
   categoryId: z.number().int().positive().optional().nullable(),
@@ -105,7 +105,7 @@ export async function createShopProduct(input: unknown, csrfToken: string) {
   if (parsed.data.isActive && parsed.data.itemType && parsed.data.itemType !== 'product') {
     return { ok: false as const, error: 'Материалы/упаковку нельзя публиковать в магазине' }
   }
-  if (parsed.data.isActive && !parsed.data.allowPreorder && parsed.data.stock <= 0) {
+  if (parsed.data.isActive && !parsed.data.allowPreorder && (parsed.data.stock || 0) <= 0) {
     return { ok: false as const, error: 'Нельзя публиковать товар без остатков (включите предзаказ или поставьте остаток > 0)' }
   }
 
@@ -126,7 +126,7 @@ export async function createShopProduct(input: unknown, csrfToken: string) {
         lengthMm: parsed.data.lengthMm == null ? null : parsed.data.lengthMm,
         widthMm: parsed.data.widthMm == null ? null : parsed.data.widthMm,
         heightMm: parsed.data.heightMm == null ? null : parsed.data.heightMm,
-        stock: parsed.data.stock,
+        stock: parsed.data.stock || 0,
         allowPreorder: Boolean(parsed.data.allowPreorder),
         isActive: parsed.data.isActive,
         categoryId: parsed.data.categoryId ?? null,
@@ -166,7 +166,7 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
   if (parsed.data.isActive && parsed.data.itemType && parsed.data.itemType !== 'product') {
     return { ok: false as const, error: 'Материалы/упаковку нельзя публиковать в магазине' }
   }
-  if (parsed.data.isActive && !parsed.data.allowPreorder && parsed.data.stock <= 0) {
+  if (parsed.data.isActive && !parsed.data.allowPreorder && (parsed.data.stock || 0) <= 0) {
     return { ok: false as const, error: 'Нельзя публиковать товар без остатков (включите предзаказ или поставьте остаток > 0)' }
   }
 
@@ -190,7 +190,7 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
         lengthMm: parsed.data.lengthMm == null ? null : parsed.data.lengthMm,
         widthMm: parsed.data.widthMm == null ? null : parsed.data.widthMm,
         heightMm: parsed.data.heightMm == null ? null : parsed.data.heightMm,
-        stock: parsed.data.stock,
+        stock: parsed.data.stock == null ? undefined : parsed.data.stock,
         allowPreorder: Boolean(parsed.data.allowPreorder),
         isActive: parsed.data.isActive,
         categoryId: parsed.data.categoryId ?? null,

@@ -183,7 +183,7 @@ export function ProductForm({
         lengthMm: form.lengthMm == null ? null : Math.round(Number(form.lengthMm)),
         widthMm: form.widthMm == null ? null : Math.round(Number(form.widthMm)),
         heightMm: form.heightMm == null ? null : Math.round(Number(form.heightMm)),
-        stock: Math.round(Number(form.stock)),
+        stock: form.stock != null ? Math.round(Number(form.stock)) : 0,
         allowPreorder: Boolean(form.allowPreorder),
         isActive: Boolean(form.isActive),
         categoryId: form.categoryId == null ? null : Number(form.categoryId),
@@ -222,13 +222,16 @@ export function ProductForm({
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-400 ml-1">Slug (URL-адрес)</label>
+          <label className="text-sm font-medium text-gray-400 ml-1">Slug (URL-адрес товара)</label>
           <input
             value={form.slug}
             onChange={(e) => onSlugChange(e.target.value)}
             placeholder="pla-filament-1kg"
             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-mono text-sm"
           />
+          <p className="text-[10px] text-gray-500 ml-1">
+            Будет в адресе: reality3d.ru/shop/<strong>{form.slug || "название"}</strong>
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -347,7 +350,7 @@ export function ProductForm({
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-400 ml-1">Остаток</label>
+          <label className="text-sm font-medium text-gray-400 ml-1">Начальный остаток (0 по умолчанию)</label>
           <input
             type="number"
             inputMode="numeric"
@@ -355,6 +358,9 @@ export function ProductForm({
             onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
           />
+          <p className="text-[10px] text-gray-500 ml-1">
+            Обычно остаток пополняется через «Приход на склад».
+          </p>
         </div>
 
         <div className="space-y-2">
