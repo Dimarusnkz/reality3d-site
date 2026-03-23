@@ -54,10 +54,6 @@ export function SuppliersClient({ initial }: { initial: Supplier[] }) {
     return list.sort((a, b) => a.name.localeCompare(b.name));
   }, [suppliers, searchTerm]);
 
-  const updateLocal = (id: number, data: Partial<Supplier>) => {
-    setSuppliers((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
-  };
-
   const create = async () => {
     setIsSaving(true);
     try {
@@ -391,7 +387,7 @@ export function SuppliersClient({ initial }: { initial: Supplier[] }) {
             </tbody>
           </table>
         </div>
-        {sorted.length === 0 ? <div className="p-12 text-center text-gray-500 font-medium">Поставщики не найдены</div> : null}
+        {filteredSuppliers.length === 0 ? <div className="p-12 text-center text-gray-500 font-medium">Поставщики не найдены</div> : null}
       </div>
     </div>
   );
