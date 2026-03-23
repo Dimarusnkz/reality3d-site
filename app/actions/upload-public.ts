@@ -40,7 +40,10 @@ export async function uploadPublicFile(formData: FormData) {
   const result = publicUploadSchema.safeParse({ file })
 
   if (!result.success) {
-    return { error: result.error.errors[0].message }
+    return { 
+      success: false, 
+      error: result.error.errors[0].message 
+    }
   }
 
   const originalName = file.name
