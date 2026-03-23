@@ -18,8 +18,11 @@ const ALLOWED_EXTENSIONS = ['stl', 'obj', 'step', 'stp']
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 
 const uploadSchema = z.object({
-  file: z.instanceof(File).refine((file) => file.size <= MAX_FILE_SIZE, 'File too large (Max 50MB)')
+  file: z.any()
+    .refine((file) => file instanceof File, 'No file provided')
+    .refine((file) => file instanceof File && file.size <= MAX_FILE_SIZE, 'File too large (Max 50MB)')
     .refine((file) => {
+      if (!(file instanceof File)) return false;
       const ext = file.name.split('.').pop()?.toLowerCase() || ''
       return ALLOWED_EXTENSIONS.includes(ext)
     }, 'Invalid file type. Only STL, OBJ, STEP allowed.')
@@ -42,7 +45,7 @@ export async function uploadFile(formData: FormData) {
   if (!result.success) {
     return { 
       success: false,
-      error: result.error.errors[0].message 
+      error: result.error.format()._errors[0] || 'Invalid file'
     }
   }
 

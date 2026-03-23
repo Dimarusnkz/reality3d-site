@@ -18,8 +18,11 @@ const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
 const publicUploadSchema = z.object({
-  file: z.instanceof(File).refine((file) => file.size <= MAX_FILE_SIZE, 'File too large (Max 5MB)')
+  file: z.any()
+    .refine((file) => file instanceof File, 'No file provided')
+    .refine((file) => file instanceof File && file.size <= MAX_FILE_SIZE, 'File too large (Max 5MB)')
     .refine((file) => {
+      if (!(file instanceof File)) return false;
       const ext = file.name.split('.').pop()?.toLowerCase() || ''
       return ALLOWED_EXTENSIONS.includes(ext)
     }, 'Invalid file type. Only JPG, PNG, WEBP allowed.')
@@ -42,7 +45,7 @@ export async function uploadPublicFile(formData: FormData) {
   if (!result.success) {
     return { 
       success: false, 
-      error: result.error.errors[0].message 
+      error: result.error.format()._errors[0] || 'Invalid file'
     }
   }
 
