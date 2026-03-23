@@ -20,6 +20,6 @@ if ($gitStatus) {
 
 # Step 2: Run deploy script on server
 Write-Host "Running deploy_server.sh on remote server..." -ForegroundColor Yellow
-plink -batch -pw $pass "$user@$server" "cd $remote_path && ./deploy_server.sh"
+plink -batch -pw $pass "$user@$server" "cd $remote_path && chmod +x deploy_server.sh build_server.sh && ./deploy_server.sh"
 
 Write-Host "Deployment finished!" -ForegroundColor Green
