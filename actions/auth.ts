@@ -128,6 +128,7 @@ export async function login(prevState: any, formData: FormData) {
 
     const user = await prisma.user.findUnique({
       where: { email },
+      select: { id: true, password: true, role: true }
     });
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -202,6 +203,7 @@ export async function register(prevState: any, formData: FormData) {
 
     const existingUser = await prisma.user.findUnique({
       where: { email },
+      select: { id: true }
     });
 
     if (existingUser) {
@@ -220,6 +222,7 @@ export async function register(prevState: any, formData: FormData) {
         password: hashedPassword,
         name,
       },
+      select: { id: true }
     });
 
     await createSession(user.id.toString(), 'user');

@@ -4,6 +4,7 @@ import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { getSession } from '@/lib/session'
+import { assertCsrfTokenValue } from '@/lib/csrf'
 
 const DEFAULT_PUBLIC_UPLOAD_DIR = process.platform === 'win32'
   ? 'C:\\Users\\Dmitry\\Desktop\\reality3d-uploads\\public'
@@ -15,26 +16,6 @@ const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp'])
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
 
-function isSameOrigin(req: NextRequest) {
-  const host = req.headers.get('host')
-  const origin = req.headers.get('origin')
-  if (!host) return false
-  if (!origin) return true
-  try {
-    return new URL(origin).host === host
-  } catch {
-    return false
-  }
-}
-
-function getCsrfToken(req: NextRequest, formData: FormData) {
-  const cookieToken = req.cookies.get('csrf_token')?.value || null
-  const headerToken = req.headers.get('x-csrf-token')
-  const bodyToken = formData.get('csrf_token')
-  const token = typeof bodyToken === 'string' ? bodyToken : headerToken
-  return { cookieToken, token }
-}
-
 export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
@@ -43,14 +24,13 @@ export async function POST(req: NextRequest) {
 
   try {
     const formData = await req.formData()
+    const headerToken = req.headers.get('x-csrf-token')
+    const bodyToken = formData.get('csrf_token')
+    const token = typeof bodyToken === 'string' ? bodyToken : headerToken
 
-    if (!isSameOrigin(req)) {
-      return NextResponse.json({ error: 'Запрос отклонён' }, { status: 403 })
-    }
-
-    const csrf = getCsrfToken(req, formData)
-    if (!csrf.cookieToken || !csrf.token || csrf.cookieToken !== csrf.token) {
-      return NextResponse.json({ error: 'Сессия формы истекла. Обнови страницу и повтори.' }, { status: 403 })
+    const csrf = await assertCsrfTokenValue(token)
+    if (!csrf.ok) {
+      return NextResponse.json({ error: csrf.error }, { status: 403 })
     }
 
     const file = formData.get('file') as File | null

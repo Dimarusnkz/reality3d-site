@@ -132,7 +132,8 @@ export async function updatePassword(prevState: ProfileState, formData: FormData
 
   try {
     const user = await prisma.user.findUnique({
-      where: { id: userId }
+      where: { id: userId },
+      select: { password: true }
     })
 
     if (!user) {

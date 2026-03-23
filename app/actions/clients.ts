@@ -33,20 +33,27 @@ export async function getClients(): Promise<ClientWithStats[]> {
         in: ['user', 'client']
       }
     },
-    include: {
-        orders: {
-            where: {
-                status: {
-                    notIn: ['completed', 'cancelled']
-                }
-            },
-            select: { id: true }
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      phone: true,
+      address: true,
+      role: true,
+      createdAt: true,
+      orders: {
+        where: {
+          status: {
+            notIn: ['completed', 'cancelled']
+          }
         },
-        chatSessions: {
-            select: { id: true },
-            take: 1,
-            orderBy: { updatedAt: 'desc' }
-        }
+        select: { id: true }
+      },
+      chatSessions: {
+        select: { id: true },
+        take: 1,
+        orderBy: { updatedAt: 'desc' }
+      }
     },
     orderBy: {
       createdAt: 'desc'
@@ -58,7 +65,7 @@ export async function getClients(): Promise<ClientWithStats[]> {
     email: user.email,
     name: user.name,
     phone: user.phone,
-    address: (user as any).address || null, // Temporary cast until Prisma client is regenerated
+    address: user.address,
     role: user.role,
     createdAt: user.createdAt,
     activeOrdersCount: user.orders.length,

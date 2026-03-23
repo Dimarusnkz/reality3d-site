@@ -46,7 +46,13 @@ export async function createOrder(data: {
         details: JSON.stringify(data.details, null, 2),
       },
       include: {
-        user: true
+        user: {
+          select: {
+            name: true,
+            email: true,
+            phone: true
+          }
+        }
       }
     })
 
