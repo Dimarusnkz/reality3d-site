@@ -28,7 +28,7 @@ export default async function LkDashboard() {
   const prisma = getPrisma();
   const userId = parseInt(session.userId, 10);
 
-  const [user, shopActiveCount, calcActiveCount, activeShopOrders, activeCalcOrders] = await Promise.all([
+  const [user, shopActiveCount, calcActiveCount, activeShopOrders, activeCalcOrders, unpaidShopOrders, unpaidCalcOrders] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true, createdAt: true } }),
     prisma.shopOrder.count({ where: { userId, status: { notIn: ["completed", "cancelled"] } } }),
     prisma.order.count({ where: { userId, status: { notIn: ["completed", "cancelled"] } } }),
@@ -44,7 +44,20 @@ export default async function LkDashboard() {
       orderBy: { createdAt: "desc" },
       take: 3,
     }),
+    prisma.shopOrder.findMany({
+      where: { userId, paymentStatus: "unpaid", status: { notIn: ["cancelled"] } },
+      select: { id: true, orderNo: true, totalKopeks: true, createdAt: true },
+    }),
+    prisma.order.findMany({
+      where: { userId, status: "payment_pending" },
+      select: { id: true, title: true, price: true, createdAt: true },
+    }),
   ]);
+
+  const unpaidItems = [
+    ...unpaidShopOrders.map(o => ({ kind: 'shop' as const, data: o })),
+    ...unpaidCalcOrders.map(o => ({ kind: 'calc' as const, data: o }))
+  ];
 
   const activeItems = [
     ...activeShopOrders.map((o) => ({ kind: "shop" as const, createdAt: o.createdAt, data: o })),
@@ -82,6 +95,69 @@ export default async function LkDashboard() {
         {/* Декоративный элемент фона */}
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
       </div>
+
+      {/* СЕКЦИЯ: ТРЕБУЕТ ОПЛАТЫ */}
+      {unpaidItems.length > 0 && (
+        <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-orange-500" />
+              Требуют оплаты
+            </h2>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {unpaidItems.map((it) => {
+              if (it.kind === "shop") {
+                const o = it.data;
+                return (
+                  <div key={`unpaid:shop:${o.id}`} className="neon-card p-4 rounded-xl border border-orange-500/30 bg-orange-500/5 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <ShoppingCart className="w-12 h-12 text-orange-500" />
+                    </div>
+                    <div className="relative z-10">
+                      <div className="text-sm text-orange-500 font-bold mb-1 uppercase tracking-wider">Магазин</div>
+                      <div className="text-white font-bold mb-2 truncate">Заказ #{o.orderNo}</div>
+                      <div className="flex items-center justify-between mt-4">
+                        <div className="text-xl font-black text-white">{formatRub(o.totalKopeks)}</div>
+                        <LinkButton
+                          href={`/shop/order/${o.id}?pay=1`}
+                          size="sm"
+                          className="bg-orange-500 hover:bg-orange-600 text-white font-bold border-none shadow-[0_0_15px_rgba(249,115,22,0.4)] animate-pulse"
+                        >
+                          Оплатить
+                        </LinkButton>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              const o = it.data;
+              return (
+                <div key={`unpaid:calc:${o.id}`} className="neon-card p-4 rounded-xl border border-orange-500/30 bg-orange-500/5 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <Calculator className="w-12 h-12 text-orange-500" />
+                  </div>
+                  <div className="relative z-10">
+                    <div className="text-sm text-orange-500 font-bold mb-1 uppercase tracking-wider">3D-Печать</div>
+                    <div className="text-white font-bold mb-2 truncate">{o.title || `Заказ #${o.id}`}</div>
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="text-xl font-black text-white">{o.price?.toLocaleString("ru-RU")} ₽</div>
+                      <LinkButton
+                        href={`/lk/orders/${o.id}`}
+                        size="sm"
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold border-none shadow-[0_0_15px_rgba(249,115,22,0.4)] animate-pulse"
+                      >
+                        Оплатить
+                      </LinkButton>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Левая колонка: Активные заказы */}
