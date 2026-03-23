@@ -34,6 +34,18 @@ type ProductInput = {
   imageUrls: string[];
 };
 
+function slugify(text: string) {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-") // Replace spaces with -
+    .replace(/[^\w-]+/g, "") // Remove all non-word chars
+    .replace(/--+/g, "-") // Replace multiple - with single -
+    .replace(/^-+/, "") // Trim - from start of text
+    .replace(/-+$/, ""); // Trim - from end of text
+}
+
 export function ProductForm({
   categories,
   product,
@@ -142,6 +154,18 @@ export function ProductForm({
     });
   };
 
+  const onNameChange = (name: string) => {
+    setForm((prev) => ({
+      ...prev,
+      name,
+      slug: prev.slug === "" || prev.slug === slugify(prev.name) ? slugify(name) : prev.slug,
+    }));
+  };
+
+  const onSlugChange = (slug: string) => {
+    setForm((prev) => ({ ...prev, slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, "-") }));
+  };
+
   const submit = async () => {
     setIsSaving(true);
     try {
@@ -155,11 +179,11 @@ export function ProductForm({
         priceRub: Number(form.priceRub),
         purchasePriceRub: canEditPurchasePrice ? (form.purchasePriceRub == null ? null : Number(form.purchasePriceRub)) : null,
         compareAtRub: form.compareAtRub == null ? null : Number(form.compareAtRub),
-        weightGrams: form.weightGrams == null ? null : Number(form.weightGrams),
-        lengthMm: form.lengthMm == null ? null : Number(form.lengthMm),
-        widthMm: form.widthMm == null ? null : Number(form.widthMm),
-        heightMm: form.heightMm == null ? null : Number(form.heightMm),
-        stock: Number(form.stock),
+        weightGrams: form.weightGrams == null ? null : Math.round(Number(form.weightGrams)),
+        lengthMm: form.lengthMm == null ? null : Math.round(Number(form.lengthMm)),
+        widthMm: form.widthMm == null ? null : Math.round(Number(form.widthMm)),
+        heightMm: form.heightMm == null ? null : Math.round(Number(form.heightMm)),
+        stock: Math.round(Number(form.stock)),
         allowPreorder: Boolean(form.allowPreorder),
         isActive: Boolean(form.isActive),
         categoryId: form.categoryId == null ? null : Number(form.categoryId),
@@ -192,18 +216,18 @@ export function ProductForm({
           <label className="text-sm font-medium text-gray-400 ml-1">Название</label>
           <input
             value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            onChange={(e) => onNameChange(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
           />
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-400 ml-1">Slug</label>
+          <label className="text-sm font-medium text-gray-400 ml-1">Slug (URL-адрес)</label>
           <input
             value={form.slug}
-            onChange={(e) => setForm({ ...form, slug: e.target.value })}
+            onChange={(e) => onSlugChange(e.target.value)}
             placeholder="pla-filament-1kg"
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-mono"
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-mono text-sm"
           />
         </div>
 

@@ -8,6 +8,7 @@ import { hasPermission } from '@/lib/access'
 import { toKopeks } from '@/lib/shop/money'
 import { z } from 'zod'
 import { logAudit } from '@/lib/audit'
+import { formatZodError } from '@/lib/utils'
 
 function requireAdmin(session: { userId?: string; role?: string } | null) {
   if (!session?.userId) return { ok: false as const, error: 'Unauthorized' }
@@ -36,7 +37,7 @@ export async function createShopCategory(input: unknown, csrfToken: string) {
   if (!admin.ok) return admin
 
   const parsed = categorySchema.safeParse(input)
-  if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
+  if (!parsed.success) return { ok: false as const, error: formatZodError(parsed.error) }
 
   try {
     const category = await prisma.shopCategory.create({
@@ -100,7 +101,7 @@ export async function createShopProduct(input: unknown, csrfToken: string) {
   if (!admin.ok) return admin
 
   const parsed = productSchema.safeParse(input)
-  if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
+  if (!parsed.success) return { ok: false as const, error: formatZodError(parsed.error) }
   if (parsed.data.isActive && parsed.data.itemType && parsed.data.itemType !== 'product') {
     return { ok: false as const, error: 'Материалы/упаковку нельзя публиковать в магазине' }
   }
@@ -161,7 +162,7 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
   if (!admin.ok) return admin
 
   const parsed = productSchema.safeParse(input)
-  if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
+  if (!parsed.success) return { ok: false as const, error: formatZodError(parsed.error) }
   if (parsed.data.isActive && parsed.data.itemType && parsed.data.itemType !== 'product') {
     return { ok: false as const, error: 'Материалы/упаковку нельзя публиковать в магазине' }
   }
@@ -215,7 +216,7 @@ export async function updateShopProductCard(id: number, input: unknown, csrfToke
   if (!admin.ok) return admin
 
   const parsed = productCardSchema.safeParse(input)
-  if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
+  if (!parsed.success) return { ok: false as const, error: formatZodError(parsed.error) }
 
   try {
     await prisma.$transaction(async (tx) => {
