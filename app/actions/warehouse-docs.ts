@@ -11,10 +11,14 @@ import { toKopeks } from '@/lib/shop/money'
 import { getDefaultWarehouseId } from '@/lib/warehouse/default-warehouse'
 
 const supplierSchema = z.object({
-  name: z.string().trim().min(2).max(200),
-  contact: z.string().trim().max(200).optional().nullable(),
-  phone: z.string().trim().max(50).optional().nullable(),
+  name: z.string().trim().min(2, 'Укажите наименование').max(200),
+  contact: z.string().trim().min(2, 'Укажите контактное лицо').max(200),
+  phone: z.string().trim().min(5, 'Укажите телефон').max(50),
   email: z.string().trim().max(120).optional().nullable(),
+  address: z.string().trim().min(5, 'Укажите адрес').max(300),
+  inn: z.string().trim().min(10, 'ИНН должен быть 10 или 12 цифр').max(12),
+  kpp: z.string().trim().max(9).optional().nullable(),
+  bankAccount: z.string().trim().max(200).optional().nullable(),
   contractNumber: z.string().trim().max(80).optional().nullable(),
   isActive: z.boolean().optional().nullable(),
 })
@@ -73,15 +77,22 @@ export async function createWarehouseSupplier(input: unknown, csrfToken: string)
   if (!permitted) return { ok: false as const, error: 'Unauthorized' }
 
   const parsed = supplierSchema.safeParse(input)
-  if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((i) => i.message)
+    return { ok: false as const, error: `Ошибка: ${issues.join('; ')}` }
+  }
 
   try {
     const created = await prisma.warehouseSupplier.create({
       data: {
         name: parsed.data.name,
-        contact: parsed.data.contact || null,
-        phone: parsed.data.phone || null,
+        contact: parsed.data.contact,
+        phone: parsed.data.phone,
         email: parsed.data.email || null,
+        address: parsed.data.address,
+        inn: parsed.data.inn,
+        kpp: parsed.data.kpp || null,
+        bankAccount: parsed.data.bankAccount || null,
         contractNumber: parsed.data.contractNumber || null,
         isActive: parsed.data.isActive == null ? true : Boolean(parsed.data.isActive),
       },
@@ -106,16 +117,23 @@ export async function updateWarehouseSupplier(id: number, input: unknown, csrfTo
   if (!permitted) return { ok: false as const, error: 'Unauthorized' }
 
   const parsed = supplierSchema.safeParse(input)
-  if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((i) => i.message)
+    return { ok: false as const, error: `Ошибка: ${issues.join('; ')}` }
+  }
 
   try {
     await prisma.warehouseSupplier.update({
       where: { id },
       data: {
         name: parsed.data.name,
-        contact: parsed.data.contact || null,
-        phone: parsed.data.phone || null,
+        contact: parsed.data.contact,
+        phone: parsed.data.phone,
         email: parsed.data.email || null,
+        address: parsed.data.address,
+        inn: parsed.data.inn,
+        kpp: parsed.data.kpp || null,
+        bankAccount: parsed.data.bankAccount || null,
         contractNumber: parsed.data.contractNumber || null,
         isActive: parsed.data.isActive == null ? true : Boolean(parsed.data.isActive),
       },

@@ -513,6 +513,10 @@ model WarehouseSupplier {
   contact        String?
   phone          String?
   email          String?
+  address        String?
+  inn            String?
+  kpp            String?
+  bankAccount    String?
   contractNumber String?
   isActive       Boolean            @default(true)
   createdAt      DateTime           @default(now())
