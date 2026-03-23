@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, MessageSquare, X, Save, Calendar, User, FileText, Trash2, Edit2, Download, ArrowLeft, Loader2 } from "lucide-react";
+import { Search, MessageSquare, X, Save, Calendar, User, FileText, Trash2, Edit2, Download, ArrowLeft, Loader2, CheckCircle } from "lucide-react";
 import { getOrderDetails, updateOrderStatus, updateOrderPrice, addOrderComment, assignOrder, getEmployees, deleteOrder, updateOrderDetails, confirmOrderPaymentAdmin } from "@/app/actions/orders";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
