@@ -123,6 +123,7 @@ export async function updateWarehouseSupplier(id: number, input: unknown, csrfTo
   }
 
   try {
+    const oldSupplier = await prisma.warehouseSupplier.findUnique({ where: { id } })
     await prisma.warehouseSupplier.update({
       where: { id },
       data: {
@@ -138,7 +139,15 @@ export async function updateWarehouseSupplier(id: number, input: unknown, csrfTo
         isActive: parsed.data.isActive == null ? true : Boolean(parsed.data.isActive),
       },
     })
-    await logAudit({ actorUserId: access.userId, action: 'warehouse.supplier.update', target: String(id) })
+    await logAudit({ 
+      actorUserId: access.userId, 
+      action: 'warehouse.supplier.update', 
+      target: String(id),
+      metadata: {
+        before: { name: oldSupplier?.name, inn: oldSupplier?.inn },
+        after: { name: parsed.data.name, inn: parsed.data.inn }
+      }
+    })
     revalidatePath('/admin/warehouse/suppliers')
     return { ok: true as const }
   } catch {

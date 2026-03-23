@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { createWarehouseSupplier, updateWarehouseSupplier } from "@/app/actions/warehouse-docs";
-import { Loader2, Plus, Save } from "lucide-react";
+import { Loader2, Plus, Save, Search } from "lucide-react";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -28,6 +28,7 @@ type Supplier = {
 export function SuppliersClient({ initial }: { initial: Supplier[] }) {
   const [suppliers, setSuppliers] = useState<Supplier[]>(initial);
   const [isSaving, setIsSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
@@ -39,7 +40,23 @@ export function SuppliersClient({ initial }: { initial: Supplier[] }) {
   const [bankAccount, setBankAccount] = useState("");
   const [contractNumber, setContractNumber] = useState("");
 
-  const sorted = useMemo(() => suppliers.slice().sort((a, b) => a.name.localeCompare(b.name)), [suppliers]);
+  const filteredSuppliers = useMemo(() => {
+    let list = suppliers.slice();
+    if (searchTerm.trim()) {
+      const s = searchTerm.toLowerCase();
+      list = list.filter(sup => 
+        sup.name.toLowerCase().includes(s) ||
+        (sup.inn && sup.inn.includes(s)) ||
+        (sup.contact && sup.contact.toLowerCase().includes(s)) ||
+        (sup.phone && sup.phone.includes(s))
+      );
+    }
+    return list.sort((a, b) => a.name.localeCompare(b.name));
+  }, [suppliers, searchTerm]);
+
+  const updateLocal = (id: number, data: Partial<Supplier>) => {
+    setSuppliers((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
+  };
 
   const create = async () => {
     setIsSaving(true);
@@ -242,9 +259,21 @@ export function SuppliersClient({ initial }: { initial: Supplier[] }) {
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="p-4 bg-slate-950 border-b border-slate-800 text-gray-400 text-sm flex items-center justify-between">
-          <span>Зарегистрированные поставщики</span>
-          <span className="text-[10px] uppercase tracking-widest text-gray-600">Reality3D Warehouse</span>
+        <div className="p-4 bg-slate-950 border-b border-slate-800 text-gray-400 text-sm flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span>Зарегистрированные поставщики</span>
+            <span className="text-[10px] uppercase tracking-widest text-gray-600">Reality3D Warehouse</span>
+          </div>
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Поиск..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-primary/50"
+            />
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -258,7 +287,7 @@ export function SuppliersClient({ initial }: { initial: Supplier[] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {sorted.map((s) => (
+              {filteredSuppliers.map((s) => (
                 <tr key={s.id} className="hover:bg-slate-800/50 transition-colors align-top">
                   <td className="p-4 space-y-2">
                     <div className="space-y-1">

@@ -59,8 +59,11 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
 
   const filteredOrders = orders.filter(order => {
      const matchesClient = !clientIdParam || order.userId === parseInt(clientIdParam);
-     const matchesSearch = (order.user?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           order.id.toString().includes(searchTerm);
+     const matchesSearch = 
+        (order.user?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (order.user?.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.id.toString().includes(searchTerm);
      const matchesStatus = statusFilter === "all" || order.status === statusFilter;
      return matchesSearch && matchesStatus && matchesClient;
   });

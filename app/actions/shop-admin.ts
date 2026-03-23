@@ -171,35 +171,56 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
   }
 
   try {
+    const oldProduct = await prisma.shopProduct.findUnique({ where: { id } })
     const canEditPurchase = await hasPermission(admin.userId, session!.role, 'products.purchase_price.edit')
-    await prisma.shopProduct.update({
-      where: { id },
-      data: {
-        name: parsed.data.name,
-        slug: parsed.data.slug,
-        sku: parsed.data.sku || null,
-        itemType: parsed.data.itemType || 'product',
-        shortDescription: parsed.data.shortDescription || null,
-        description: parsed.data.description || null,
-        priceKopeks: toKopeks(parsed.data.priceRub),
-        ...(canEditPurchase
-          ? { purchasePriceKopeks: parsed.data.purchasePriceRub == null ? null : toKopeks(parsed.data.purchasePriceRub) }
-          : {}),
-        compareAtKopeks: parsed.data.compareAtRub == null ? null : toKopeks(parsed.data.compareAtRub),
-        weightGrams: parsed.data.weightGrams == null ? null : parsed.data.weightGrams,
-        lengthMm: parsed.data.lengthMm == null ? null : parsed.data.lengthMm,
-        widthMm: parsed.data.widthMm == null ? null : parsed.data.widthMm,
-        heightMm: parsed.data.heightMm == null ? null : parsed.data.heightMm,
-        stock: parsed.data.stock == null ? undefined : parsed.data.stock,
-        allowPreorder: Boolean(parsed.data.allowPreorder),
-        isActive: parsed.data.isActive,
-        categoryId: parsed.data.categoryId ?? null,
-      },
+    
+    await prisma.$transaction(async (tx) => {
+      await tx.shopProduct.update({
+        where: { id },
+        data: {
+          name: parsed.data.name,
+          slug: parsed.data.slug,
+          sku: parsed.data.sku || null,
+          itemType: parsed.data.itemType || 'product',
+          shortDescription: parsed.data.shortDescription || null,
+          description: parsed.data.description || null,
+          priceKopeks: toKopeks(parsed.data.priceRub),
+          ...(canEditPurchase
+            ? { purchasePriceKopeks: parsed.data.purchasePriceRub == null ? null : toKopeks(parsed.data.purchasePriceRub) }
+            : {}),
+          compareAtKopeks: parsed.data.compareAtRub == null ? null : toKopeks(parsed.data.compareAtRub),
+          weightGrams: parsed.data.weightGrams == null ? null : parsed.data.weightGrams,
+          lengthMm: parsed.data.lengthMm == null ? null : parsed.data.lengthMm,
+          widthMm: parsed.data.widthMm == null ? null : parsed.data.widthMm,
+          heightMm: parsed.data.heightMm == null ? null : parsed.data.heightMm,
+          stock: parsed.data.stock == null ? undefined : parsed.data.stock,
+          allowPreorder: Boolean(parsed.data.allowPreorder),
+          isActive: parsed.data.isActive,
+          categoryId: parsed.data.categoryId ?? null,
+        },
+      })
+
+      if (parsed.data.imageUrls) {
+        await tx.shopProductImage.deleteMany({ where: { productId: id } })
+        await tx.shopProductImage.createMany({
+          data: parsed.data.imageUrls.map((url, idx) => ({ productId: id, url, sortOrder: idx })),
+        })
+      }
     })
 
-    await logAudit({ actorUserId: admin.userId, action: 'shop.product.update', target: String(id) })
+    await logAudit({ 
+      actorUserId: admin.userId, 
+      action: 'shop.product.update', 
+      target: String(id),
+      metadata: {
+        before: { name: oldProduct?.name, sku: oldProduct?.sku, stock: oldProduct?.stock },
+        after: { name: parsed.data.name, sku: parsed.data.sku, stock: parsed.data.stock }
+      }
+    })
+    
     revalidatePath('/admin/shop/products')
     revalidatePath('/shop')
+    revalidatePath(`/shop/${parsed.data.slug}`)
     return { ok: true as const }
   } catch (e) {
     return { ok: false as const, error: 'Не удалось обновить товар' }

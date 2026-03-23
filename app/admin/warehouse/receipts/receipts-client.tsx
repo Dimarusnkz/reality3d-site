@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { createWarehouseReceipt } from "@/app/actions/warehouse-docs";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, Search } from "lucide-react";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -38,9 +38,20 @@ export function ReceiptsClient({
   const [locationId, setLocationId] = useState<string>("");
   const [documentNo, setDocumentNo] = useState("");
   const [isBusy, setIsBusy] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const supplierOptions = useMemo(() => suppliers.slice().sort((a, b) => a.name.localeCompare(b.name)), [suppliers]);
   const locationOptions = useMemo(() => locations.slice().sort((a, b) => a.code.localeCompare(b.code)), [locations]);
+
+  const filteredRows = useMemo(() => {
+    if (!searchTerm.trim()) return rows;
+    const s = searchTerm.toLowerCase();
+    return rows.filter(r => 
+      r.documentNo.toLowerCase().includes(s) ||
+      (r.supplierName && r.supplierName.toLowerCase().includes(s)) ||
+      r.id.toLowerCase().includes(s)
+    );
+  }, [rows, searchTerm]);
 
   const create = async () => {
     setIsBusy(true);
@@ -100,20 +111,21 @@ export function ReceiptsClient({
             </select>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-400 ml-1">Номер накладной</label>
+            <label className="text-sm font-medium text-gray-400 ml-1">№ Документа</label>
             <input
               value={documentNo}
               onChange={(e) => setDocumentNo(e.target.value)}
+              placeholder="Напр. ТОРГ-12 №123"
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white"
             />
           </div>
           <div className="flex items-end">
             <button
               onClick={create}
-              disabled={isBusy || documentNo.trim().length === 0}
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-50"
+              disabled={isBusy || !documentNo.trim()}
+              className="w-full inline-flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-50"
             >
-              {isBusy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+              {isBusy ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Plus className="w-5 h-5 mr-2" />}
               Создать
             </button>
           </div>
@@ -124,39 +136,65 @@ export function ReceiptsClient({
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="p-4 bg-slate-950 border-b border-slate-800 text-gray-400 text-sm">Приходы (последние 200)</div>
-        <table className="w-full text-sm">
-          <thead className="bg-slate-950 border-b border-slate-800 text-gray-400">
-            <tr>
-              <th className="p-4 text-left font-medium">Дата</th>
-              <th className="p-4 text-left font-medium">Накладная</th>
-              <th className="p-4 text-left font-medium">Поставщик</th>
-              <th className="p-4 text-left font-medium">Позиций</th>
-              <th className="p-4 text-left font-medium">Статус</th>
-              <th className="p-4 text-right font-medium">Открыть</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800">
-            {rows.map((r) => (
-              <tr key={r.id} className="hover:bg-slate-800/50 transition-colors">
-                <td className="p-4 text-gray-300">{new Date(r.receivedAt).toLocaleString("ru-RU")}</td>
-                <td className="p-4 text-white font-mono text-xs">{r.documentNo}</td>
-                <td className="p-4 text-gray-300">{r.supplierName || "—"}</td>
-                <td className="p-4 text-gray-300">{r.itemsCount}</td>
-                <td className="p-4 text-gray-300">{r.status}</td>
-                <td className="p-4 text-right">
-                  <Link
-                    href={`/admin/warehouse/receipts/${r.id}?w=${warehouseId}`}
-                    className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white px-4 text-sm font-medium transition-colors"
-                  >
-                    Открыть
-                  </Link>
-                </td>
+        <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-4">
+          <div className="text-gray-400 text-sm font-medium">История приходов</div>
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Поиск по номеру или поставщику..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-primary/50"
+            />
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-950 text-gray-400 border-b border-slate-800">
+              <tr>
+                <th className="p-4 font-medium">Дата</th>
+                <th className="p-4 font-medium">Документ</th>
+                <th className="p-4 font-medium">Поставщик</th>
+                <th className="p-4 font-medium">Позиций</th>
+                <th className="p-4 font-medium">Статус</th>
+                <th className="p-4 font-medium text-right">Действия</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {rows.length === 0 ? <div className="p-8 text-center text-gray-500">Нет приходов</div> : null}
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {filteredRows.map((r) => (
+                <tr key={r.id} className="hover:bg-slate-800/50 transition-colors">
+                  <td className="p-4 text-gray-300">{new Date(r.receivedAt).toLocaleDateString("ru-RU")}</td>
+                  <td className="p-4 text-white font-medium">{r.documentNo}</td>
+                  <td className="p-4 text-gray-300">{r.supplierName || "—"}</td>
+                  <td className="p-4 text-gray-300">{r.itemsCount}</td>
+                  <td className="p-4">
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        r.status === "posted" ? "bg-green-500/10 text-green-500" : "bg-orange-500/10 text-orange-500"
+                      }`}
+                    >
+                      {r.status === "posted" ? "Проведён" : "Черновик"}
+                    </span>
+                  </td>
+                  <td className="p-4 text-right">
+                    <Link
+                      href={`/admin/warehouse/receipts/${r.id}?w=${warehouseId}`}
+                      className="text-primary hover:underline font-medium"
+                    >
+                      Открыть
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filteredRows.length === 0 && (
+            <div className="p-12 text-center text-gray-500 font-medium">
+              {searchTerm ? "Приходы не найдены" : "Нет записей"}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
