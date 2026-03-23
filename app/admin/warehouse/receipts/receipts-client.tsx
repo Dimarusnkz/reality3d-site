@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { createWarehouseReceipt } from "@/app/actions/warehouse-docs";
-import { Loader2, Plus, Search } from "lucide-react";
+import { Clock, Loader2, Plus, Search } from "lucide-react";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -26,16 +26,19 @@ type ReceiptRow = {
 export function ReceiptsClient({
   suppliers,
   locations,
+  purchaseOrders,
   warehouseId,
   rows,
 }: {
   suppliers: Supplier[];
   locations: Location[];
+  purchaseOrders: { id: string; orderNo: string; supplier: { name: string } }[];
   warehouseId: number;
   rows: ReceiptRow[];
 }) {
   const [supplierId, setSupplierId] = useState<string>("");
   const [locationId, setLocationId] = useState<string>("");
+  const [purchaseOrderId, setPurchaseOrderId] = useState<string>("");
   const [documentNo, setDocumentNo] = useState("");
   const [isBusy, setIsBusy] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -61,6 +64,7 @@ export function ReceiptsClient({
           warehouseId,
           locationId: locationId ? Number(locationId) : null,
           supplierId: supplierId ? Number(supplierId) : null,
+          purchaseOrderId: purchaseOrderId || null,
           documentNo: documentNo.trim(),
         },
         getCsrfToken()
@@ -75,17 +79,42 @@ export function ReceiptsClient({
     }
   };
 
+  const onPoSelect = (id: string) => {
+    setPurchaseOrderId(id);
+    const po = purchaseOrders.find(x => x.id === id);
+    if (po) {
+      const s = suppliers.find(x => x.name === po.supplier.name);
+      if (s) setSupplierId(String(s.id));
+      if (!documentNo) setDocumentNo(`К заказу ${po.orderNo}`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
         <div className="text-white font-semibold">Новый приход</div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-400 ml-1">Заказ (необяз.)</label>
+            <select
+              value={purchaseOrderId}
+              onChange={(e) => onPoSelect(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-xs"
+            >
+              <option value="">— Без заказа —</option>
+              {purchaseOrders.map((po) => (
+                <option key={po.id} value={po.id}>
+                  {po.orderNo} ({po.supplier.name})
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-400 ml-1">Поставщик</label>
             <select
               value={supplierId}
               onChange={(e) => setSupplierId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-xs"
             >
               <option value="">—</option>
               {supplierOptions.map((s) => (
@@ -100,7 +129,7 @@ export function ReceiptsClient({
             <select
               value={locationId}
               onChange={(e) => setLocationId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-xs"
             >
               <option value="">—</option>
               {locationOptions.map((l) => (
@@ -116,22 +145,23 @@ export function ReceiptsClient({
               value={documentNo}
               onChange={(e) => setDocumentNo(e.target.value)}
               placeholder="Напр. ТОРГ-12 №123"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-xs"
             />
           </div>
           <div className="flex items-end">
             <button
               onClick={create}
               disabled={isBusy || !documentNo.trim()}
-              className="w-full inline-flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-50"
+              className="w-full inline-flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-50 shadow-lg shadow-primary/20"
             >
               {isBusy ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Plus className="w-5 h-5 mr-2" />}
               Создать
             </button>
           </div>
         </div>
-        <div className="text-xs text-gray-500">
-          Создаётся черновик. После добавления позиций нажми «Провести» — остатки увеличатся, себестоимость сохранится, в логи запишется приход.
+        <div className="text-[10px] text-gray-500 flex items-center gap-2">
+          <Clock className="w-3 h-3" />
+          Создаётся черновик. После добавления позиций нажми «Провести» — остатки увеличатся, в логи запишется приход.
         </div>
       </div>
 

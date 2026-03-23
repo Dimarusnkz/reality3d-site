@@ -2,24 +2,24 @@ import { PrismaClient as PostgresClient } from '@prisma/client';
 import { PrismaClient as SqliteClient } from '../generated/sqlite-client';
 import { PrismaClient as MysqlClient } from '../generated/mysql-client';
 
+import { cookies } from 'next/headers';
+
 type AnyClient = PostgresClient;
 
-const globalForDb = global as unknown as { __dbProvider?: string };
 const globalForClients = global as unknown as { __prismaClients?: Record<string, AnyClient> };
 
 export function getDbProvider() {
-  return (globalForDb.__dbProvider || process.env.DB_PROVIDER || 'postgres').toLowerCase();
-}
-
-export function setDbProvider(provider: string) {
-  globalForDb.__dbProvider = provider.toLowerCase();
-  if (globalForClients.__prismaClients) {
-    delete globalForClients.__prismaClients[globalForDb.__dbProvider];
+  try {
+    const cookieStore = cookies();
+    const provider = cookieStore.get('db_provider')?.value;
+    if (provider) return provider.toLowerCase();
+  } catch {
+    // cookies() might fail in some contexts (e.g. build time or outside request)
   }
+  return (process.env.DB_PROVIDER || 'postgres').toLowerCase();
 }
 
-function makeClient(): AnyClient {
-  const provider = getDbProvider();
+function makeClient(provider: string): AnyClient {
   const url =
     provider === 'sqlite'
       ? process.env.DATABASE_URL_SQLITE
@@ -48,7 +48,7 @@ export function getPrisma(): AnyClient {
   }
   const existing = globalForClients.__prismaClients[provider];
   if (existing) return existing;
-  const created = makeClient();
+  const created = makeClient(provider);
   globalForClients.__prismaClients[provider] = created;
   return created;
 }

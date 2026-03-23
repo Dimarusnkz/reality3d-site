@@ -1,9 +1,9 @@
 'use server'
 
-import { headers } from 'next/headers'
+import { headers, cookies } from 'next/headers'
 import { assertCsrfTokenValue } from '@/lib/csrf'
 import { logAudit } from '@/lib/audit'
-import { getPrisma, setDbProvider, getDbProvider } from '@/lib/prisma'
+import { getPrisma, getDbProvider } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { rateLimit } from '@/lib/rate-limit'
 
@@ -82,7 +82,14 @@ export async function switchDatabase(provider: Provider, csrfToken: string) {
   if (!csrf.ok) return { error: csrf.error }
 
   if (!providerList().includes(provider)) return { error: 'Invalid provider' as const }
-  setDbProvider(provider)
+  
+  const cookieStore = await cookies();
+  cookieStore.set('db_provider', provider, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 7 // 1 week
+  });
 
   await logAudit({
     actorUserId: parseInt(session.userId, 10),
@@ -91,6 +98,5 @@ export async function switchDatabase(provider: Provider, csrfToken: string) {
     metadata: { provider },
   })
 
-  await getPrisma().$connect()
   return { success: true as const }
 }
