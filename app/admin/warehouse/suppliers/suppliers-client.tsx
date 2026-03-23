@@ -336,14 +336,14 @@ export function SuppliersClient({ initial }: { initial: Supplier[] }) {
                   </td>
                   <td className="p-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] text-gray-500 uppercase">Активен</label>
+                      <label className="text-[10px] text-gray-500 uppercase">Статус</label>
                       <select
                         value={s.isActive ? "yes" : "no"}
                         onChange={(e) => updateLocal(s.id, { isActive: e.target.value === "yes" })}
                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white text-xs"
                       >
-                        <option value="yes">Да</option>
-                        <option value="no">Нет</option>
+                        <option value="yes">Активен</option>
+                        <option value="no">Неактивен</option>
                       </select>
                     </div>
                   </td>
