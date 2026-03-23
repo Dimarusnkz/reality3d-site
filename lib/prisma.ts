@@ -2,21 +2,17 @@ import { PrismaClient as PostgresClient } from '@prisma/client';
 import { PrismaClient as SqliteClient } from '../generated/sqlite-client';
 import { PrismaClient as MysqlClient } from '../generated/mysql-client';
 
-import { cookies } from 'next/headers';
-
 type AnyClient = PostgresClient;
 
+const globalForDb = global as unknown as { __dbProvider?: string };
 const globalForClients = global as unknown as { __prismaClients?: Record<string, AnyClient> };
 
 export function getDbProvider() {
-  try {
-    const cookieStore = cookies();
-    const provider = cookieStore.get('db_provider')?.value;
-    if (provider) return provider.toLowerCase();
-  } catch {
-    // cookies() might fail in some contexts (e.g. build time or outside request)
-  }
-  return (process.env.DB_PROVIDER || 'postgres').toLowerCase();
+  return (globalForDb.__dbProvider || process.env.DB_PROVIDER || 'postgres').toLowerCase();
+}
+
+export function setDbProvider(provider: string) {
+  globalForDb.__dbProvider = provider.toLowerCase();
 }
 
 function makeClient(provider: string): AnyClient {
