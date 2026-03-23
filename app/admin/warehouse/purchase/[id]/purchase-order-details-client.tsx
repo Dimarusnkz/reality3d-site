@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, ArrowLeft, AlertCircle, CheckCircle2, Download } from "lucide-react";
+import { Clock, ArrowLeft, AlertCircle, CheckCircle2, Download, FileText } from "lucide-react";
 import Link from "next/link";
 import { formatRub } from "@/lib/shop/money";
 import { Badge } from "@/components/ui/badge";
