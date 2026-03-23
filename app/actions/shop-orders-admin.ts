@@ -320,6 +320,27 @@ export async function cancelShopOrderAdmin(orderId: string, reason: string, csrf
           },
         })
       }
+
+      // 3. Create Refund Cash Entry if paid
+      if (order.paymentStatus === 'paid') {
+        const account = (await tx.cashAccount.findUnique({ where: { code: 'bank' }, select: { id: true } })) || 
+                        (await tx.cashAccount.findUnique({ where: { code: 'online' }, select: { id: true } }))
+        if (account) {
+          await tx.cashEntry.create({
+            data: {
+              accountId: account.id,
+              direction: 'outcome',
+              entryType: 'refund',
+              amountKopeks: order.totalKopeks,
+              currency: 'RUB',
+              description: `Возврат средств по заказу #${order.orderNo} (отмена)`,
+              status: 'confirmed',
+              shopOrderId: order.id,
+              createdByUserId: access.userId,
+            },
+          })
+        }
+      }
     })
 
     await logAudit({

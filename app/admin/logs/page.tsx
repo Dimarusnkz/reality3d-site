@@ -156,20 +156,20 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
     })),
   ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-  const exportUrl = new URL("/api/admin/logs/export", "https://www.reality3d.ru");
-  exportUrl.searchParams.set("type", type);
-  if (action) exportUrl.searchParams.set("action", action);
-  if (role) exportUrl.searchParams.set("role", role);
-  if (q) exportUrl.searchParams.set("q", q);
-  if (sp.from) exportUrl.searchParams.set("from", sp.from);
-  if (sp.to) exportUrl.searchParams.set("to", sp.to);
+  const exportParams = new URLSearchParams();
+  exportParams.set("type", type);
+  if (action) exportParams.set("action", action);
+  if (role) exportParams.set("role", role);
+  if (q) exportParams.set("q", q);
+  if (sp.from) exportParams.set("from", sp.from);
+  if (sp.to) exportParams.set("to", sp.to);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-white">Логи</h1>
         <Link
-          href={exportUrl.pathname + exportUrl.search}
+          href={`/api/admin/logs/export?${exportParams.toString()}`}
           className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
         >
           Экспорт CSV

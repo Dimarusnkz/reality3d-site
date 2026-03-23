@@ -17,8 +17,8 @@ const movementSchema = z.object({
   productId: z.number().int().positive(),
   unit: z.enum(['pcs', 'm', 'kg']),
   quantity: z.string().trim().min(1),
-  actionType: z.enum(['receipt', 'writeoff', 'transfer_to_work']),
-  reason: z.enum(['sale', 'defect', 'internal', 'to_work']).optional().nullable(),
+  actionType: z.enum(['receipt', 'writeoff', 'transfer_to_work', 'adjustment']),
+  reason: z.enum(['sale', 'defect', 'internal', 'to_work', 'inventory']).optional().nullable(),
   supplier: z.string().trim().max(200).optional().nullable(),
   documentNo: z.string().trim().max(120).optional().nullable(),
   comment: z.string().trim().max(500).optional().nullable(),
@@ -26,10 +26,11 @@ const movementSchema = z.object({
   serviceOrderId: z.number().int().positive().optional().nullable(),
 })
 
-function parseQuantity(input: string) {
+function parseQuantity(input: string, allowNegative = false) {
   const normalized = input.replace(',', '.')
   const value = Number(normalized)
-  if (!Number.isFinite(value) || value <= 0) return null
+  if (!Number.isFinite(value)) return null
+  if (!allowNegative && value <= 0) return null
   return value
 }
 
@@ -72,20 +73,22 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
       ? 'warehouse.receipt'
       : parsed.data.actionType === 'writeoff'
         ? 'warehouse.writeoff'
-        : 'warehouse.transfer'
+        : parsed.data.actionType === 'adjustment'
+          ? 'warehouse.adjustment'
+          : 'warehouse.transfer'
 
   const permitted = await hasPermission(access.userId, access.role, permissionKey)
   if (!permitted) return { ok: false as const, error: 'Unauthorized' }
 
   const defaultWarehouseId = await getDefaultWarehouseId(prisma)
-  const qty = parseQuantity(parsed.data.quantity)
-  if (!qty) return { ok: false as const, error: 'Некорректное количество' }
+  const qty = parseQuantity(parsed.data.quantity, parsed.data.actionType === 'adjustment')
+  if (qty === null) return { ok: false as const, error: 'Некорректное количество' }
 
   const unit: Unit = parsed.data.unit
   const warehouseId = parsed.data.warehouseId == null ? defaultWarehouseId : parsed.data.warehouseId
   if (unit === 'pcs' && !Number.isInteger(qty)) return { ok: false as const, error: 'Для шт. нужно целое количество' }
 
-  if (parsed.data.actionType !== 'receipt' && qty > 10 && !['admin', 'manager'].includes(access.role)) {
+  if (parsed.data.actionType !== 'receipt' && parsed.data.actionType !== 'adjustment' && qty > 10 && !['admin', 'manager'].includes(access.role)) {
     return { ok: false as const, error: 'Списание > 10 требует подтверждения менеджера' }
   }
 
@@ -95,7 +98,12 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
   })
   if (!product) return { ok: false as const, error: 'Товар не найден' }
 
-  const delta = parsed.data.actionType === 'receipt' ? qty : -qty
+  const delta =
+    parsed.data.actionType === 'receipt'
+      ? qty
+      : parsed.data.actionType === 'writeoff' || parsed.data.actionType === 'transfer_to_work'
+        ? -qty
+        : qty // adjustment is as is
 
   const meta = await getLogMeta()
 

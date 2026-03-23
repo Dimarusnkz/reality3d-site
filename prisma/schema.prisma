@@ -43,6 +43,7 @@ model User {
   warehouseReceiptsPosted     WarehouseReceipt[]         @relation("WarehouseReceiptPoster")
   warehouseTransfersCreated   WarehouseTransfer[]        @relation("WarehouseTransferCreator")
   warehouseTransfersPosted    WarehouseTransfer[]        @relation("WarehouseTransferPoster")
+  warehousePurchaseOrders     WarehousePurchaseOrder[]   @relation("WarehousePurchaseOrderCreator")
   auditEvents                 AuditEvent[]               @relation("UserAuditEvents")
   printCalculations           PrintCalculation[]
 }
@@ -238,6 +239,7 @@ model ShopProduct {
   recipes             WarehouseRecipe?
   recipeMaterials     WarehouseRecipeItem[]            @relation("WarehouseRecipeMaterial")
   transferItems       WarehouseTransferItem[]
+  purchaseOrderItems  WarehousePurchaseOrderItem[]
 
   @@index([isActive, priceKopeks])
   @@index([categoryId])
@@ -539,6 +541,8 @@ model WarehouseReceipt {
   postedBy        User?                  @relation("WarehouseReceiptPoster", fields: [postedByUserId], references: [id])
   supplier        WarehouseSupplier?     @relation(fields: [supplierId], references: [id])
   warehouse       Warehouse              @relation(fields: [warehouseId], references: [id])
+  purchaseOrderId String?                @db.Uuid
+  purchaseOrder   WarehousePurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
   items           WarehouseReceiptItem[]
 
   @@index([receivedAt])
@@ -835,4 +839,41 @@ model CashReconciliation {
 
   @@unique([accountId, day])
   @@index([day])
+}
+
+model WarehousePurchaseOrder {
+  id              String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  supplierId      Int
+  orderNo         String                     @unique
+  status          String                     @default("pending") // pending, partially_received, completed, cancelled
+  totalKopeks     Int
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @default(now()) @updatedAt
+  createdByUserId Int?
+  comment         String?
+  
+  supplier        WarehouseSupplier          @relation(fields: [supplierId], references: [id])
+  createdBy       User?                      @relation("WarehousePurchaseOrderCreator", fields: [createdByUserId], references: [id])
+  items           WarehousePurchaseOrderItem[]
+  receipts        WarehouseReceipt[]
+
+  @@index([supplierId])
+  @@index([status])
+}
+
+model WarehousePurchaseOrderItem {
+  id              String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  purchaseOrderId String                 @db.Uuid
+  productId       Int?
+  sku             String?
+  productName     String
+  quantity        Decimal                @db.Decimal(18, 3)
+  receivedQuantity Decimal               @default(0) @db.Decimal(18, 3)
+  unit            String
+  unitPriceKopeks Int
+  
+  purchaseOrder   WarehousePurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product         ShopProduct?           @relation(fields: [productId], references: [id])
+
+  @@index([purchaseOrderId])
 }

@@ -23,6 +23,7 @@ const receiptCreateSchema = z.object({
   warehouseId: z.number().int().positive().optional().nullable(),
   locationId: z.number().int().positive().optional().nullable(),
   supplierId: z.number().int().positive().optional().nullable(),
+  purchaseOrderId: z.string().uuid().optional().nullable(),
   documentNo: z.string().trim().min(1).max(120),
   receivedAt: z.string().trim().optional().nullable(),
   attachmentUrl: z.string().trim().url().optional().nullable(),
@@ -148,6 +149,7 @@ export async function createWarehouseReceipt(input: unknown, csrfToken: string) 
         warehouseId,
         locationId: parsed.data.locationId ?? null,
         supplierId: parsed.data.supplierId ?? null,
+        purchaseOrderId: parsed.data.purchaseOrderId ?? null,
         documentNo: parsed.data.documentNo,
         receivedAt,
         status: 'draft',
@@ -191,6 +193,7 @@ export async function updateWarehouseReceipt(id: string, input: unknown, csrfTok
         warehouseId: parsed.data.warehouseId == null ? undefined : parsed.data.warehouseId,
         locationId: parsed.data.locationId ?? null,
         supplierId: parsed.data.supplierId ?? null,
+        purchaseOrderId: parsed.data.purchaseOrderId ?? null,
         documentNo: parsed.data.documentNo,
         ...(receivedAt ? { receivedAt } : {}),
         attachmentUrl: parsed.data.attachmentUrl || null,
@@ -355,7 +358,11 @@ export async function postWarehouseReceipt(receiptId: string, csrfToken: string)
   try {
     const receipt = await prisma.warehouseReceipt.findUnique({
       where: { id: receiptId },
-      include: { supplier: true, items: true },
+      include: { 
+        supplier: true, 
+        items: true,
+        purchaseOrder: { include: { items: true } }
+      },
     })
     if (!receipt) return { ok: false as const, error: 'Приход не найден' }
     if (receipt.status !== 'draft') return { ok: false as const, error: 'Приход уже проведён' }
@@ -364,6 +371,18 @@ export async function postWarehouseReceipt(receiptId: string, csrfToken: string)
     await prisma.$transaction(async (tx) => {
       for (const it of receipt.items) {
         if (!it.productId) continue
+
+        // Update PO item if linked
+        if (receipt.purchaseOrderId && receipt.purchaseOrder) {
+          const poItem = receipt.purchaseOrder.items.find(pi => pi.productId === it.productId)
+          if (poItem) {
+            await tx.warehousePurchaseOrderItem.update({
+              where: { id: poItem.id },
+              data: { receivedQuantity: { increment: it.quantity } }
+            })
+          }
+        }
+
         const inv = await tx.shopInventoryItem.upsert({
           where: { productId_warehouseId: { productId: it.productId, warehouseId: receipt.warehouseId } },
           create: {
@@ -431,6 +450,26 @@ export async function postWarehouseReceipt(receiptId: string, csrfToken: string)
             userAgent: meta.userAgent,
           },
         })
+      }
+
+      // Update PO status
+      if (receipt.purchaseOrderId) {
+        const updatedPo = await tx.warehousePurchaseOrder.findUnique({
+          where: { id: receipt.purchaseOrderId },
+          include: { items: true }
+        })
+        if (updatedPo) {
+          const allReceived = updatedPo.items.every(i => Number(i.receivedQuantity) >= Number(i.quantity))
+          const someReceived = updatedPo.items.some(i => Number(i.receivedQuantity) > 0)
+          
+          await tx.warehousePurchaseOrder.update({
+            where: { id: updatedPo.id },
+            data: { 
+              status: allReceived ? 'completed' : (someReceived ? 'partially_received' : 'pending'),
+              updatedAt: new Date()
+            }
+          })
+        }
       }
 
       await tx.warehouseReceipt.update({
