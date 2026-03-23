@@ -167,42 +167,35 @@ export async function getClientShopOrders() {
   })
 }
 
-export async function getClientFiles() {
+export async function confirmOrderPaymentAdmin(orderId: number, csrfToken: string) {
   const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { error: csrf.error }
+
   const session = await getSession()
-  if (!session || !session.userId) {
-    return []
+  if (!session || session.role !== 'admin') {
+    return { error: 'Unauthorized' }
   }
 
-  const userId = parseInt(session.userId)
+  try {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { status: 'paid' }
+    })
 
-  // 1. Get files from Order details
-  const orders = await prisma.order.findMany({
-    where: { userId },
-    select: { id: true, title: true, details: true, createdAt: true }
-  })
+    await logAudit({
+      actorUserId: parseInt(session.userId),
+      action: 'order.admin.confirm_payment',
+      target: String(orderId)
+    })
 
-  const files: any[] = []
-
-  orders.forEach(order => {
-    try {
-      const details = JSON.parse(order.details || '{}')
-      if (details.files && Array.isArray(details.files)) {
-        details.files.forEach((file: any) => {
-          files.push({
-            ...file,
-            orderId: order.id,
-            orderTitle: order.title,
-            createdAt: order.createdAt
-          })
-        })
-      }
-    } catch (e) {
-      // Ignore parse errors
-    }
-  })
-
-  // 2. Get files from Chat attachments
+    revalidatePath('/admin/orders')
+    return { success: true }
+  } catch (error) {
+    console.error('Failed to confirm payment:', error)
+    return { error: 'Failed to confirm payment' }
+  }
+}
   const chatSessions = await prisma.chatSession.findMany({
     where: { userId },
     include: {

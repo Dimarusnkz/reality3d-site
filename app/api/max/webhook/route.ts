@@ -17,7 +17,8 @@ export async function POST(req: NextRequest) {
     if (!body) return NextResponse.json({ ok: true });
 
     const update = Array.isArray(body) ? body[0] : body;
-    const updateType = update?.update_type || update?.type;
+    const updateType = update?.update_type || update?.type || update?.event_type;
+    console.log("MAX webhook update type:", updateType);
     if (updateType === "message_created" || updateType === "bot_started") {
       const message = update?.message || update?.body?.message || update?.event?.message || null;
       const recipient = message?.recipient || update?.recipient || null;
@@ -62,11 +63,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    if (updateType !== "message_callback") return NextResponse.json({ ok: true });
+    if (updateType !== "message_callback" && updateType !== "callback") return NextResponse.json({ ok: true });
 
     const callback = update?.callback || update?.message_callback || update;
-    const callbackId = callback?.callback_id || update?.callback_id;
-    const payload = callback?.payload || callback?.data;
+    const callbackId = callback?.callback_id || update?.callback_id || update?.id;
+    const payload = callback?.payload || callback?.data || update?.payload;
 
     if (!callbackId || typeof payload !== "string") {
       return NextResponse.json({ ok: true });
@@ -104,11 +105,14 @@ export async function POST(req: NextRequest) {
     });
 
     if (payload.startsWith("confirm_payment:")) {
-      const [, kind, orderId] = payload.split(":");
+      console.log("MAX confirm_payment triggered:", payload);
+      const parts = payload.split(":");
+      const kind = parts[1];
+      const orderId = parts[2];
       if (kind === "shop") {
         await confirmShopPayment(orderId, actorChatId, callbackId);
       } else if (kind === "calc") {
-        await confirmCalcPayment(orderId, actorChatId, callbackId);
+        await confirmCalcPayment(Number(orderId), actorChatId, callbackId);
       } else {
         await answerMaxCallback(callbackId, { notification: "Неизвестная команда" });
       }
@@ -264,14 +268,8 @@ async function confirmShopPayment(orderId: string, actorChatId: string, callback
   }
 }
 
-async function confirmCalcPayment(orderIdStr: string, actorChatId: string, callbackId: string) {
+async function confirmCalcPayment(orderId: number, actorChatId: string, callbackId: string) {
   const prisma = getPrisma();
-  const orderId = parseInt(orderIdStr, 10);
-
-  if (!Number.isFinite(orderId)) {
-    await answerMaxCallback(callbackId, { notification: "Некорректный заказ" });
-    return;
-  }
 
   try {
     const order = await prisma.order.findUnique({ where: { id: orderId } });

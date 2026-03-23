@@ -64,6 +64,8 @@ export default function CheckoutClient({ cart, user, isAuthenticated }: Checkout
 
   const currentStep = !isValidName || !isValidPhone || !isValidEmail ? 1 : !isValidDelivery ? 2 : 3;
 
+  const [showSuccess, setShowSuccess] = useState(false);
+
   const handleCreateOrder = async () => {
     if (currentStep < 3) return;
     setIsLoading(true);
@@ -90,8 +92,11 @@ export default function CheckoutClient({ cart, user, isAuthenticated }: Checkout
         window.dispatchEvent(new CustomEvent("cart:changed"));
       }
 
-      const tokenPart = isAuthenticated ? "" : `?token=${encodeURIComponent((res as any).publicAccessToken)}`;
-      window.location.href = `/shop/order/${res.orderId}${tokenPart}${tokenPart ? "&" : "?"}pay=1&justCreated=1`;
+      setShowSuccess(true);
+      setTimeout(() => {
+        const tokenPart = isAuthenticated ? "" : `?token=${encodeURIComponent((res as any).publicAccessToken)}`;
+        window.location.href = `/lk/orders`;
+      }, 3000);
     } catch (e) {
       console.error(e);
       alert("Произошла ошибка при создании заказа");
@@ -105,6 +110,27 @@ export default function CheckoutClient({ cart, user, isAuthenticated }: Checkout
     { title: "Доставка", icon: Truck },
     { title: "Оплата", icon: CreditCard },
   ];
+
+  if (showSuccess) {
+    return (
+      <div className="container mx-auto px-4 py-20 text-center animate-in fade-in zoom-in duration-500">
+        <div className="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_40px_rgba(34,197,94,0.3)]">
+          <Check className="h-12 w-12 text-green-500" />
+        </div>
+        <h1 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight">Заказ успешно оформлен!</h1>
+        <p className="text-gray-400 text-xl max-w-lg mx-auto leading-relaxed">
+          Спасибо за покупку. Сейчас вы будете перенаправлены в личный кабинет для управления заказом.
+        </p>
+        <div className="mt-10 flex justify-center">
+          <div className="flex gap-1">
+            <div className="w-2 h-2 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]"></div>
+            <div className="w-2 h-2 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]"></div>
+            <div className="w-2 h-2 rounded-full bg-primary animate-bounce"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!cart || cart.items.length === 0) {
     return (

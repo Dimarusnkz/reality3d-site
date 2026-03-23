@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Search, MessageSquare, X, Save, Calendar, User, FileText, Trash2, Edit2, Download, ArrowLeft, Loader2 } from "lucide-react";
-import { getOrderDetails, updateOrderStatus, updateOrderPrice, addOrderComment, assignOrder, getEmployees, deleteOrder, updateOrderDetails } from "@/app/actions/orders";
+import { getOrderDetails, updateOrderStatus, updateOrderPrice, addOrderComment, assignOrder, getEmployees, deleteOrder, updateOrderDetails, confirmOrderPaymentAdmin } from "@/app/actions/orders";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -41,6 +41,8 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<{title: string, description: string, files: any[]}>({ title: "", description: "", files: [] });
 
+  const [confirmBusy, setConfirmBusy] = useState(false);
+
   const searchParams = useSearchParams();
   const router = useRouter();
   const clientIdParam = searchParams.get('clientId');
@@ -62,6 +64,20 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
      const matchesStatus = statusFilter === "all" || order.status === statusFilter;
      return matchesSearch && matchesStatus && matchesClient;
   });
+
+  const handleConfirmPayment = async () => {
+    if (!selectedOrder || !confirm("Подтвердить оплату этого заказа?")) return;
+    setConfirmBusy(true);
+    const res = await confirmOrderPaymentAdmin(selectedOrder.id, getCsrfToken());
+    if (res.success) {
+      const updatedOrder = { ...selectedOrder, status: 'paid' };
+      setSelectedOrder(updatedOrder);
+      setOrders(orders.map(o => o.id === selectedOrder.id ? updatedOrder : o));
+    } else {
+      alert("Ошибка подтверждения оплаты");
+    }
+    setConfirmBusy(false);
+  };
 
   const handleClearClientFilter = () => {
     router.push('/admin/orders');
@@ -442,6 +458,18 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
                             {/* Admin Controls */}
                             {currentUserRole === 'admin' && (
                                 <div className="flex items-center gap-2 border-l border-slate-800 pl-4 ml-2">
+                                  {selectedOrder.status === 'payment_pending' && (
+                                    <Button 
+                                      onClick={handleConfirmPayment} 
+                                      disabled={confirmBusy}
+                                      variant="primary" 
+                                      size="sm" 
+                                      className="h-8 px-3 text-[10px] bg-green-600 hover:bg-green-700"
+                                    >
+                                      {confirmBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <CheckCircle className="w-3.5 h-3.5 mr-1.5" />}
+                                      Подтвердить оплату
+                                    </Button>
+                                  )}
                                   {isEditing ? (
                                     <>
                                       <Button onClick={handleSaveEdit} variant="primary" size="sm" className="h-8 px-3 text-[10px]">

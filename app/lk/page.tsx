@@ -131,9 +131,21 @@ export default async function LkDashboard() {
                           <Badge variant={o.paymentStatus === "paid" ? "success" : "warning"}>{p.label}</Badge>
                           <Badge variant="info">{s.label}</Badge>
                           <div className="text-white font-bold text-lg md:ml-4">{formatRub(o.totalKopeks)}</div>
-                          <LinkButton href={`/shop/order/${o.id}`} variant="outline" size="sm" className="ml-2">
-                            Открыть
-                          </LinkButton>
+                          <div className="flex gap-2 ml-2">
+                            {o.paymentStatus === "unpaid" && (
+                              <LinkButton
+                                href={`/shop/order/${o.id}?pay=1`}
+                                size="sm"
+                                className="bg-orange-500 hover:bg-orange-600 text-white font-bold shadow-lg shadow-orange-500/20 border-none"
+                              >
+                                <CreditCard className="w-4 h-4 mr-2" />
+                                Оплатить
+                              </LinkButton>
+                            )}
+                            <LinkButton href={`/shop/order/${o.id}`} variant="outline" size="sm">
+                              Открыть
+                            </LinkButton>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -163,9 +175,21 @@ export default async function LkDashboard() {
                         <div className="text-white font-bold text-lg md:ml-4">
                           {o.price && o.price > 0 ? `${o.price.toLocaleString("ru-RU")} ₽` : "На расчёте"}
                         </div>
-                        <LinkButton href={`/lk/orders/${o.id}`} variant="outline" size="sm" className="ml-2">
-                          Детали
-                        </LinkButton>
+                        <div className="flex gap-2 ml-2">
+                          {o.status === "payment_pending" && (
+                            <LinkButton
+                              href={`/lk/orders/${o.id}`}
+                              size="sm"
+                              className="bg-orange-500 hover:bg-orange-600 text-white font-bold shadow-lg shadow-orange-500/20 border-none"
+                            >
+                              <CreditCard className="w-4 h-4 mr-2" />
+                              Оплатить
+                            </LinkButton>
+                          )}
+                          <LinkButton href={`/lk/orders/${o.id}`} variant="outline" size="sm">
+                            Детали
+                          </LinkButton>
+                        </div>
                       </div>
                     </div>
                   </div>
