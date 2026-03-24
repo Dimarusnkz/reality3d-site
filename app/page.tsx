@@ -102,9 +102,9 @@ export default function Home() {
                 Работаем с физ. и юр. лицами
               </div>
               <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white leading-tight">
-                3D-печать на заказ <br />
+                3D-печать: где фантазия <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-400 text-glow">
-                  Санкт-Петербург
+                  становится осязаемой
                 </span>
               </h1>
               <p className="text-lg md:text-xl text-gray-400 max-w-[600px]">
