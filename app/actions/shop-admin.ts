@@ -82,13 +82,13 @@ const productSchema = z.object({
   allowPreorder: z.boolean().optional().nullable(),
   isActive: z.boolean(),
   categoryId: z.number().int().positive().optional().nullable(),
-  imageUrls: z.array(z.string().url()).max(10).optional().nullable(),
+  imageUrls: z.array(z.string()).max(10).optional().nullable(),
 })
 
 const productCardSchema = z.object({
   shortDescription: z.string().trim().max(400).optional().nullable(),
   description: z.string().trim().max(10000).optional().nullable(),
-  imageUrls: z.array(z.string().url()).max(10).optional().nullable(),
+  imageUrls: z.array(z.string()).max(10).optional().nullable(),
 })
 
 export async function createShopProduct(input: unknown, csrfToken: string) {
@@ -104,9 +104,6 @@ export async function createShopProduct(input: unknown, csrfToken: string) {
   if (!parsed.success) return { ok: false as const, error: formatZodError(parsed.error) }
   if (parsed.data.isActive && parsed.data.itemType && parsed.data.itemType !== 'product') {
     return { ok: false as const, error: 'Материалы/упаковку нельзя публиковать в магазине' }
-  }
-  if (parsed.data.isActive && !parsed.data.allowPreorder && (parsed.data.stock || 0) <= 0) {
-    return { ok: false as const, error: 'Нельзя публиковать товар без остатков (включите предзаказ или поставьте остаток > 0)' }
   }
 
   try {
@@ -165,9 +162,6 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
   if (!parsed.success) return { ok: false as const, error: formatZodError(parsed.error) }
   if (parsed.data.isActive && parsed.data.itemType && parsed.data.itemType !== 'product') {
     return { ok: false as const, error: 'Материалы/упаковку нельзя публиковать в магазине' }
-  }
-  if (parsed.data.isActive && !parsed.data.allowPreorder && (parsed.data.stock || 0) <= 0) {
-    return { ok: false as const, error: 'Нельзя публиковать товар без остатков (включите предзаказ или поставьте остаток > 0)' }
   }
 
   try {
