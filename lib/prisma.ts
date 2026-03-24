@@ -8,7 +8,11 @@ const globalForDb = global as unknown as { __dbProvider?: string };
 const globalForClients = global as unknown as { __prismaClients?: Record<string, AnyClient> };
 
 export function getDbProvider() {
-  return (globalForDb.__dbProvider || process.env.DB_PROVIDER || 'postgres').toLowerCase();
+  // Use environment variable during build/static generation
+  if (typeof window === 'undefined' && !globalForDb.__dbProvider) {
+    return (process.env.DB_PROVIDER || 'postgres').toLowerCase();
+  }
+  return (globalForDb.__dbProvider || 'postgres').toLowerCase();
 }
 
 export function setDbProvider(provider: string) {
