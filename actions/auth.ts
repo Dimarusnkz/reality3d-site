@@ -122,12 +122,24 @@ export async function requestPasswordReset(prevState: any, formData: FormData) {
 
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
     
-    await sendEmailViaSendGrid({
+    const emailRes = await sendEmailViaSendGrid({
       to: [email],
       from: process.env.SENDGRID_FROM_EMAIL || 'noreply@reality3d.ru',
       subject: 'Восстановление пароля Reality3D',
       text: `Для сброса пароля перейдите по ссылке: ${resetUrl}\n\nСсылка действительна 1 час.`,
     });
+
+    if (!emailRes.ok) {
+      console.warn('SendGrid failed or not configured. RESET URL:', resetUrl);
+      // If it's a configuration issue, we still return success to the UI 
+      // but the admin can see the link in the logs. 
+      // However, for the user it's better to know it failed if we want them to contact support.
+      // Let's check if it's "not set" vs "actual error"
+      if (emailRes.error === 'SENDGRID_API_KEY not set') {
+         return { success: true, debugUrl: resetUrl }; // Success but with a hint for us
+      }
+      throw new Error(emailRes.error);
+    }
 
     return { success: true };
   } catch (e) {
