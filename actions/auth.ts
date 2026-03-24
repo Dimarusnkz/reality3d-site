@@ -9,6 +9,8 @@ import { createSession, deleteSession } from '@/lib/session';
 import { assertCsrf } from '@/lib/csrf';
 import { getClientIp } from '@/lib/request';
 import { rateLimit } from '@/lib/rate-limit';
+import { sendEmailViaSendGrid } from '@/lib/notifications/sendgrid';
+import crypto from 'crypto';
 
 async function verifyTurnstile(token: string) {
   if (process.env.TURNSTILE_ENABLED !== 'true') {
@@ -84,6 +86,107 @@ function sanitizeRedirectTo(value: unknown) {
   if (trimmed.includes('://')) return null
   if (trimmed.length > 200) return null
   return trimmed
+}
+
+export async function requestPasswordReset(prevState: any, formData: FormData) {
+  const prisma = getPrisma();
+  const csrf = await assertCsrf(formData);
+  if (!csrf.ok) return { errors: { csrf_token: [csrf.error] } };
+
+  const email = formData.get('email') as string;
+  if (!email || !z.string().email().safeParse(email).success) {
+    return { errors: { email: ['Введите корректный Email'] } };
+  }
+
+  const ip = await getClientIp();
+  const rl = rateLimit(`auth:reset-request:${ip}`, 3, 15 * 60_000);
+  if (!rl.ok) return { errors: { email: ['Слишком много запросов. Попробуйте через 15 минут.'] } };
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      // Don't reveal that user doesn't exist for security
+      return { success: true };
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 3600000); // 1 hour
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: token,
+        passwordResetExpires: expires,
+      },
+    });
+
+    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
+    
+    await sendEmailViaSendGrid({
+      to: [email],
+      from: process.env.SENDGRID_FROM_EMAIL || 'noreply@reality3d.ru',
+      subject: 'Восстановление пароля Reality3D',
+      text: `Для сброса пароля перейдите по ссылке: ${resetUrl}\n\nСсылка действительна 1 час.`,
+    });
+
+    return { success: true };
+  } catch (e) {
+    console.error('Reset request error:', e);
+    return { errors: { email: ['Ошибка при отправке письма'] } };
+  }
+}
+
+export async function resetPassword(prevState: any, formData: FormData) {
+  const prisma = getPrisma();
+  const csrf = await assertCsrf(formData);
+  if (!csrf.ok) return { errors: { csrf_token: [csrf.error] } };
+
+  const token = formData.get('token') as string;
+  const password = formData.get('password') as string;
+
+  if (!token) return { errors: { password: ['Некорректный токен'] } };
+  
+  const passwordResult = z.string()
+    .min(6, 'Пароль должен быть не менее 6 символов')
+    .max(20, 'Пароль должен быть не более 20 символов')
+    .regex(/[0-9]/, 'Должна быть хотя бы одна цифра')
+    .regex(/[a-z]/, 'Должна быть хотя бы одна строчная буква')
+    .regex(/[A-Z]/, 'Должна быть хотя бы одна заглавная буква')
+    .safeParse(password);
+
+  if (!passwordResult.success) {
+    return { errors: { password: passwordResult.error.flatten().formErrors } };
+  }
+
+  try {
+    const user = await prisma.user.findFirst({
+      where: {
+        passwordResetToken: token,
+        passwordResetExpires: { gt: new Date() },
+      },
+    });
+
+    if (!user) {
+      return { errors: { password: ['Токен недействителен или истек'] } };
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+        tokenVersion: { increment: 1 }, // Invalidate all existing sessions
+      },
+    });
+
+    return { success: true };
+  } catch (e) {
+    console.error('Reset password error:', e);
+    return { errors: { password: ['Ошибка при смене пароля'] } };
+  }
 }
 
 export async function login(prevState: any, formData: FormData) {

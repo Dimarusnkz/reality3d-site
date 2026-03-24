@@ -18,6 +18,8 @@ model User {
   address                     String?
   tokenVersion                Int                        @default(0)
   city                        String?
+  passwordResetToken          String?                    @unique
+  passwordResetExpires        DateTime?
   createdGroups               AccessGroup[]              @relation("AccessGroupCreator")
   articles                    Article[]
   cashEntries                 CashEntry[]

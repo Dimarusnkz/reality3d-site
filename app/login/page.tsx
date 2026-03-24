@@ -113,7 +113,7 @@ export default function LoginPage() {
                  <input type="checkbox" className="rounded border-slate-800 bg-slate-900 text-primary focus:ring-primary" />
                  <span className="text-gray-400">Запомнить меня</span>
               </label>
-              <a href="#" className="text-primary hover:underline">Забыли пароль?</a>
+              <Link href="/forgot-password" className="text-primary hover:underline">Забыли пароль?</Link>
            </div>
 
            <button 
