@@ -28,8 +28,6 @@ type ProductInput = {
   lengthMm: number | null;
   widthMm: number | null;
   heightMm: number | null;
-  stock: number;
-  allowPreorder: boolean;
   isActive: boolean;
   categoryId: number | null;
   imageUrls: string[];
@@ -93,8 +91,6 @@ export function ProductForm({
       lengthMm: product?.lengthMm ?? null,
       widthMm: product?.widthMm ?? null,
       heightMm: product?.heightMm ?? null,
-      stock: product?.stock ?? 0,
-      allowPreorder: product?.allowPreorder ?? false,
       isActive: product?.isActive ?? true,
       categoryId: product?.categoryId ?? null,
       imageUrls: product?.images?.map(img => img.url) || [],
@@ -187,7 +183,6 @@ export function ProductForm({
         name: `${form.name} (копия)`,
         slug: `${form.slug}-copy-${Date.now()}`,
         sku: form.sku ? `${form.sku}-copy` : null,
-        stock: 0, // Reset stock for copy
         isActive: false, // Keep disabled by default
       };
 
@@ -222,8 +217,6 @@ export function ProductForm({
         lengthMm: form.lengthMm == null ? null : Math.round(Number(form.lengthMm)),
         widthMm: form.widthMm == null ? null : Math.round(Number(form.widthMm)),
         heightMm: form.heightMm == null ? null : Math.round(Number(form.heightMm)),
-        stock: form.stock != null ? Math.round(Number(form.stock)) : 0,
-        allowPreorder: Boolean(form.allowPreorder),
         isActive: Boolean(form.isActive),
         categoryId: form.categoryId == null ? null : Number(form.categoryId),
         imageUrls: form.imageUrls,
@@ -407,29 +400,6 @@ export function ProductForm({
               placeholder="Высота"
             />
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-400 ml-1">Текущий остаток</label>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={form.stock}
-            onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-400 ml-1">Предзаказ</label>
-          <select
-            value={form.allowPreorder ? "yes" : "no"}
-            onChange={(e) => setForm({ ...form, allowPreorder: e.target.value === "yes" })}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-          >
-            <option value="no">Запрещён</option>
-            <option value="yes">Разрешён</option>
-          </select>
         </div>
 
         <div className="space-y-2">
