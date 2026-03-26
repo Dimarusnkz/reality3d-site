@@ -2,8 +2,6 @@ import { PrismaClient as PostgresClient } from '@prisma/client';
 import { PrismaClient as SqliteClient } from '../generated/sqlite-client';
 import { PrismaClient as MysqlClient } from '../generated/mysql-client';
 import { cache } from 'react';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { join } from 'path';
 
 type AnyClient = PostgresClient;
 
@@ -19,21 +17,24 @@ export const getDbProvider = cache(() => {
     return (process.env.DB_PROVIDER || 'postgres').toLowerCase();
   }
 
-  // 1. Check if file exists
-  if (existsSync(PROVIDER_FILE)) {
-    try {
-      return readFileSync(PROVIDER_FILE, 'utf8').trim().toLowerCase();
-    } catch (e) {
-      console.error('Failed to read .db_provider:', e);
+  // Dynamic import of fs to avoid Edge runtime errors during build/middleware
+  try {
+    const fs = require('fs');
+    if (fs.existsSync(PROVIDER_FILE)) {
+      return fs.readFileSync(PROVIDER_FILE, 'utf8').trim().toLowerCase();
     }
+  } catch (e) {
+    // Silent catch for edge runtime or missing file
   }
-  // 2. Fallback to env or default
+  
+  // Fallback to env or default
   return (process.env.DB_PROVIDER || 'postgres').toLowerCase();
 });
 
 export function setDbProvider(provider: string) {
   try {
-    writeFileSync(PROVIDER_FILE, provider.toLowerCase(), 'utf8');
+    const fs = require('fs');
+    fs.writeFileSync(PROVIDER_FILE, provider.toLowerCase(), 'utf8');
   } catch (e) {
     console.error('Failed to write .db_provider:', e);
   }
