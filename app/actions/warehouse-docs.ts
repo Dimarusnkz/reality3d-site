@@ -569,3 +569,139 @@ export async function postWarehouseReceipt(receiptId: string, csrfToken: string)
     return { ok: false as const, error: 'Не удалось провести приход' }
   }
 }
+
+export async function unpostWarehouseReceipt(receiptId: string, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { ok: false as const, error: csrf.error }
+
+  const accessRes = await requireWarehouseReceiptAccess()
+  if (!accessRes.ok) return accessRes
+  const { access } = accessRes
+
+  const defaultWarehouseId = await getDefaultWarehouseId(prisma)
+  const meta = await getLogMeta()
+
+  try {
+    const receipt = await prisma.warehouseReceipt.findUnique({
+      where: { id: receiptId },
+      include: { 
+        items: true,
+        purchaseOrder: { include: { items: true } }
+      },
+    })
+    
+    if (!receipt) return { ok: false as const, error: 'Приход не найден' }
+    if (receipt.status !== 'posted') return { ok: false as const, error: 'Приход не проведён' }
+
+    await prisma.$transaction(async (tx) => {
+      for (const it of receipt.items) {
+        if (!it.productId) continue
+
+        // 1. Update PO item (decrement received quantity)
+        if (receipt.purchaseOrderId && receipt.purchaseOrder) {
+          const poItem = receipt.purchaseOrder.items.find(pi => pi.productId === it.productId)
+          if (poItem) {
+            await tx.warehousePurchaseOrderItem.update({
+              where: { id: poItem.id },
+              data: { receivedQuantity: { decrement: it.quantity } }
+            })
+          }
+        }
+
+        // 2. Update Inventory (subtract quantity)
+        const inv = await tx.shopInventoryItem.findUnique({
+          where: { productId_warehouseId: { productId: it.productId, warehouseId: receipt.warehouseId } }
+        })
+
+        if (inv) {
+          const currentQty = Number(inv.quantity)
+          const currentReserved = Number((inv as any).reserved ?? 0)
+          const nextQty = currentQty - Number(it.quantity)
+
+          await tx.shopInventoryItem.update({
+            where: { id: inv.id },
+            data: { quantity: nextQty },
+          })
+
+          // 3. Update Product stock (synced with main warehouse)
+          await tx.shopProduct.update({
+            where: { id: it.productId },
+            data: {
+              ...(receipt.warehouseId === defaultWarehouseId ? { stock: Math.max(-1000000, Math.trunc(nextQty - currentReserved)) } : {}),
+            },
+          })
+        }
+
+        // 4. Update Location Stock
+        if (receipt.locationId) {
+          const ls = await tx.warehouseLocationStock.findUnique({
+            where: { warehouseId_locationId_productId: { warehouseId: receipt.warehouseId, locationId: receipt.locationId, productId: it.productId } }
+          })
+          if (ls) {
+            await tx.warehouseLocationStock.update({
+              where: { id: ls.id },
+              data: { quantity: Number(ls.quantity) - Number(it.quantity) }
+            })
+          }
+        }
+
+        // 5. Create "Unpost" log entry
+        await tx.shopWarehouseLog.create({
+          data: {
+            actorUserId: access.userId,
+            actorRole: access.role,
+            actionType: 'writeoff',
+            reason: 'internal',
+            productId: it.productId,
+            warehouseId: receipt.warehouseId,
+            locationId: receipt.locationId,
+            sku: it.sku,
+            productName: it.productName,
+            quantityDelta: -it.quantity,
+            unit: it.unit,
+            unitCostKopeks: it.unitCostKopeks,
+            totalCostKopeks: -it.totalCostKopeks,
+            comment: `Распроведение прихода ${receipt.documentNo} (${receiptId})`,
+            ipHash: meta.ipHash,
+            userAgent: meta.userAgent,
+          },
+        })
+      }
+
+      // 6. Update PO status back if needed
+      if (receipt.purchaseOrderId) {
+        const updatedPo = await tx.warehousePurchaseOrder.findUnique({
+          where: { id: receipt.purchaseOrderId },
+          include: { items: true }
+        })
+        if (updatedPo) {
+          const someReceived = updatedPo.items.some(i => Number(i.receivedQuantity) > 0)
+          await tx.warehousePurchaseOrder.update({
+            where: { id: updatedPo.id },
+            data: { 
+              status: someReceived ? 'partially_received' : 'pending',
+              updatedAt: new Date()
+            }
+          })
+        }
+      }
+
+      // 7. Update Receipt status to draft
+      await tx.warehouseReceipt.update({
+        where: { id: receiptId },
+        data: { status: 'draft', postedAt: null, postedByUserId: null },
+      })
+    })
+
+    await logAudit({ actorUserId: access.userId, action: 'warehouse.receipt.unpost', target: receiptId })
+    revalidatePath('/admin/warehouse')
+    revalidatePath('/admin/warehouse/catalog')
+    revalidatePath('/admin/warehouse/receipts')
+    revalidatePath(`/admin/warehouse/receipts/${receiptId}`)
+    return { ok: true as const }
+  } catch (e) {
+    console.error('Unpost error:', e)
+    return { ok: false as const, error: 'Не удалось распровести приход' }
+  }
+}

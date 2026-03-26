@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { addWarehouseReceiptItem, deleteWarehouseReceiptItem, postWarehouseReceipt, updateWarehouseReceipt } from "@/app/actions/warehouse-docs";
-import { Loader2, Plus, Trash2, CheckCircle, Upload } from "lucide-react";
+import { addWarehouseReceiptItem, deleteWarehouseReceiptItem, postWarehouseReceipt, updateWarehouseReceipt, unpostWarehouseReceipt } from "@/app/actions/warehouse-docs";
+import { Loader2, Plus, Trash2, CheckCircle, Upload, RotateCcw, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { formatRub } from "@/lib/shop/money";
 
@@ -172,10 +172,25 @@ export function ReceiptClient({
   };
 
   const post = async () => {
-    if (!confirm("Провести приход? Остатки увеличатся, отменить будет нельзя.")) return;
+    if (!confirm("Провести приход? Остатки на складе увеличатся.")) return;
     setIsBusy(true);
     try {
       const res = await postWarehouseReceipt(receipt.id, getCsrfToken());
+      if (!res.ok) {
+        alert(res.error || "Ошибка");
+        return;
+      }
+      window.location.reload();
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const unpost = async () => {
+    if (!confirm("Внимание! Распроведение прихода уменьшит остатки на складе. Если текущий остаток меньше, чем в документе, он станет отрицательным. Продолжить?")) return;
+    setIsBusy(true);
+    try {
+      const res = await unpostWarehouseReceipt(receipt.id, getCsrfToken());
       if (!res.ok) {
         alert(res.error || "Ошибка");
         return;
@@ -210,12 +225,33 @@ export function ReceiptClient({
                 Провести
               </button>
             ) : (
-              <div className="text-sm text-gray-400">Статус: {receipt.status}</div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-sm font-medium">
+                  <CheckCircle className="w-4 h-4" />
+                  Проведён
+                </div>
+                <button
+                  onClick={unpost}
+                  disabled={isBusy}
+                  className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-800 hover:bg-red-500/10 hover:text-red-400 text-gray-400 px-4 text-sm font-medium transition-all border border-slate-700 hover:border-red-500/30 disabled:opacity-50"
+                  title="Распровести для редактирования"
+                >
+                  {isBusy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RotateCcw className="w-4 h-4 mr-2" />}
+                  Распровести
+                </button>
+              </div>
             )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="md:col-span-4 flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <AlertTriangle className="w-5 h-5 text-blue-400 shrink-0" />
+            <div className="text-sm text-blue-100">
+              {isDraft 
+                ? "Документ в черновике. Вы можете редактировать данные и добавлять позиции." 
+                : "Документ проведён. Редактирование заблокировано. Для изменений сначала нажмите «Распровести»."}
+            </div>
+          </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-400 ml-1">Поставщик</label>
             <select
