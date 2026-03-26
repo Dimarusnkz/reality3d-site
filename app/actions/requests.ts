@@ -30,7 +30,7 @@ export async function submitRequest(formData: FormData) {
   }
 
   const ip = await getClientIp()
-  const rl = rateLimit(`request:submit:${ip}`, 10, 60 * 60_000)
+  const rl = await rateLimit(`request:submit:${ip}`, 10, 60 * 60_000)
   if (!rl.ok) {
     return { error: 'Слишком много заявок. Попробуйте позже.' }
   }

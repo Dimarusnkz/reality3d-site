@@ -516,7 +516,7 @@ export async function createGuestShopOrder(data: {
   if ((data.comment || '').length > 200) return { ok: false as const, error: 'Комментарий не более 200 символов' }
 
   const ip = await getClientIp()
-  const rl = rateLimit(`shop:guest_checkout:${ip}`, 10, 10 * 60_000)
+  const rl = await rateLimit(`shop:guest_checkout:${ip}`, 10, 10 * 60_000)
   if (!rl.ok) return { ok: false as const, error: 'Слишком много попыток. Подожди и попробуй снова.' }
 
   const meta = await getLogMeta()

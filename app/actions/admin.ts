@@ -38,6 +38,7 @@ export async function createUser(formData: FormData) {
         password: hashedPassword,
         role,
       },
+      select: { id: true }
     })
 
     await logAudit({ actorUserId: parseInt(session.userId, 10), action: 'admin.user.create', target: email, metadata: { role } })
@@ -108,7 +109,8 @@ export async function updateUser(userId: number, formData: FormData) {
 
         await prisma.user.update({
             where: { id: userId },
-            data
+            data,
+            select: { id: true }
         })
         await logAudit({ actorUserId: parseInt(session.userId, 10), action: 'admin.user.update', target: userId.toString(), metadata: { role } })
         revalidatePath('/admin/team')

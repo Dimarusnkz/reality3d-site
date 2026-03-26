@@ -99,11 +99,14 @@ export async function requestPasswordReset(prevState: any, formData: FormData) {
   }
 
   const ip = await getClientIp();
-  const rl = rateLimit(`auth:reset-request:${ip}`, 3, 15 * 60_000);
+  const rl = await rateLimit(`auth:reset-request:${ip}`, 3, 15 * 60_000);
   if (!rl.ok) return { errors: { email: ['Слишком много запросов. Попробуйте через 15 минут.'] } };
 
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true }
+    });
     if (!user) {
       // Don't reveal that user doesn't exist for security
       return { success: true };
@@ -118,6 +121,7 @@ export async function requestPasswordReset(prevState: any, formData: FormData) {
         passwordResetToken: token,
         passwordResetExpires: expires,
       },
+      select: { id: true }
     });
 
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
@@ -176,6 +180,7 @@ export async function resetPassword(prevState: any, formData: FormData) {
         passwordResetToken: token,
         passwordResetExpires: { gt: new Date() },
       },
+      select: { id: true }
     });
 
     if (!user) {
@@ -192,6 +197,7 @@ export async function resetPassword(prevState: any, formData: FormData) {
         passwordResetExpires: null,
         tokenVersion: { increment: 1 }, // Invalidate all existing sessions
       },
+      select: { id: true }
     });
 
     return { success: true };
@@ -210,7 +216,7 @@ export async function login(prevState: any, formData: FormData) {
 
   const ip = await getClientIp();
   const emailKey = typeof formData.get('email') === 'string' ? (formData.get('email') as string) : '';
-  const rl = rateLimit(`auth:login:${ip}:${emailKey}`, 5, 60_000);
+  const rl = await rateLimit(`auth:login:${ip}:${emailKey}`, 5, 60_000);
   if (!rl.ok) {
     return { errors: { email: ['Слишком много попыток. Подожди минуту и попробуй снова.'] } };
   }
@@ -285,7 +291,7 @@ export async function register(prevState: any, formData: FormData) {
 
   const ip = await getClientIp();
   const emailKey = typeof formData.get('email') === 'string' ? (formData.get('email') as string) : '';
-  const rl = rateLimit(`auth:register:${ip}:${emailKey}`, 3, 5 * 60_000);
+  const rl = await rateLimit(`auth:register:${ip}:${emailKey}`, 3, 5 * 60_000);
   if (!rl.ok) {
     return { errors: { email: ['Слишком много попыток регистрации. Подожди 5 минут.'] } };
   }

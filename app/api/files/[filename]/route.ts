@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 import { getSession } from '@/lib/session'
-
-const UPLOAD_DIR = process.platform === 'win32' 
-  ? 'C:\\Users\\Dmitry\\Desktop\\reality3d-uploads' 
-  : '/var/www/reality3d-uploads'
+import { UPLOAD_CONFIG, isPathSafe } from '@/lib/upload-config'
 
 export async function GET(
   req: NextRequest,
@@ -18,12 +15,12 @@ export async function GET(
 
   // Security: Prevent directory traversal
   const { filename } = await params
-  if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+  if (!isPathSafe(filename)) {
     return new NextResponse('Invalid filename', { status: 400 })
   }
 
   try {
-    const filePath = join(UPLOAD_DIR, filename)
+    const filePath = join(UPLOAD_CONFIG.baseDir, filename)
     const fileBuffer = await readFile(filePath)
     
     // Determine content type (basic)

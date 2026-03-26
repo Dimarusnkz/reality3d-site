@@ -31,6 +31,8 @@ export interface ChatSession {
   unreadCount: number;
   clientUnreadCount: number; // Not really used in DB logic yet, but kept for compatibility
   status: "active" | "closed" | "archived";
+  nextCursor?: number;
+  isLoadingMore?: boolean;
 }
 
 interface ChatContextType {
@@ -47,6 +49,7 @@ interface ChatContextType {
   setRole: (role: string) => void; // Deprecated/Debug
   createNewChat: () => Promise<void>;
   refreshChats: () => Promise<void>;
+  loadMoreMessages: (sessionId: string) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -74,18 +77,12 @@ export function ChatProvider({
       const dbChats = await getChats();
       
       const mappedSessions: ChatSession[] = await Promise.all(dbChats.map(async (chat) => {
-        // Fetch messages for each chat (or optimize to fetch only for active/selected)
-        // For list view, we might need last message.
-        // For now, let's just fetch messages for the CURRENT session to save bandwidth, 
-        // or fetch all if list is small. 
-        // Let's optimize: fetch messages only if it's the current session.
-        // But for "unread" counts and last message preview, we usually need them.
-        // Let's rely on what `getChats` returns. `getChats` returns unreadCount.
-        
-        // We'll fetch full messages only for the active session.
+        // Optimization: Fetch messages only if it's the current session and we don't have them yet
         let messages: Message[] = [];
+        let nextCursor: number | undefined = undefined;
+
         if (currentSessionId === chat.id.toString()) {
-             const dbMessages = await getChatMessages(chat.id);
+             const { messages: dbMessages, nextCursor: dbNextCursor } = await getChatMessages(chat.id);
              messages = dbMessages.map(m => ({
                  id: m.id.toString(),
                  text: m.content,
@@ -94,6 +91,7 @@ export function ChatProvider({
                  isInternal: m.isInternal,
                  type: 'text'
              }));
+             nextCursor = dbNextCursor;
         }
 
         return {
@@ -103,19 +101,23 @@ export function ChatProvider({
           messages: messages, // Will be empty unless selected
           unreadCount: chat.unreadCount || 0,
           clientUnreadCount: (role === 'user' || role === 'client') ? (chat.unreadCount || 0) : 0, 
-          status: chat.status as any
+          status: chat.status as any,
+          nextCursor
         };
       }));
 
       setSessions(prev => {
-         // Merge with previous to keep messages if we didn't fetch them
-         // This is a bit complex. Simplification:
-         // If we fetched messages (current session), use them.
-         // If not, keep existing messages from `prev` if available.
          return mappedSessions.map(newS => {
              const oldS = prev.find(p => p.id === newS.id);
-             if (newS.id === currentSessionId) return newS; // We fetched messages
-             return { ...newS, messages: oldS?.messages || [] };
+             // If this is current session, we already have new messages/cursor
+             if (newS.id === currentSessionId) {
+               // But if we already had more messages (pagination), we might want to merge
+               // Actually for the poll, we only care about NEW messages at the bottom
+               // Simplified: for now just update if it's current, but in a real app 
+               // we'd check if last message ID is different.
+               return newS;
+             }
+             return { ...newS, messages: oldS?.messages || [], nextCursor: oldS?.nextCursor };
          });
       });
       
@@ -132,34 +134,74 @@ export function ChatProvider({
   // Initial fetch and polling
   useEffect(() => {
     fetchChats();
-    const interval = setInterval(fetchChats, 5000);
+    const interval = setInterval(fetchChats, 10000); // Increased to 10s for less aggressive polling
     return () => clearInterval(interval);
   }, [fetchChats]);
 
   // Load messages when session is selected
   useEffect(() => {
       if (currentSessionId && role !== 'guest') {
-          // Immediately fetch messages for the selected session
-          getChatMessages(parseInt(currentSessionId)).then(dbMessages => {
-              setSessions(prev => prev.map(s => {
-                  if (s.id === currentSessionId) {
-                      return {
-                          ...s,
-                          messages: dbMessages.map(m => ({
-                              id: m.id.toString(),
-                              text: m.content,
-                              sender: m.sender?.role || 'system',
-                              timestamp: new Date(m.createdAt).getTime(),
-                              isInternal: m.isInternal,
-                              type: 'text'
-                          }))
-                      };
-                  }
-                  return s;
-              }));
-          });
+          const session = sessions.find(s => s.id === currentSessionId);
+          // Only fetch if we don't have messages yet
+          if (!session || session.messages.length === 0) {
+            getChatMessages(parseInt(currentSessionId)).then(({ messages: dbMessages, nextCursor }) => {
+                setSessions(prev => prev.map(s => {
+                    if (s.id === currentSessionId) {
+                        return {
+                            ...s,
+                            messages: dbMessages.map(m => ({
+                                id: m.id.toString(),
+                                text: m.content,
+                                sender: m.sender?.role || 'system',
+                                timestamp: new Date(m.createdAt).getTime(),
+                                isInternal: m.isInternal,
+                                type: 'text'
+                            })),
+                            nextCursor
+                        };
+                    }
+                    return s;
+                }));
+            });
+          }
       }
-  }, [currentSessionId, role]);
+  }, [currentSessionId, role, sessions]);
+
+  const loadMoreMessages = async (sessionId: string) => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session || !session.nextCursor || session.isLoadingMore) return;
+
+    // Mark as loading
+    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, isLoadingMore: true } : s));
+
+    try {
+      const { messages: dbMessages, nextCursor } = await getChatMessages(parseInt(sessionId), 50, session.nextCursor);
+      
+      const newMessages = dbMessages.map(m => ({
+        id: m.id.toString(),
+        text: m.content,
+        sender: m.sender?.role || 'system',
+        timestamp: new Date(m.createdAt).getTime(),
+        isInternal: m.isInternal,
+        type: 'text' as const
+      }));
+
+      setSessions(prev => prev.map(s => {
+        if (s.id === sessionId) {
+          return {
+            ...s,
+            messages: [...newMessages, ...s.messages], // Add older messages to the top
+            nextCursor,
+            isLoadingMore: false
+          };
+        }
+        return s;
+      }));
+    } catch (error) {
+      console.error("Failed to load more messages", error);
+      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, isLoadingMore: false } : s));
+    }
+  };
 
 
   const createNewChat = async () => {
@@ -223,7 +265,8 @@ export function ChatProvider({
       currentUserRole: role,
       setRole,
       createNewChat,
-      refreshChats: fetchChats
+      refreshChats: fetchChats,
+      loadMoreMessages
     }}>
       {children}
     </ChatContext.Provider>

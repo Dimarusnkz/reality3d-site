@@ -5,16 +5,7 @@ import { join } from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { getSession } from '@/lib/session'
 import { assertCsrfTokenValue } from '@/lib/csrf'
-
-const DEFAULT_PUBLIC_UPLOAD_DIR = process.platform === 'win32'
-  ? 'C:\\Users\\Dmitry\\Desktop\\reality3d-uploads\\public'
-  : '/var/www/reality3d-uploads/public'
-
-const PUBLIC_UPLOAD_DIR = process.env.PUBLIC_UPLOAD_DIR || DEFAULT_PUBLIC_UPLOAD_DIR
-
-const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp'])
-const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp'])
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
+import { UPLOAD_CONFIG } from '@/lib/upload-config'
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
@@ -39,25 +30,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
     }
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
+    if (file.size > UPLOAD_CONFIG.maxFileSizePublic) {
       return NextResponse.json({ error: 'File too large (Max 5MB)' }, { status: 400 })
     }
 
-    if (file.type && !ALLOWED_MIME.has(file.type)) {
+    if (file.type && !UPLOAD_CONFIG.allowedPublicMime.has(file.type)) {
       return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
     const ext = file.name.split('.').pop()?.toLowerCase() || ''
-    if (!ALLOWED_EXTENSIONS.has(ext)) {
+    if (!UPLOAD_CONFIG.allowedPublicExtensions.has(ext)) {
       return NextResponse.json({ error: 'Invalid file extension' }, { status: 400 })
     }
     const filename = `${uuidv4()}.${ext}`
 
     // Ensure directory exists
-    await mkdir(PUBLIC_UPLOAD_DIR, { recursive: true })
+    await mkdir(UPLOAD_CONFIG.publicDir, { recursive: true })
 
-    const filePath = join(PUBLIC_UPLOAD_DIR, filename)
+    const filePath = join(UPLOAD_CONFIG.publicDir, filename)
     await writeFile(filePath, buffer)
 
     // Return the URL to access the file

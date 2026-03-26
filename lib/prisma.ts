@@ -1,22 +1,36 @@
 import { PrismaClient as PostgresClient } from '@prisma/client';
 import { PrismaClient as SqliteClient } from '../generated/sqlite-client';
 import { PrismaClient as MysqlClient } from '../generated/mysql-client';
+import { cache } from 'react';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 type AnyClient = PostgresClient;
 
-const globalForDb = global as unknown as { __dbProvider?: string };
+const PROVIDER_FILE = join(process.cwd(), '.db_provider');
+
+// Internal global cache for clients
 const globalForClients = global as unknown as { __prismaClients?: Record<string, AnyClient> };
 
-export function getDbProvider() {
-  // Use environment variable during build/static generation
-  if (typeof window === 'undefined' && !globalForDb.__dbProvider) {
-    return (process.env.DB_PROVIDER || 'postgres').toLowerCase();
+export const getDbProvider = cache(() => {
+  // 1. Check if file exists
+  if (existsSync(PROVIDER_FILE)) {
+    try {
+      return readFileSync(PROVIDER_FILE, 'utf8').trim().toLowerCase();
+    } catch (e) {
+      console.error('Failed to read .db_provider:', e);
+    }
   }
-  return (globalForDb.__dbProvider || 'postgres').toLowerCase();
-}
+  // 2. Fallback to env or default
+  return (process.env.DB_PROVIDER || 'postgres').toLowerCase();
+});
 
 export function setDbProvider(provider: string) {
-  globalForDb.__dbProvider = provider.toLowerCase();
+  try {
+    writeFileSync(PROVIDER_FILE, provider.toLowerCase(), 'utf8');
+  } catch (e) {
+    console.error('Failed to write .db_provider:', e);
+  }
 }
 
 function makeClient(provider: string): AnyClient {

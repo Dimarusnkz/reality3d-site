@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
-
-const DEFAULT_PUBLIC_UPLOAD_DIR = process.platform === 'win32'
-  ? 'C:\\Users\\Dmitry\\Desktop\\reality3d-uploads\\public'
-  : '/var/www/reality3d-uploads/public'
-
-const PUBLIC_UPLOAD_DIR = process.env.PUBLIC_UPLOAD_DIR || DEFAULT_PUBLIC_UPLOAD_DIR
+import { UPLOAD_CONFIG, isPathSafe } from '@/lib/upload-config'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ filename: string }> }) {
   // Public route, no auth check needed for reading images
@@ -14,11 +9,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ file
   const { filename } = await params
   
   // Basic path traversal protection
-  if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+  if (!isPathSafe(filename)) {
     return new NextResponse('Invalid filename', { status: 400 })
   }
 
-  const filePath = join(PUBLIC_UPLOAD_DIR, filename)
+  const filePath = join(UPLOAD_CONFIG.publicDir, filename)
   
   try {
     const fileBuffer = await readFile(filePath)

@@ -66,7 +66,8 @@ export async function updateProfile(prevState: ProfileState, formData: FormData)
   try {
     // Check if email is already taken by another user
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
+      select: { id: true }
     })
 
     if (existingUser && existingUser.id !== userId) {
@@ -106,7 +107,7 @@ export async function updatePassword(prevState: ProfileState, formData: FormData
 
   const userId = parseInt(session.userId)
   const ip = await getClientIp()
-  const rl = rateLimit(`auth:password_change:${ip}:${userId}`, 5, 10 * 60_000)
+  const rl = await rateLimit(`auth:password_change:${ip}:${userId}`, 5, 10 * 60_000)
   if (!rl.ok) {
     return { error: 'Слишком много попыток. Подожди и попробуй снова.', success: false }
   }

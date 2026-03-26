@@ -5,26 +5,18 @@ import { join } from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { getSession } from '@/lib/session'
 import { assertCsrf } from '@/lib/csrf'
+import { UPLOAD_CONFIG } from '@/lib/upload-config'
 
 import { z } from 'zod'
-
-const DEFAULT_PUBLIC_UPLOAD_DIR = process.platform === 'win32'
-  ? 'C:\\Users\\Dmitry\\Desktop\\reality3d-uploads\\public' // Local dev
-  : '/var/www/reality3d-uploads/public' // Production
-
-const PUBLIC_UPLOAD_DIR = process.env.PUBLIC_UPLOAD_DIR || DEFAULT_PUBLIC_UPLOAD_DIR
-
-const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
 const publicUploadSchema = z.object({
   file: z.any()
     .refine((file) => file instanceof File, 'No file provided')
-    .refine((file) => file instanceof File && file.size <= MAX_FILE_SIZE, 'File too large (Max 5MB)')
+    .refine((file) => file instanceof File && file.size <= UPLOAD_CONFIG.maxFileSizePublic, 'File too large (Max 5MB)')
     .refine((file) => {
       if (!(file instanceof File)) return false;
       const ext = file.name.split('.').pop()?.toLowerCase() || ''
-      return ALLOWED_EXTENSIONS.includes(ext)
+      return UPLOAD_CONFIG.allowedPublicExtensions.has(ext)
     }, 'Invalid file type. Only JPG, PNG, WEBP allowed.')
 })
 
@@ -54,11 +46,11 @@ export async function uploadPublicFile(formData: FormData) {
   const safeName = `${uuidv4()}.${extension}`
   
   try {
-    await mkdir(PUBLIC_UPLOAD_DIR, { recursive: true }) 
+    await mkdir(UPLOAD_CONFIG.publicDir, { recursive: true }) 
     
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    const filePath = join(PUBLIC_UPLOAD_DIR, safeName)
+    const filePath = join(UPLOAD_CONFIG.publicDir, safeName)
     
     await writeFile(filePath, buffer)
     

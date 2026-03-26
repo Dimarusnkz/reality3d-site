@@ -87,10 +87,10 @@ export async function getChats(): Promise<ChatSessionWithDetails[]> {
   }))
 }
 
-export async function getChatMessages(sessionId: number): Promise<MessageWithSender[]> {
+export async function getChatMessages(sessionId: number, limit: number = 50, cursor?: number): Promise<{ messages: MessageWithSender[], nextCursor?: number }> {
   const prisma = getPrisma()
   const session = await getSession()
-  if (!session) return []
+  if (!session) return { messages: [] }
 
   const { userId, role } = session
 
@@ -100,11 +100,11 @@ export async function getChatMessages(sessionId: number): Promise<MessageWithSen
     select: { userId: true }
   })
 
-  if (!chat) return []
+  if (!chat) return { messages: [] }
 
   // Client can only see their own chat
   if ((role === 'user' || role === 'client') && chat.userId !== parseInt(userId)) {
-    return []
+    return { messages: [] }
   }
 
   // Filter internal messages for clients
@@ -113,24 +113,28 @@ export async function getChatMessages(sessionId: number): Promise<MessageWithSen
     whereClause.isInternal = false
   }
 
+  if (cursor) {
+    whereClause.id = { lt: cursor }
+  }
+
   const messages = await prisma.chatMessage.findMany({
     where: whereClause,
+    take: limit + 1, // Fetch one extra to determine if there's a next page
     include: {
       sender: {
         select: { id: true, name: true, role: true }
       }
     },
-    orderBy: { createdAt: 'asc' }
+    orderBy: { id: 'desc' } // Fetch latest first for pagination from bottom
   })
 
-  // Mark as read (simplified)
-  // In a real app, we'd mark specific messages as read
-  // await prisma.chatMessage.updateMany({
-  //   where: { sessionId, read: false, NOT: { senderId: parseInt(userId) } },
-  //   data: { read: true }
-  // })
+  let nextCursor: number | undefined = undefined;
+  if (messages.length > limit) {
+    const nextItem = messages.pop();
+    nextCursor = nextItem!.id;
+  }
 
-  return messages.map(msg => ({
+  const result = messages.reverse().map(msg => ({
     id: msg.id,
     content: msg.content,
     isInternal: msg.isInternal,
@@ -139,6 +143,8 @@ export async function getChatMessages(sessionId: number): Promise<MessageWithSen
     sender: msg.sender,
     isMine: msg.senderId === parseInt(userId)
   }))
+
+  return { messages: result, nextCursor };
 }
 
 export async function sendMessage(

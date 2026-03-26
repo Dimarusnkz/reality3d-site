@@ -24,7 +24,11 @@ export async function setUserRole(input: unknown, csrfToken: string) {
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
 
   try {
-    await prisma.user.update({ where: { id: parsed.data.userId }, data: { role: parsed.data.role } })
+    await prisma.user.update({
+      where: { id: parsed.data.userId },
+      data: { role: parsed.data.role },
+      select: { id: true }
+    })
     await logAudit({
       actorUserId: access.userId,
       action: 'access.role.set',

@@ -1,9 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { getPrisma } from "@/lib/prisma";
 import TeamClient from "./team-client";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
-
-const prisma = new PrismaClient();
 
 export default async function AdminTeamPage() {
   const session = await getSession();
@@ -12,6 +10,7 @@ export default async function AdminTeamPage() {
     redirect('/admin');
   }
 
+  const prisma = getPrisma();
   const users = await prisma.user.findMany({
     where: {
       role: {

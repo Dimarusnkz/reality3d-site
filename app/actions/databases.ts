@@ -75,7 +75,7 @@ export async function switchDatabase(provider: Provider, csrfToken: string) {
   const session = await requireAdmin()
   if (!session) return { error: 'Unauthorized' as const }
 
-  const rl = rateLimit(`admin:db:switch:${await getIpKey()}`, 10, 60_000)
+  const rl = await rateLimit(`admin:db:switch:${await getIpKey()}`, 10, 60_000)
   if (!rl.ok) return { error: 'Too many requests' as const }
 
   const csrf = await assertCsrfTokenValue(csrfToken || null)

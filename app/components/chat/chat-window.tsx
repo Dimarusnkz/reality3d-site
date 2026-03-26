@@ -19,21 +19,46 @@ export function ChatWindow({ className, embedded = false }: ChatWindowProps) {
     role, 
     sendMessage, 
     closeChat, 
+    loadMoreMessages
   } = useChat();
 
   const [input, setInput] = React.useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [shouldScrollToBottom, setShouldScrollToBottom] = React.useState(true);
 
   const currentSession = sessions.find(s => s.id === currentSessionId);
   const messages = currentSession?.messages ?? EMPTY_MESSAGES;
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (shouldScrollToBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages, currentSessionId]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    
+    // If we are at the bottom, keep scrolling to bottom on new messages
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+    setShouldScrollToBottom(isAtBottom);
+
+    // If we scroll to the top, load more messages
+    if (scrollTop === 0 && currentSession?.nextCursor && !currentSession.isLoadingMore) {
+      const oldScrollHeight = scrollHeight;
+      loadMoreMessages(currentSession.id).then(() => {
+        // After loading, maintain scroll position
+        if (messagesContainerRef.current) {
+          const newScrollHeight = messagesContainerRef.current.scrollHeight;
+          messagesContainerRef.current.scrollTop = newScrollHeight - oldScrollHeight;
+        }
+      });
+    }
+  };
 
   const handleSend = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -74,8 +99,18 @@ export function ChatWindow({ className, embedded = false }: ChatWindowProps) {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-900/50">
-        {messages.length === 0 && (
+      <div 
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-900/50"
+      >
+        {currentSession?.isLoadingMore && (
+           <div className="text-center py-2">
+              <div className="inline-block w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+           </div>
+        )}
+
+        {messages.length === 0 && !currentSession?.isLoadingMore && (
            <div className="text-center text-gray-500 mt-10">
               <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-20" />
               <p>Нет сообщений. Напишите нам!</p>
