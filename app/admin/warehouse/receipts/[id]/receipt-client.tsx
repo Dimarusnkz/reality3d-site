@@ -244,13 +244,12 @@ export function ReceiptClient({
           </div>
         </div>
 
-          <div className="md:col-span-4 flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <AlertTriangle className="w-5 h-5 text-blue-400 shrink-0" />
-            <div className="text-sm text-blue-100">
-              {isDraft 
-                ? "Документ в черновике. Вы можете редактировать данные и добавлять позиции." 
-                : "Документ проведён. Редактирование заблокировано. Для изменений сначала нажмите «Распровести»."}
-            </div>
+        <div className="md:col-span-4 flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+          <AlertTriangle className="w-5 h-5 text-blue-400 shrink-0" />
+          <div className="text-sm text-blue-100">
+            {isDraft 
+              ? "Документ в черновике. Вы можете редактировать данные и добавлять позиции." 
+              : "Документ проведён. Редактирование заблокировано. Для изменений сначала нажмите «Распровести»."}
           </div>
         </div>
 
