@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { createWarehouseSupplier, updateWarehouseSupplier, deleteWarehouseSupplier } from "@/app/actions/warehouse-docs";
 import { Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
