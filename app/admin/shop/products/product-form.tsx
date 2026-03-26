@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { createShopProduct, updateShopProduct } from "@/app/actions/shop-admin";
 import { Loader2, ImagePlus, Trash2, ChevronLeft, ChevronRight, Copy, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -103,6 +103,11 @@ export function ProductForm({
   );
 
   const [form, setForm] = useState<ProductInput>(initial);
+
+  // Update form state when initial data changes (e.g. after a successful save or navigation)
+  useEffect(() => {
+    setForm(initial);
+  }, [initial]);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDuplicating, setIsDuplicating] = useState(false);

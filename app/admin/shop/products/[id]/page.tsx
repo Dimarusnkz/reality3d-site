@@ -2,29 +2,33 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getPrisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { ProductCardForm } from "../product-card-form";
+import { hasPermission } from "@/lib/access";
+import { ProductForm } from "../product-form";
 
 export default async function EditShopProductPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session?.userId) redirect("/login");
+  const userId = parseInt(session.userId, 10);
   if (!["admin", "manager"].includes(session.role)) redirect("/admin");
+
+  const canEditPurchasePrice = await hasPermission(userId, session.role, "products.purchase_price.edit");
 
   const prisma = getPrisma();
   const { id } = await params;
   const productId = parseInt(id, 10);
   if (!Number.isFinite(productId)) notFound();
 
-  const product = await prisma.shopProduct.findUnique({
-    where: { id: productId },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      shortDescription: true,
-      description: true,
-      images: { orderBy: { sortOrder: "asc" }, select: { url: true } },
-    },
-  });
+  const [product, categories] = await Promise.all([
+    prisma.shopProduct.findUnique({
+      where: { id: productId },
+      include: {
+        images: {
+          orderBy: { sortOrder: 'asc' }
+        }
+      }
+    }),
+    prisma.shopCategory.findMany({ select: { id: true, name: true, slug: true }, orderBy: { name: "asc" } }),
+  ]);
 
   if (!product) notFound();
 
@@ -32,7 +36,7 @@ export default async function EditShopProductPage({ params }: { params: Promise<
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Оформление карточки</h1>
+          <h1 className="text-2xl font-bold text-white">Редактирование карточки</h1>
           <div className="text-sm text-gray-400 mt-1">/{product.slug}</div>
         </div>
         <Link
@@ -44,15 +48,11 @@ export default async function EditShopProductPage({ params }: { params: Promise<
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-        <ProductCardForm
-          product={{
-            id: product.id,
-            name: product.name,
-            slug: product.slug,
-            shortDescription: product.shortDescription,
-            description: product.description,
-            imageUrls: product.images.map((i) => i.url),
-          }}
+        <ProductForm 
+          categories={categories} 
+          product={product as any} 
+          canEditPurchasePrice={canEditPurchasePrice} 
+          userRole={session.role}
         />
       </div>
     </div>
