@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { createShopProduct, updateShopProduct } from "@/app/actions/shop-admin";
 import { Loader2, ImagePlus, Trash2, ChevronLeft, ChevronRight, Copy, AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
