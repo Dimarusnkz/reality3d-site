@@ -219,8 +219,8 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
       action: 'shop.product.update', 
       target: String(id),
       metadata: {
-        before: { name: oldProduct?.name, sku: oldProduct?.sku, stock: oldProduct?.stock },
-        after: { name: parsed.data.name, sku: parsed.data.sku, stock: parsed.data.stock }
+        before: { name: oldProduct?.name, sku: oldProduct?.sku },
+        after: { name: parsed.data.name, sku: parsed.data.sku }
       }
     })
     
