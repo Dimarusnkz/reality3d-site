@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { createShopProduct, updateShopProduct } from "@/app/actions/shop-admin";
-import { Loader2, ImagePlus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, ImagePlus, Trash2, ChevronLeft, ChevronRight, Copy, AlertTriangle } from "lucide-react";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -50,6 +50,7 @@ export function ProductForm({
   categories,
   product,
   canEditPurchasePrice,
+  userRole,
 }: {
   categories: Category[];
   product?: {
@@ -71,8 +72,10 @@ export function ProductForm({
     allowPreorder: boolean;
     isActive: boolean;
     categoryId: number | null;
+    images?: { url: string }[];
   };
   canEditPurchasePrice?: boolean;
+  userRole?: string;
 }) {
   const initial = useMemo<ProductInput>(
     () => ({
@@ -93,7 +96,7 @@ export function ProductForm({
       allowPreorder: product?.allowPreorder ?? false,
       isActive: product?.isActive ?? true,
       categoryId: product?.categoryId ?? null,
-      imageUrls: [],
+      imageUrls: product?.images?.map(img => img.url) || [],
     }),
     [product]
   );
@@ -101,6 +104,9 @@ export function ProductForm({
   const [form, setForm] = useState<ProductInput>(initial);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
+
+  const isAdmin = userRole === 'admin';
 
   const uploadFile = async (file: File) => {
     const csrf = getCsrfToken();
@@ -164,6 +170,33 @@ export function ProductForm({
 
   const onSlugChange = (slug: string) => {
     setForm((prev) => ({ ...prev, slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, "-") }));
+  };
+
+  const handleDuplicate = async () => {
+    if (!confirm("Создать копию этого товара?")) return;
+    setIsDuplicating(true);
+    try {
+      const payload = {
+        ...form,
+        name: `${form.name} (копия)`,
+        slug: `${form.slug}-copy-${Date.now()}`,
+        sku: form.sku ? `${form.sku}-copy` : null,
+        stock: 0, // Reset stock for copy
+        isActive: false, // Keep disabled by default
+      };
+
+      const csrf = getCsrfToken();
+      const res = await createShopProduct(payload, csrf);
+
+      if (!res.ok) {
+        alert(res.error || "Ошибка при копировании");
+        return;
+      }
+
+      window.location.href = `/admin/warehouse/catalog/${res.product.id}`;
+    } finally {
+      setIsDuplicating(false);
+    }
   };
 
   const submit = async () => {
@@ -235,12 +268,33 @@ export function ProductForm({
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-400 ml-1">Артикул</label>
-          <input
-            value={form.sku}
-            onChange={(e) => setForm({ ...form, sku: e.target.value })}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-          />
+          <label className="text-sm font-medium text-gray-400 ml-1 flex items-center gap-2">
+            Артикул
+            {!isAdmin && product && (
+              <span className="text-[10px] bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded border border-red-500/20">Только админ</span>
+            )}
+          </label>
+          <div className="relative group">
+            <input
+              value={form.sku}
+              onChange={(e) => setForm({ ...form, sku: e.target.value })}
+              disabled={!isAdmin && !!product}
+              className={cn(
+                "w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all",
+                (!isAdmin && !!product) && "opacity-60 cursor-not-allowed"
+              )}
+            />
+            {isAdmin && product && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+            )}
+          </div>
+          {isAdmin && product && (
+            <p className="text-[10px] text-yellow-500/70 ml-1">
+              Внимание: изменение артикула повлияет на складской учет и связанные документы!
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -350,7 +404,7 @@ export function ProductForm({
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-400 ml-1">Начальный остаток (0 по умолчанию)</label>
+          <label className="text-sm font-medium text-gray-400 ml-1">Текущий остаток</label>
           <input
             type="number"
             inputMode="numeric"
@@ -358,9 +412,6 @@ export function ProductForm({
             onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
           />
-          <p className="text-[10px] text-gray-500 ml-1">
-            Обычно остаток пополняется через «Приход на склад».
-          </p>
         </div>
 
         <div className="space-y-2">
@@ -387,68 +438,66 @@ export function ProductForm({
           </select>
         </div>
 
-        {!product ? (
-          <div className="md:col-span-2 space-y-3">
-            <label className="text-sm font-medium text-gray-400 ml-1">Фотографии товара</label>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <label className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white px-4 text-sm font-medium transition-colors cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => onSelectFiles(e.target.files)}
-                  disabled={isUploading || form.imageUrls.length >= 10}
-                />
-                {isUploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ImagePlus className="w-4 h-4 mr-2" />}
-                Добавить фото
-              </label>
-              <div className="text-xs text-gray-500">
-                JPG/PNG/WebP, до 5MB, максимум 10 фото. Хранение на сервере.
-              </div>
+        <div className="md:col-span-2 space-y-3">
+          <label className="text-sm font-medium text-gray-400 ml-1">Фотографии товара</label>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <label className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white px-4 text-sm font-medium transition-colors cursor-pointer">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                className="hidden"
+                onChange={(e) => onSelectFiles(e.target.files)}
+                disabled={isUploading || form.imageUrls.length >= 10}
+              />
+              {isUploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ImagePlus className="w-4 h-4 mr-2" />}
+              Добавить фото
+            </label>
+            <div className="text-xs text-gray-500">
+              JPG/PNG/WebP, до 5MB, максимум 10 фото. Хранение на сервере.
             </div>
+          </div>
 
-            {form.imageUrls.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {form.imageUrls.map((url, idx) => (
-                  <div key={`${url}-${idx}`} className="relative bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
-                    <img src={url} alt="" className="w-full h-28 object-cover" />
-                    <div className="absolute inset-x-0 bottom-0 p-2 flex items-center justify-between gap-2 bg-black/60">
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => moveImage(idx, -1)}
-                          disabled={idx === 0}
-                          className="p-1 rounded bg-slate-800/60 hover:bg-slate-700/70 text-white disabled:opacity-50"
-                          title="Влево"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveImage(idx, 1)}
-                          disabled={idx === form.imageUrls.length - 1}
-                          className="p-1 rounded bg-slate-800/60 hover:bg-slate-700/70 text-white disabled:opacity-50"
-                          title="Вправо"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
+          {form.imageUrls.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {form.imageUrls.map((url, idx) => (
+                <div key={`${url}-${idx}`} className="relative bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+                  <img src={url} alt="" className="w-full h-28 object-cover" />
+                  <div className="absolute inset-x-0 bottom-0 p-2 flex items-center justify-between gap-2 bg-black/60">
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        onClick={() => removeImage(idx)}
-                        className="p-1 rounded bg-red-500/20 hover:bg-red-500/30 text-red-200"
-                        title="Удалить"
+                        onClick={() => moveImage(idx, -1)}
+                        disabled={idx === 0}
+                        className="p-1 rounded bg-slate-800/60 hover:bg-slate-700/70 text-white disabled:opacity-50"
+                        title="Влево"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveImage(idx, 1)}
+                        disabled={idx === form.imageUrls.length - 1}
+                        className="p-1 rounded bg-slate-800/60 hover:bg-slate-700/70 text-white disabled:opacity-50"
+                        title="Вправо"
+                      >
+                        <ChevronRight className="w-4 h-4" />
                       </button>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => removeImage(idx)}
+                      className="p-1 rounded bg-red-500/20 hover:bg-red-500/30 text-red-200"
+                      title="Удалить"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
 
         <div className="md:col-span-2 space-y-2">
           <label className="text-sm font-medium text-gray-400 ml-1">Короткое описание</label>
@@ -469,14 +518,27 @@ export function ProductForm({
         </div>
       </div>
 
-      <button
-        onClick={submit}
-        disabled={isSaving}
-        className="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-white shadow-[0_0_15px_rgba(255,94,0,0.3)] hover:bg-primary/90 transition-all disabled:opacity-50"
-      >
-        {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-        {product ? "Сохранить" : "Создать"}
-      </button>
+      <div className="flex items-center gap-4">
+        <button
+          onClick={submit}
+          disabled={isSaving || isDuplicating}
+          className="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-white shadow-[0_0_15px_rgba(255,94,0,0.3)] hover:bg-primary/90 transition-all disabled:opacity-50"
+        >
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+          {product ? "Сохранить" : "Создать"}
+        </button>
+
+        {product && (
+          <button
+            onClick={handleDuplicate}
+            disabled={isSaving || isDuplicating}
+            className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-800 px-6 text-sm font-semibold text-white hover:bg-slate-700 transition-all disabled:opacity-50 gap-2"
+          >
+            {isDuplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+            Создать копию
+          </button>
+        )}
+      </div>
     </div>
   );
 }

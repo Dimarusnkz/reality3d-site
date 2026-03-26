@@ -33,26 +33,11 @@ export default async function AdminWarehouseEditProductPage({
   const [product, categories] = await Promise.all([
     prisma.shopProduct.findUnique({
       where: { id: productId },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        sku: true,
-        itemType: true,
-        shortDescription: true,
-        description: true,
-        priceKopeks: true,
-        purchasePriceKopeks: true,
-        compareAtKopeks: true,
-        weightGrams: true,
-        lengthMm: true,
-        widthMm: true,
-        heightMm: true,
-        stock: true,
-        allowPreorder: true,
-        isActive: true,
-        categoryId: true,
-      },
+      include: {
+        images: {
+          orderBy: { sortOrder: 'asc' }
+        }
+      }
     }),
     prisma.shopCategory.findMany({ select: { id: true, name: true, slug: true }, orderBy: { name: "asc" } }),
   ]);
@@ -75,7 +60,12 @@ export default async function AdminWarehouseEditProductPage({
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-        <ProductForm categories={categories} product={product as any} canEditPurchasePrice={canEditPurchasePrice} />
+        <ProductForm 
+          categories={categories} 
+          product={product as any} 
+          canEditPurchasePrice={canEditPurchasePrice} 
+          userRole={session.role}
+        />
       </div>
     </div>
   );
