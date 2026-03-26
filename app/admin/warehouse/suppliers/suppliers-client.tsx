@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { createWarehouseSupplier, updateWarehouseSupplier } from "@/app/actions/warehouse-docs";
-import { Loader2, Plus, Save, Search } from "lucide-react";
+import { createWarehouseSupplier, updateWarehouseSupplier, deleteWarehouseSupplier } from "@/app/actions/warehouse-docs";
+import { Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -127,6 +127,21 @@ export function SuppliersClient({ initial }: { initial: Supplier[] }) {
         alert(res.error || "Ошибка");
         return;
       }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const remove = async (id: number) => {
+    if (!confirm("Удалить поставщика?")) return;
+    setIsSaving(true);
+    try {
+      const res = await deleteWarehouseSupplier(id, getCsrfToken());
+      if (!res.ok) {
+        alert(res.error || "Ошибка");
+        return;
+      }
+      setSuppliers(prev => prev.filter(s => s.id !== id));
     } finally {
       setIsSaving(false);
     }
@@ -373,14 +388,24 @@ export function SuppliersClient({ initial }: { initial: Supplier[] }) {
                     </div>
                   </td>
                   <td className="p-4 text-right">
-                    <button
-                      onClick={() => saveRow(s)}
-                      disabled={isSaving || !s.name.trim() || !s.inn?.trim() || !s.phone?.trim() || !s.address?.trim() || !s.contact?.trim()}
-                      className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white px-4 text-xs font-bold disabled:opacity-50 transition-all border border-slate-700"
-                    >
-                      {isSaving ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Save className="w-3 h-3 mr-2" />}
-                      Сохранить
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => saveRow(s)}
+                        disabled={isSaving || !s.name.trim() || !s.inn?.trim() || !s.phone?.trim() || !s.address?.trim() || !s.contact?.trim()}
+                        className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white px-4 text-xs font-bold disabled:opacity-50 transition-all border border-slate-700"
+                      >
+                        {isSaving ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Save className="w-3 h-3 mr-2" />}
+                        Сохранить
+                      </button>
+                      <button
+                        onClick={() => remove(s.id)}
+                        disabled={isSaving}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all border border-red-500/20"
+                        title="Удалить"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

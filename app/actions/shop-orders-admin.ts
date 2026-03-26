@@ -359,3 +359,63 @@ export async function cancelShopOrderAdmin(orderId: string, reason: string, csrf
   }
 }
 
+export async function deleteShopOrderAdmin(orderId: string, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { ok: false as const, error: csrf.error }
+
+  const access = await requirePermission('shop.orders.manage')
+  if (!access.ok) return access
+  if (access.role !== 'admin') return { ok: false as const, error: 'Только администратор может удалять заказы' }
+
+  try {
+    const order = await prisma.shopOrder.findUnique({
+      where: { id: orderId },
+      include: { items: true }
+    })
+    if (!order) return { ok: true as const }
+
+    // 1. Check for payments
+    const paymentsCount = await prisma.shopPayment.count({
+      where: { orderId: orderId, status: 'succeeded' }
+    })
+    if (paymentsCount > 0) {
+      return { ok: false as const, error: 'Ошибка: Нельзя удалить заказ, так как по нему есть успешная оплата.' }
+    }
+
+    // 2. Check for warehouse operations
+    const warehouseLogsCount = await prisma.shopWarehouseLog.count({
+      where: { shopOrderId: orderId }
+    })
+    if (warehouseLogsCount > 0) {
+      return { ok: false as const, error: 'Ошибка: Нельзя удалить заказ, так как по нему были складские операции (резерв или списание).' }
+    }
+
+    // 3. Check for cash entries
+    const cashEntriesCount = await prisma.cashEntry.count({
+      where: { shopOrderId: orderId }
+    })
+    if (cashEntriesCount > 0) {
+      return { ok: false as const, error: 'Ошибка: Нельзя удалить заказ, так как он связан с финансовыми операциями.' }
+    }
+
+    // If everything is clean, we can delete
+    await prisma.$transaction(async (tx) => {
+      await tx.shopOrderItem.deleteMany({ where: { orderId } })
+      await tx.shopPayment.deleteMany({ where: { orderId } })
+      await tx.shopOrder.delete({ where: { id: orderId } })
+    })
+
+    await logAudit({
+      actorUserId: access.userId,
+      action: 'shop.order.delete',
+      target: String(order.orderNo),
+    })
+
+    revalidatePath('/admin/shop/orders')
+    return { ok: true as const }
+  } catch (e) {
+    return { ok: false as const, error: 'Не удалось удалить заказ. Возможно, он связан с другими документами.' }
+  }
+}
+

@@ -107,6 +107,14 @@ export async function createShopProduct(input: unknown, csrfToken: string) {
   }
 
   try {
+    if (parsed.data.sku) {
+      const existing = await prisma.shopProduct.findFirst({
+        where: { sku: parsed.data.sku },
+        select: { id: true }
+      })
+      if (existing) return { ok: false as const, error: 'Товар с таким артикулом уже существует' }
+    }
+
     const canEditPurchase = await hasPermission(admin.userId, session!.role, 'products.purchase_price.edit')
     const product = await prisma.shopProduct.create({
       data: {
@@ -166,6 +174,16 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
 
   try {
     const oldProduct = await prisma.shopProduct.findUnique({ where: { id } })
+    if (!oldProduct) return { ok: false as const, error: 'Товар не найден' }
+
+    if (parsed.data.sku && parsed.data.sku !== oldProduct.sku) {
+      const existing = await prisma.shopProduct.findFirst({
+        where: { sku: parsed.data.sku, id: { not: id } },
+        select: { id: true }
+      })
+      if (existing) return { ok: false as const, error: 'Товар с таким артикулом уже существует' }
+    }
+
     const canEditPurchase = await hasPermission(admin.userId, session!.role, 'products.purchase_price.edit')
     
     await prisma.$transaction(async (tx) => {
@@ -276,9 +294,22 @@ export async function deleteShopProduct(id: number, csrfToken: string) {
     })
     if (!product) return { ok: true as const }
 
-    const [orderItems, warehouseLogs, clientLogs] = await Promise.all([
+    // Logic for preventing deletion of products in warehouse documents
+    const [receiptItemsCount, poItemsCount, warehouseLogsCount] = await Promise.all([
+      prisma.warehouseReceiptItem.count({ where: { productId: id } }),
+      prisma.warehousePurchaseOrderItem.count({ where: { productId: id } }),
+      prisma.shopWarehouseLog.count({ where: { productId: id, actionType: { in: ['receipt', 'writeoff'] } } }),
+    ])
+
+    if (receiptItemsCount > 0 || poItemsCount > 0 || warehouseLogsCount > 0) {
+      return { 
+        ok: false as const, 
+        error: `Ошибка: Нельзя удалить товар, так как он есть в документе "Поступление" или по нему были складские операции.` 
+      }
+    }
+
+    const [orderItems, clientLogs] = await Promise.all([
       prisma.shopOrderItem.count({ where: { productId: id } }),
-      prisma.shopWarehouseLog.count({ where: { productId: id } }),
       prisma.shopClientLog.count({ where: { productId: id } }),
     ])
 
@@ -286,7 +317,7 @@ export async function deleteShopProduct(id: number, csrfToken: string) {
     await prisma.shopWishlistItem.deleteMany({ where: { productId: id } })
     await prisma.shopProductImage.deleteMany({ where: { productId: id } })
 
-    if (orderItems > 0 || warehouseLogs > 0 || clientLogs > 0) {
+    if (orderItems > 0 || clientLogs > 0) {
       await prisma.shopInventoryItem.updateMany({ where: { productId: id }, data: { quantity: 0 } })
       const suffix = Date.now()
       await prisma.shopProduct.update({
@@ -298,6 +329,7 @@ export async function deleteShopProduct(id: number, csrfToken: string) {
           name: `${product.name} (архив)`,
         },
       })
+      return { ok: true as const, archived: true }
     } else {
       await prisma.shopInventoryItem.deleteMany({ where: { productId: id } })
       await prisma.shopWarehouseLog.deleteMany({ where: { productId: id } })

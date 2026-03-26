@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { confirmShopOrderPaymentAdmin, updateShopOrderAdmin, cancelShopOrderAdmin } from "@/app/actions/shop-orders-admin";
-import { Loader2, Save, CheckCircle, XCircle } from "lucide-react";
+import { confirmShopOrderPaymentAdmin, updateShopOrderAdmin, cancelShopOrderAdmin, deleteShopOrderAdmin } from "@/app/actions/shop-orders-admin";
+import { Loader2, Save, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import { formatRub } from "@/lib/shop/money";
 import { getShippingMethodLabel } from "@/lib/shop/shipping";
 import { cn } from "@/lib/utils";
@@ -56,6 +56,7 @@ export function OrderAdminClient({
   const [success, setSuccess] = useState<string | null>(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const itemsTotal = useMemo(() => order.items.reduce((s, i) => s + i.totalKopeks, 0), [order.items]);
 
@@ -132,6 +133,22 @@ export function OrderAdminClient({
     }
   };
 
+  const deleteOrder = async () => {
+    if (!confirm("Удалить заказ полностью? Это действие необратимо.")) return;
+    setDeleteBusy(true);
+    setError(null);
+    try {
+      const res = await deleteShopOrderAdmin(order.id, getCsrfToken());
+      if (!res.ok) {
+        setError(res.error || "Ошибка");
+        return;
+      }
+      window.location.href = "/admin/shop/orders";
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -146,6 +163,14 @@ export function OrderAdminClient({
           <button onClick={save} disabled={busy} className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-50">
             {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
             Сохранить
+          </button>
+          <button 
+            onClick={deleteOrder} 
+            disabled={deleteBusy || busy} 
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-50"
+            title="Удалить заказ"
+          >
+            {deleteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
           </button>
         </div>
       </div>

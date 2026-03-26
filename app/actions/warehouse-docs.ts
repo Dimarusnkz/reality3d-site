@@ -155,6 +155,56 @@ export async function updateWarehouseSupplier(id: number, input: unknown, csrfTo
   }
 }
 
+export async function deleteWarehouseSupplier(id: number, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { ok: false as const, error: csrf.error }
+
+  const access = await getUserAccessContext()
+  if (!access) return { ok: false as const, error: 'Unauthorized' }
+  const permitted = await hasPermission(access.userId, access.role, 'warehouse.receipt')
+  if (!permitted) return { ok: false as const, error: 'Unauthorized' }
+
+  try {
+    // 1. Check for linked receipts
+    const receiptsCount = await prisma.warehouseReceipt.count({
+      where: { supplierId: id }
+    })
+
+    if (receiptsCount > 0) {
+      return { 
+        ok: false as const, 
+        error: `Ошибка: Нельзя удалить поставщика, так как он указан в документе "Приход товара" (${receiptsCount} док.).` 
+      }
+    }
+
+    // 2. Check for linked purchase orders
+    const poCount = await prisma.warehousePurchaseOrder.count({
+      where: { supplierId: id }
+    })
+
+    if (poCount > 0) {
+      return { 
+        ok: false as const, 
+        error: `Ошибка: Нельзя удалить поставщика, так как с ним связаны заказы поставщику (${poCount} док.).` 
+      }
+    }
+
+    await prisma.warehouseSupplier.delete({ where: { id } })
+    
+    await logAudit({ 
+      actorUserId: access.userId, 
+      action: 'warehouse.supplier.delete', 
+      target: String(id) 
+    })
+
+    revalidatePath('/admin/warehouse/suppliers')
+    return { ok: true as const }
+  } catch (e) {
+    return { ok: false as const, error: 'Не удалось удалить поставщика. Возможно, он используется в других документах.' }
+  }
+}
+
 export async function createWarehouseReceipt(input: unknown, csrfToken: string) {
   const prisma = getPrisma()
   const csrf = await assertCsrfTokenValue(csrfToken || null)
