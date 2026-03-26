@@ -7,12 +7,18 @@ import { join } from 'path';
 
 type AnyClient = PostgresClient;
 
-const PROVIDER_FILE = join(process.cwd(), '.db_provider');
+const PROVIDER_FILE = '.db_provider';
 
 // Internal global cache for clients
 const globalForClients = global as unknown as { __prismaClients?: Record<string, AnyClient> };
 
 export const getDbProvider = cache(() => {
+  // Edge runtime doesn't support fs. If we're in Edge, we must fallback to env.
+  // Next.js defines process.env.NEXT_RUNTIME
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    return (process.env.DB_PROVIDER || 'postgres').toLowerCase();
+  }
+
   // 1. Check if file exists
   if (existsSync(PROVIDER_FILE)) {
     try {
