@@ -252,6 +252,9 @@ export function ReceiptClient({
                 : "Документ проведён. Редактирование заблокировано. Для изменений сначала нажмите «Распровести»."}
             </div>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-400 ml-1">Поставщик</label>
             <select
