@@ -57,7 +57,19 @@ export async function POST(req: NextRequest) {
           create: { chatId: String(chatOrUserId), name: name || undefined },
         });
 
-        await sendMaxDirect(chatOrUserId, `✅ MAX подключён.\nВаш MAX ID: ${chatOrUserId}\nПолучатель добавлен — уведомления начнут приходить.`);
+        await sendMaxDirect(chatOrUserId, `✅ MAX подключён.\nВаш MAX ID: ${chatOrUserId}\nПолучатель добавлен — уведомления начнут приходить.\n\nДоступные команды:\n/stock [SKU или название] — проверить остаток\n/lowstock — список товаров с низким остатком\n/status [номер заказа] — статус заказа`);
+      }
+
+      // Handle text commands
+      const text = (message?.text || "").trim().toLowerCase();
+      if (text.startsWith("/stock") || text.startsWith("остаток")) {
+        const query = text.replace("/stock", "").replace("остаток", "").trim();
+        await handleStockCommand(chatOrUserId, query);
+      } else if (text === "/lowstock" || text === "дефицит") {
+        await handleLowStockCommand(chatOrUserId);
+      } else if (text.startsWith("/status") || text.startsWith("статус")) {
+        const query = text.replace("/status", "").replace("статус", "").trim();
+        await handleOrderStatusCommand(chatOrUserId, query);
       }
 
       return NextResponse.json({ ok: true });
@@ -299,4 +311,123 @@ async function confirmCalcPayment(orderId: number, actorChatId: string, callback
   } catch {
     await answerMaxCallback(callbackId, { notification: "Ошибка при обновлении статуса" });
   }
+}
+
+async function handleStockCommand(chatId: number, query: string) {
+  if (!query) {
+    await sendMaxDirect(chatId, "⚠️ Введите SKU или название товара.\nПример: /stock R3D-123");
+    return;
+  }
+
+  const prisma = getPrisma();
+  const products = await prisma.shopProduct.findMany({
+    where: {
+      OR: [
+        { sku: { contains: query } },
+        { name: { contains: query } }
+      ]
+    },
+    include: {
+      inventoryItems: {
+        include: { warehouse: true }
+      }
+    },
+    take: 5
+  });
+
+  if (products.length === 0) {
+    await sendMaxDirect(chatId, `❌ Товар "${query}" не найден.`);
+    return;
+  }
+
+  let response = `🔎 РЕЗУЛЬТАТЫ ПОИСКА ("${query}"):\n\n`;
+  for (const p of products) {
+    response += `📦 <b>${p.name}</b>\n🆔 SKU: ${p.sku || "—"}\n`;
+    if (p.inventoryItems.length === 0) {
+      response += `⚠️ Нет данных об остатках\n`;
+    } else {
+      for (const inv of p.inventoryItems) {
+        const available = Number(inv.quantity) - Number((inv as any).reserved ?? 0);
+        response += `🏢 ${inv.warehouse.name}: <b>${available} ${inv.unit}</b> (Всего: ${inv.quantity}, Резерв: ${(inv as any).reserved ?? 0})\n`;
+      }
+    }
+    response += `\n`;
+  }
+
+  await sendMaxDirect(chatId, response);
+}
+
+async function handleLowStockCommand(chatId: number) {
+  const prisma = getPrisma();
+  const lowStockItems = await prisma.shopInventoryItem.findMany({
+    where: {
+      minThreshold: { gt: 0 }
+    },
+    include: {
+      product: true,
+      warehouse: true
+    }
+  });
+
+  const critical = lowStockItems.filter(item => {
+    const available = Number(item.quantity) - Number((item as any).reserved ?? 0);
+    return available <= Number(item.minThreshold);
+  });
+
+  if (critical.length === 0) {
+    await sendMaxDirect(chatId, "✅ Все товары в достаточном количестве.");
+    return;
+  }
+
+  let response = `⚠️ ТОВАРЫ С НИЗКИМ ОСТАТКОМ:\n\n`;
+  for (const it of critical.slice(0, 15)) {
+    const available = Number(it.quantity) - Number((it as any).reserved ?? 0);
+    response += `📦 <b>${it.product.name}</b>\n📉 Остаток: ${available} ${it.unit} (Порог: ${it.minThreshold})\n🏢 Склад: ${it.warehouse.name}\n\n`;
+  }
+
+  if (critical.length > 15) {
+    response += `...и ещё ${critical.length - 15} позиций.`;
+  }
+
+  await sendMaxDirect(chatId, response);
+}
+
+async function handleOrderStatusCommand(chatId: number, query: string) {
+  if (!query) {
+    await sendMaxDirect(chatId, "⚠️ Введите номер заказа.\nПример: /status 1234");
+    return;
+  }
+
+  const prisma = getPrisma();
+  const order = await prisma.shopOrder.findFirst({
+    where: {
+      OR: [
+        { orderNo: query },
+        { id: query }
+      ]
+    }
+  });
+
+  if (!order) {
+    await sendMaxDirect(chatId, `❌ Заказ #${query} не найден.`);
+    return;
+  }
+
+  const statusMap: Record<string, string> = {
+    pending: "⏳ Ожидает оплаты",
+    paid: "✅ Оплачен",
+    processing: "📦 В обработке",
+    shipped: "🚚 Отправлен",
+    delivered: "🏁 Доставлен",
+    cancelled: "❌ Отменен"
+  };
+
+  const response = 
+    `📄 ИНФОРМАЦИЯ О ЗАКАЗЕ #${order.orderNo}\n\n` +
+    `📊 Статус: ${statusMap[order.status] || order.status}\n` +
+    `💳 Оплата: ${order.paymentStatus === "paid" ? "✅ Оплачено" : "❌ Не оплачено"}\n` +
+    `💰 Сумма: ${(order.totalKopeks / 100).toFixed(2)} ₽\n` +
+    `📅 Дата: ${order.createdAt.toLocaleDateString()}`;
+
+  await sendMaxDirect(chatId, response);
 }

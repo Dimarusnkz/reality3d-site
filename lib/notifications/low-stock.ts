@@ -1,6 +1,7 @@
 
 import { getPrisma } from '@/lib/prisma';
 import { sendTelegramMessage } from '@/lib/telegram';
+import { sendMaxMessage } from '@/lib/max';
 
 export async function checkAndNotifyLowStock(productId?: number) {
   const prisma = getPrisma();
@@ -46,7 +47,11 @@ export async function checkAndNotifyLowStock(productId?: number) {
         `🛑 Порог уведомления: ${threshold} ${item.unit}\n\n` +
         `<a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin/warehouse/catalog/${item.productId}">Перейти к товару</a>`;
 
-      await sendTelegramMessage(message);
+      await Promise.all([
+        sendTelegramMessage(message),
+        sendMaxMessage(message, { format: 'html' })
+      ]).catch(err => console.error('Low stock notification failed:', err));
+
       notifiedCount++;
     }
   }
