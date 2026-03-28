@@ -81,6 +81,7 @@ const productSchema = z.object({
   isActive: z.boolean(),
   categoryId: z.number().int().positive().optional().nullable(),
   imageUrls: z.array(z.string()).max(10).optional().nullable(),
+  minThreshold: z.number().min(0).optional().nullable(),
 })
 
 const productCardSchema = z.object({
@@ -142,6 +143,19 @@ export async function createShopProduct(input: unknown, csrfToken: string) {
             : undefined,
       },
       select: { id: true, name: true, slug: true },
+    })
+
+    // Create default inventory item with threshold
+    const defaultWarehouseId = 1;
+    await prisma.shopInventoryItem.upsert({
+      where: { productId_warehouseId: { productId: product.id, warehouseId: defaultWarehouseId } },
+      create: { 
+        productId: product.id, 
+        warehouseId: defaultWarehouseId, 
+        minThreshold: parsed.data.minThreshold || 0,
+        unit: 'pcs' 
+      },
+      update: { minThreshold: parsed.data.minThreshold || 0 },
     })
 
     await logAudit({ actorUserId: admin.userId, action: 'shop.product.create', target: product.slug })
@@ -212,6 +226,19 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
           data: parsed.data.imageUrls.map((url, idx) => ({ productId: id, url, sortOrder: idx })),
         })
       }
+
+      // Update default inventory threshold
+      const defaultWarehouseId = 1;
+      await tx.shopInventoryItem.upsert({
+        where: { productId_warehouseId: { productId: id, warehouseId: defaultWarehouseId } },
+        create: { 
+          productId: id, 
+          warehouseId: defaultWarehouseId, 
+          minThreshold: parsed.data.minThreshold || 0,
+          unit: 'pcs' 
+        },
+        update: { minThreshold: parsed.data.minThreshold || 0 },
+      })
     })
 
     await logAudit({ 
@@ -220,7 +247,8 @@ export async function updateShopProduct(id: number, input: unknown, csrfToken: s
       target: String(id),
       metadata: {
         before: { name: oldProduct?.name, sku: oldProduct?.sku },
-        after: { name: parsed.data.name, sku: parsed.data.sku }
+        after: { name: parsed.data.name, sku: parsed.data.sku },
+        minThreshold: parsed.data.minThreshold
       }
     })
     

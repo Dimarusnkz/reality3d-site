@@ -9,6 +9,7 @@ import { getLogMeta } from '@/lib/shop/log-meta'
 import { logAudit } from '@/lib/audit'
 import { toKopeks } from '@/lib/shop/money'
 import { getDefaultWarehouseId } from '@/lib/warehouse/default-warehouse'
+import { checkAndNotifyLowStock } from '@/lib/notifications/low-stock'
 
 const supplierSchema = z.object({
   name: z.string().trim().min(2, 'Укажите наименование').max(200),
@@ -556,6 +557,14 @@ export async function postWarehouseReceipt(receiptId: string, csrfToken: string)
     })
 
     await logAudit({ actorUserId: access.userId, action: 'warehouse.receipt.post', target: receiptId })
+    
+    // Check for low stock after posting receipt (just in case it's still low)
+    for (const it of receipt.items) {
+      if (it.productId) {
+        checkAndNotifyLowStock(it.productId).catch(err => console.error('Low stock check failed:', err))
+      }
+    }
+
     revalidatePath('/admin/warehouse')
     revalidatePath('/admin/warehouse/catalog')
     revalidatePath('/admin/warehouse/receipts')
@@ -695,6 +704,14 @@ export async function unpostWarehouseReceipt(receiptId: string, csrfToken: strin
     })
 
     await logAudit({ actorUserId: access.userId, action: 'warehouse.receipt.unpost', target: receiptId })
+    
+    // Check for low stock after unposting (as stock decreases)
+    for (const it of receipt.items) {
+      if (it.productId) {
+        checkAndNotifyLowStock(it.productId).catch(err => console.error('Low stock check failed:', err))
+      }
+    }
+
     revalidatePath('/admin/warehouse')
     revalidatePath('/admin/warehouse/catalog')
     revalidatePath('/admin/warehouse/receipts')

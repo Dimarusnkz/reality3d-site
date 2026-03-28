@@ -24,6 +24,10 @@ export default async function EditShopProductPage({ params }: { params: Promise<
       include: {
         images: {
           orderBy: { sortOrder: 'asc' }
+        },
+        inventoryItems: {
+          where: { warehouseId: 1 },
+          select: { minThreshold: true }
         }
       }
     }),

@@ -31,6 +31,7 @@ type ProductInput = {
   isActive: boolean;
   categoryId: number | null;
   imageUrls: string[];
+  minThreshold: number | null;
 };
 
 function slugify(text: string) {
@@ -72,6 +73,7 @@ export function ProductForm({
     isActive: boolean;
     categoryId: number | null;
     images?: { url: string }[];
+    inventoryItems?: { minThreshold: any }[];
   };
   canEditPurchasePrice?: boolean;
   userRole?: string;
@@ -94,6 +96,7 @@ export function ProductForm({
       isActive: product?.isActive ?? true,
       categoryId: product?.categoryId ?? null,
       imageUrls: product?.images?.map(img => img.url) || [],
+      minThreshold: product?.inventoryItems?.[0] ? Number(product.inventoryItems[0].minThreshold) : 0,
     }),
     [product]
   );
@@ -220,6 +223,7 @@ export function ProductForm({
         isActive: Boolean(form.isActive),
         categoryId: form.categoryId == null ? null : Number(form.categoryId),
         imageUrls: form.imageUrls,
+        minThreshold: form.minThreshold == null ? 0 : Number(form.minThreshold),
       };
 
       const csrf = getCsrfToken();
@@ -412,6 +416,24 @@ export function ProductForm({
             <option value="active">Активен</option>
             <option value="disabled">Скрыт</option>
           </select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-400 ml-1 flex items-center gap-2">
+            Порог уведомления (Telegram)
+            <AlertTriangle className="w-3.5 h-3.5 text-orange-400" />
+          </label>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={form.minThreshold ?? ""}
+            onChange={(e) => setForm({ ...form, minThreshold: e.target.value ? Number(e.target.value) : 0 })}
+            placeholder="Например: 5"
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+          />
+          <p className="text-[10px] text-gray-500 ml-1">
+            Бот пришлет уведомление, когда остаток станет меньше или равен этому числу. 0 — выключено.
+          </p>
         </div>
 
         <div className="md:col-span-2 space-y-3">

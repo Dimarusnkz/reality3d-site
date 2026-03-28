@@ -8,6 +8,7 @@ import { getUserAccessContext, hasPermission } from '@/lib/access'
 import { getLogMeta } from '@/lib/shop/log-meta'
 import { logAudit } from '@/lib/audit'
 import { getDefaultWarehouseId } from '@/lib/warehouse/default-warehouse'
+import { checkAndNotifyLowStock } from '@/lib/notifications/low-stock'
 
 function parseDecimal(input: string) {
   const normalized = input.replace(',', '.')
@@ -392,6 +393,15 @@ export async function postWarehouseProductionOrder(id: string, csrfToken: string
     })
 
     await logAudit({ actorUserId: access.userId, action: 'warehouse.production.post', target: id })
+    
+    // Check for low stock for consumed materials
+    const recipeItems = await prisma.warehouseRecipeItem.findMany({
+      where: { recipe: { productId: prod.productId } }
+    });
+    for (const it of recipeItems) {
+      checkAndNotifyLowStock(it.materialProductId).catch(err => console.error('Low stock check failed:', err))
+    }
+
     revalidatePath('/admin/warehouse')
     revalidatePath('/admin/warehouse/catalog')
     revalidatePath('/admin/warehouse/production')
@@ -563,6 +573,12 @@ export async function postWarehouseInventoryCount(id: string, csrfToken: string)
     })
 
     await logAudit({ actorUserId: access.userId, action: 'warehouse.inventory.post', target: id })
+    
+    // Check for low stock after inventory adjustment
+    for (const it of inv.items) {
+      checkAndNotifyLowStock(it.productId).catch(err => console.error('Low stock check failed:', err))
+    }
+
     revalidatePath('/admin/warehouse')
     revalidatePath('/admin/warehouse/catalog')
     revalidatePath('/admin/warehouse/inventory')

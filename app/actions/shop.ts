@@ -18,6 +18,7 @@ import { sendMaxMessage } from '@/lib/max'
 import { sendEmailViaSendGrid } from '@/lib/notifications/sendgrid'
 import { quoteShipping } from '@/lib/shop/shipping-providers'
 import { getDefaultWarehouseId } from '@/lib/warehouse/default-warehouse'
+import { checkAndNotifyLowStock } from '@/lib/notifications/low-stock'
 
 async function requireUserId() {
   const session = await getSession()
@@ -419,6 +420,11 @@ export async function createShopOrder(data: {
   revalidatePath('/cart')
   revalidatePath('/checkout')
   
+  // Check for low stock after reserving for new order
+  for (const i of items) {
+    checkAndNotifyLowStock(i.productId).catch(err => console.error('Low stock check failed:', err))
+  }
+  
   // Detailed list of products
   const itemsList = items.map(i => `- ${i.productName} (${i.quantity} шт.)`).join('\n');
 
@@ -696,6 +702,12 @@ export async function createGuestShopOrder(data: {
 
   revalidatePath('/cart')
   revalidatePath('/checkout')
+
+  // Check for low stock after reserving for guest order
+  for (const i of items) {
+    checkAndNotifyLowStock(i.productId).catch(err => console.error('Low stock check failed:', err))
+  }
+
   const guestNotifyMessage =
     `<b>Новый гостевой заказ</b> #${order.orderNo}\n` +
     `Сумма: <b>${(totalKopeks / 100).toFixed(2)} ₽</b>\n` +

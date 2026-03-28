@@ -7,6 +7,7 @@ import { assertCsrfTokenValue } from '@/lib/csrf'
 import { getUserAccessContext, hasPermission } from '@/lib/access'
 import { getLogMeta } from '@/lib/shop/log-meta'
 import { logAudit } from '@/lib/audit'
+import { checkAndNotifyLowStock } from '@/lib/notifications/low-stock'
 
 function parseDecimal(input: string) {
   const normalized = input.replace(',', '.')
@@ -270,6 +271,12 @@ export async function postWarehouseTransfer(transferId: string, csrfToken: strin
     })
 
     await logAudit({ actorUserId: access.userId, action: 'warehouse.transfer.post', target: tr.id })
+
+    // Check for low stock after transfer (as stock in FROM warehouse decreases)
+    for (const it of tr.items) {
+      checkAndNotifyLowStock(it.productId).catch(err => console.error('Low stock check failed:', err))
+    }
+
     revalidatePath('/admin/warehouse')
     revalidatePath('/admin/warehouse/catalog')
     revalidatePath('/admin/warehouse/low-stock')
