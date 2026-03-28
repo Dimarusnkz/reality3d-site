@@ -63,6 +63,7 @@ export default async function AdminWarehouseReceiptsPage({ searchParams }: { sea
       </div>
 
       <ReceiptsClient
+        userRole={session.role}
         suppliers={suppliers as any}
         locations={locations as any}
         purchaseOrders={purchaseOrders as any}

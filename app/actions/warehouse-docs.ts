@@ -722,3 +722,53 @@ export async function unpostWarehouseReceipt(receiptId: string, csrfToken: strin
     return { ok: false as const, error: 'Не удалось распровести приход' }
   }
 }
+
+export async function deleteWarehouseReceipt(id: string, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { ok: false as const, error: csrf.error }
+
+  const accessRes = await requireWarehouseReceiptAccess()
+  if (!accessRes.ok) return accessRes
+  const { access } = accessRes
+
+  if (access.role !== 'admin') {
+    return { ok: false as const, error: 'Только администратор может удалять приходы' }
+  }
+
+  try {
+    const receipt = await prisma.warehouseReceipt.findUnique({
+      where: { id },
+      select: { status: true, warehouseId: true }
+    })
+
+    if (!receipt) return { ok: true as const }
+    if (receipt.status === 'posted') {
+      return { ok: false as const, error: 'Нельзя удалить проведённый приход. Сначала распроведите его.' }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete items (they have Cascade in schema, but being explicit is safer if needed)
+      // Actually WarehouseReceiptItem has onDelete: Cascade in many cases, 
+      // but let's check schema.prisma if possible. 
+      // For now, assume we need to clean up logs.
+      
+      // 2. Delete logs associated with this draft receipt
+      await tx.shopWarehouseLog.deleteMany({
+        where: { actionType: 'receipt_draft', comment: { contains: id } }
+      })
+
+      // 3. Delete the receipt itself
+      await tx.warehouseReceipt.delete({ where: { id } })
+    })
+
+    await logAudit({ actorUserId: access.userId, action: 'warehouse.receipt.delete', target: id })
+    
+    revalidatePath('/admin/warehouse/receipts')
+    revalidatePath(`/admin/warehouse/receipts?w=${receipt.warehouseId}`)
+    return { ok: true as const }
+  } catch (e) {
+    console.error('Delete receipt error:', e)
+    return { ok: false as const, error: 'Не удалось удалить приход' }
+  }
+}

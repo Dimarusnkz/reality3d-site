@@ -58,6 +58,7 @@ export default async function AdminWarehouseReceiptPage({
 
   return (
     <ReceiptClient
+      userRole={session.role}
       suppliers={suppliers as any}
       locations={locations as any}
       products={products as any}

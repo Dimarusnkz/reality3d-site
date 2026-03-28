@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { addWarehouseReceiptItem, deleteWarehouseReceiptItem, postWarehouseReceipt, updateWarehouseReceipt, unpostWarehouseReceipt } from "@/app/actions/warehouse-docs";
+import { addWarehouseReceiptItem, deleteWarehouseReceiptItem, postWarehouseReceipt, updateWarehouseReceipt, unpostWarehouseReceipt, deleteWarehouseReceipt } from "@/app/actions/warehouse-docs";
 import { Loader2, Plus, Trash2, CheckCircle, Upload, RotateCcw, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { formatRub } from "@/lib/shop/money";
@@ -32,6 +32,7 @@ export function ReceiptClient({
   suppliers,
   locations,
   products,
+  userRole,
 }: {
   receipt: {
     id: string;
@@ -49,6 +50,7 @@ export function ReceiptClient({
   suppliers: Supplier[];
   locations: Location[];
   products: ProductOption[];
+  userRole?: string;
 }) {
   const supplierOptions = useMemo(() => suppliers.slice().sort((a, b) => a.name.localeCompare(b.name)), [suppliers]);
   const locationOptions = useMemo(() => locations.slice().sort((a, b) => a.code.localeCompare(b.code)), [locations]);
@@ -73,6 +75,7 @@ export function ReceiptClient({
   });
 
   const [isBusy, setIsBusy] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const isDraft = receipt.status === "draft";
 
   const saveHeader = async () => {
@@ -95,6 +98,22 @@ export function ReceiptClient({
       else window.location.reload();
     } finally {
       setIsBusy(false);
+    }
+  };
+
+  const deleteReceipt = async () => {
+    const hasItems = receipt.items.length > 0;
+    if (hasItems) {
+      if (!confirm(`Удалить черновик прихода "${receipt.documentNo}"? Все позиции будут удалены.`)) return;
+    }
+    
+    setIsDeleting(true);
+    try {
+      const res = await deleteWarehouseReceipt(receipt.id, getCsrfToken());
+      if (!res.ok) alert(res.error);
+      else window.location.href = `/admin/warehouse/receipts?w=${receipt.warehouseId}`;
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -215,6 +234,16 @@ export function ReceiptClient({
             <Link href={`/admin/warehouse/receipts?w=${receipt.warehouseId}`} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors">
               Назад
             </Link>
+            {userRole === "admin" && isDraft && (
+              <button
+                onClick={deleteReceipt}
+                disabled={isDeleting || isBusy}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white transition-all disabled:opacity-50"
+                title="Удалить черновик прихода"
+              >
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              </button>
+            )}
             {isDraft ? (
               <button
                 onClick={post}

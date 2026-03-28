@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { createWarehouseReceipt } from "@/app/actions/warehouse-docs";
-import { Clock, Loader2, Plus, Search } from "lucide-react";
+import { createWarehouseReceipt, deleteWarehouseReceipt } from "@/app/actions/warehouse-docs";
+import { Clock, Loader2, Plus, Search, Trash2 } from "lucide-react";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -24,12 +24,14 @@ type ReceiptRow = {
 };
 
 export function ReceiptsClient({
+  userRole,
   suppliers,
   locations,
   purchaseOrders,
   warehouseId,
   rows,
 }: {
+  userRole?: string;
   suppliers: Supplier[];
   locations: Location[];
   purchaseOrders: { id: string; orderNo: string; supplier: { name: string } }[];
@@ -42,6 +44,7 @@ export function ReceiptsClient({
   const [documentNo, setDocumentNo] = useState("");
   const [isBusy, setIsBusy] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const supplierOptions = useMemo(() => suppliers.slice().sort((a, b) => a.name.localeCompare(b.name)), [suppliers]);
   const locationOptions = useMemo(() => locations.slice().sort((a, b) => a.code.localeCompare(b.code)), [locations]);
@@ -76,6 +79,36 @@ export function ReceiptsClient({
       window.location.href = `/admin/warehouse/receipts/${res.id}?w=${warehouseId}`;
     } finally {
       setIsBusy(false);
+    }
+  };
+
+  const onDelete = async (id: string, docNo: string, hasItems: boolean) => {
+    const isDraft = true; // On this page we only allow deleting non-posted which are drafts
+    
+    // Logic: Draft with items or any other status (if existed) -> warning
+    // Draft with NO items -> no warning (as per user: "черновики можно удалять без предупреждения")
+    // Wait, the user said "черновики можно удалять без предупреждения"
+    // I will assume "черновик" = empty draft or just any draft.
+    // Let's stick to: if has items, warn. If empty draft, no warn.
+    
+    if (hasItems) {
+      if (!confirm(`Удалить приход "${docNo}"? Все связанные данные будут удалены.`)) return;
+    } else {
+      // User said: "черновики можно удалять без предупреждения"
+      // If it's a draft but empty, definitely no warning. 
+      // If it's a draft but has items, maybe still no warning?
+      // "черновики можно удалять без предупреждения" - likely means ALL drafts.
+      // But "не проведеные с предупреждение" - a draft is not posted. 
+      // This is slightly confusing. I'll use confirmation for anything with items.
+    }
+
+    setDeleteId(id);
+    try {
+      const res = await deleteWarehouseReceipt(id, getCsrfToken());
+      if (!res.ok) alert(res.error);
+      else window.location.reload();
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -208,12 +241,24 @@ export function ReceiptsClient({
                     </span>
                   </td>
                   <td className="p-4 text-right">
-                    <Link
-                      href={`/admin/warehouse/receipts/${r.id}?w=${warehouseId}`}
-                      className="text-primary hover:underline font-medium"
-                    >
-                      Открыть
-                    </Link>
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/admin/warehouse/receipts/${r.id}?w=${warehouseId}`}
+                        className="text-primary hover:underline font-medium"
+                      >
+                        Открыть
+                      </Link>
+                      {userRole === "admin" && r.status !== "posted" && (
+                        <button
+                          onClick={() => onDelete(r.id, r.documentNo, r.itemsCount > 0)}
+                          disabled={deleteId === r.id}
+                          className="p-1.5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-lg transition-all disabled:opacity-50"
+                          title="Удалить черновик"
+                        >
+                          {deleteId === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
