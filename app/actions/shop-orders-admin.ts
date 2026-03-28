@@ -46,7 +46,20 @@ export async function updateShopOrderAdmin(orderId: string, input: unknown, csrf
     await prisma.shopOrder.update({ where: { id: order.id }, data: patch })
     await logAudit({ actorUserId: access.userId, action: 'shop.order.admin.update', target: String(order.orderNo), metadata: { orderId: order.id, patch } })
 
+    // Auto-status flow: if packed -> change shippingStatus to packed
+    if (parsed.data.status === 'packed') {
+      await prisma.shopOrder.update({
+        where: { id: order.id },
+        data: { shippingStatus: 'packed' }
+      })
+    }
+
+    // Auto-status flow: if shipped -> change shippingStatus to shipped
     if (parsed.data.status === 'shipped') {
+      await prisma.shopOrder.update({
+        where: { id: order.id },
+        data: { shippingStatus: 'shipped' }
+      })
       sendTelegramMessage(`<b>Заказ отправлен</b> #${order.orderNo}${parsed.data.shippingTrackingNo ? `\nТрек: <code>${parsed.data.shippingTrackingNo}</code>` : ''}`).catch(() => {})
       const from = process.env.SENDGRID_FROM_EMAIL || ''
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
@@ -113,7 +126,7 @@ export async function confirmShopOrderPaymentAdmin(orderId: string, csrfToken: s
 
       await tx.shopOrder.update({
         where: { id: order.id },
-        data: { paymentStatus: 'paid', status: 'paid', paymentProvider: 'tbank_link' },
+        data: { paymentStatus: 'paid', status: 'packed', paymentProvider: 'tbank_link' },
       })
 
       const alreadyWrittenOff = await tx.shopWarehouseLog.findFirst({
@@ -371,32 +384,39 @@ export async function deleteShopOrderAdmin(orderId: string, csrfToken: string) {
   try {
     const order = await prisma.shopOrder.findUnique({
       where: { id: orderId },
-      include: { items: true }
+      include: { items: true, payments: true }
     })
     if (!order) return { ok: true as const }
 
-    // 1. Check for payments
-    const paymentsCount = await prisma.shopPayment.count({
-      where: { orderId: orderId, status: 'succeeded' }
-    })
-    if (paymentsCount > 0) {
-      return { ok: false as const, error: 'Ошибка: Нельзя удалить заказ, так как по нему есть успешная оплата.' }
+    // STRICT DELETION SEQUENCE CHECK
+    // 1. Check Shipping (status: shipped/delivered)
+    if (['shipped', 'delivered'].includes(order.status)) {
+      return { ok: false as const, error: 'Ошибка: Нельзя удалить заказ в статусе доставки. Сначала отмените доставку (верните в статус "Сборка").' }
     }
 
-    // 2. Check for warehouse operations
+    // 2. Check Packing (status: packed)
+    if (order.status === 'packed') {
+      return { ok: false as const, error: 'Ошибка: Заказ находится на сборке. Сначала отмените сборку (верните статус "Новый" и убедитесь, что оплата отменена).' }
+    }
+
+    // 3. Check Payment
+    if (order.paymentStatus === 'paid') {
+      return { ok: false as const, error: 'Ошибка: Заказ оплачен. Сначала удалите связанные платежи и финансовые операции (через отмену заказа).' }
+    }
+
+    // 4. Final Relational Checks
     const warehouseLogsCount = await prisma.shopWarehouseLog.count({
       where: { shopOrderId: orderId }
     })
     if (warehouseLogsCount > 0) {
-      return { ok: false as const, error: 'Ошибка: Нельзя удалить заказ, так как по нему были складские операции (резерв или списание).' }
+      return { ok: false as const, error: 'Ошибка: По заказу есть складские операции. Сначала отмените заказ для возврата товара на склад.' }
     }
 
-    // 3. Check for cash entries
     const cashEntriesCount = await prisma.cashEntry.count({
       where: { shopOrderId: orderId }
     })
     if (cashEntriesCount > 0) {
-      return { ok: false as const, error: 'Ошибка: Нельзя удалить заказ, так как он связан с финансовыми операциями.' }
+      return { ok: false as const, error: 'Ошибка: Заказ связан с кассовыми операциями. Сначала удалите их.' }
     }
 
     // If everything is clean, we can delete

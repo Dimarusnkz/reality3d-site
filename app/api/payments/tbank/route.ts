@@ -74,7 +74,7 @@ export async function POST(request: Request) {
   if (nextStatus === 'succeeded') {
     await prisma.shopOrder.update({
       where: { id: resolvedPayment.orderId },
-      data: { paymentStatus: 'paid', status: 'paid' },
+      data: { paymentStatus: 'paid', status: 'packed' },
     });
 
     const paidOrder = await prisma.shopOrder.findUnique({

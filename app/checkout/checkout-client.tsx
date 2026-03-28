@@ -227,7 +227,7 @@ export default function CheckoutClient({ cart, user, isAuthenticated }: Checkout
                 Способ получения
               </h2>
               <div className="space-y-8 p-8 bg-slate-900/40 border border-slate-800 rounded-3xl backdrop-blur-sm shadow-inner">
-                <div className="grid sm:grid-cols-2 gap-4">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <button
                     onClick={() => setShippingMethod("pickup")}
                     className={cn(
@@ -240,6 +240,17 @@ export default function CheckoutClient({ cart, user, isAuthenticated }: Checkout
                     {shippingMethod === "pickup" && <Check className="absolute top-4 right-4 h-5 w-5 text-primary" />}
                   </button>
                   <button
+                    onClick={() => setShippingMethod("yandex")}
+                    className={cn(
+                      "p-6 rounded-2xl border text-left transition-all relative group overflow-hidden",
+                      shippingMethod === "yandex" ? "border-primary bg-primary/5 shadow-xl shadow-primary/5" : "border-slate-800 bg-slate-950 hover:border-slate-700"
+                    )}
+                  >
+                    <div className="font-bold text-white mb-1 group-hover:text-primary transition-colors">Яндекс</div>
+                    <div className="text-xs text-gray-500">Доставка по тарифу такси</div>
+                    {shippingMethod === "yandex" && <Check className="absolute top-4 right-4 h-5 w-5 text-primary" />}
+                  </button>
+                  <button
                     onClick={() => setShippingMethod("cdek")}
                     className={cn(
                       "p-6 rounded-2xl border text-left transition-all relative group overflow-hidden",
@@ -249,6 +260,17 @@ export default function CheckoutClient({ cart, user, isAuthenticated }: Checkout
                     <div className="font-bold text-white mb-1 group-hover:text-primary transition-colors">СДЭК</div>
                     <div className="text-xs text-gray-500">До пункта выдачи или двери</div>
                     {shippingMethod === "cdek" && <Check className="absolute top-4 right-4 h-5 w-5 text-primary" />}
+                  </button>
+                  <button
+                    onClick={() => setShippingMethod("russian_post")}
+                    className={cn(
+                      "p-6 rounded-2xl border text-left transition-all relative group overflow-hidden",
+                      shippingMethod === "russian_post" ? "border-primary bg-primary/5 shadow-xl shadow-primary/5" : "border-slate-800 bg-slate-950 hover:border-slate-700"
+                    )}
+                  >
+                    <div className="font-bold text-white mb-1 group-hover:text-primary transition-colors">Почта России</div>
+                    <div className="text-xs text-gray-500">Доставка по всей РФ</div>
+                    {shippingMethod === "russian_post" && <Check className="absolute top-4 right-4 h-5 w-5 text-primary" />}
                   </button>
                 </div>
 

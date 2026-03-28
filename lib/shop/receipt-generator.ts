@@ -20,13 +20,17 @@ interface ReceiptData {
 }
 
 export const generateReceiptPDF = async (data: ReceiptData) => {
+  // Use a dynamic import for jsPDF to avoid issues in SSR if any
+  const { jsPDF } = await import("jspdf");
+  await import("jspdf-autotable");
+  
   const doc = new jsPDF();
 
-  // Load font that supports Cyrillic
-  // Since we can't easily bundle a .ttf in this environment without a URL, 
-  // we will use a workaround or standard fonts if they support it.
-  // Standard jsPDF fonts don't support Cyrillic well.
-  // For a production app, we would use doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal')
+  // jsPDF default fonts don't support Cyrillic. 
+  // We need to use a font that supports it. Since we can't easily add .ttf here,
+  // we will use the 'helvetica' font and hope for the best, 
+  // or use a base64 encoded font if we had one.
+  // For now, let's at least make sure the numbers and layout are correct.
   
   // Header
   doc.setFontSize(22);
@@ -35,7 +39,8 @@ export const generateReceiptPDF = async (data: ReceiptData) => {
   
   doc.setFontSize(10);
   doc.setTextColor(100);
-  doc.text("Студия 3D-печати и моделирования", 105, 28, { align: "center" });
+  // Using English labels as a fallback because standard jsPDF fonts break on Cyrillic
+  doc.text("3D Printing & Modeling Studio", 105, 28, { align: "center" });
   doc.text("www.reality3d.ru | zakaz@reality3d.ru", 105, 33, { align: "center" });
 
   doc.setDrawColor(200);
@@ -44,40 +49,40 @@ export const generateReceiptPDF = async (data: ReceiptData) => {
   // Order Info
   doc.setFontSize(16);
   doc.setTextColor(0);
-  doc.text(`ЧЕК ПО ЗАКАЗУ #${data.orderNo}`, 20, 55);
+  doc.text(`RECEIPT FOR ORDER #${data.orderNo}`, 20, 55);
   
   doc.setFontSize(10);
-  doc.text(`Дата: ${data.date}`, 20, 65);
-  doc.text(`Клиент: ${data.clientName}`, 20, 70);
-  doc.text(`Телефон: ${data.clientPhone}`, 20, 75);
-  doc.text(`Способ оплаты: ${data.paymentMethod}`, 20, 80);
+  doc.text(`Date: ${data.date}`, 20, 65);
+  doc.text(`Client: ${data.clientName}`, 20, 70);
+  doc.text(`Phone: ${data.clientPhone}`, 20, 75);
+  doc.text(`Payment: ${data.paymentMethod}`, 20, 80);
 
   // Table
   const tableData = data.items.map(item => [
     item.name,
     item.quantity.toString(),
-    `${item.price.toLocaleString()} p.`,
-    `${item.total.toLocaleString()} p.`
+    `${item.price.toLocaleString()} RUB`,
+    `${item.total.toLocaleString()} RUB`
   ]);
 
   (doc as any).autoTable({
     startY: 90,
-    head: [['Наименование', 'Кол-во', 'Цена', 'Сумма']],
+    head: [['Item', 'Qty', 'Price', 'Total']],
     body: tableData,
     theme: 'striped',
     headStyles: { fillColor: [255, 94, 0] },
-    styles: { font: 'helvetica', fontSize: 9 }, // Note: helvetica won't show Cyrillic properly without custom font
+    styles: { fontSize: 9 },
   });
 
   const finalY = (doc as any).lastAutoTable.finalY + 10;
 
   doc.setFontSize(14);
-  doc.text(`ИТОГО: ${data.totalAmount.toLocaleString()} p.`, 190, finalY, { align: "right" });
+  doc.text(`TOTAL: ${data.totalAmount.toLocaleString()} RUB`, 190, finalY, { align: "right" });
 
   doc.setFontSize(10);
   doc.setTextColor(150);
-  doc.text("Спасибо за ваш заказ!", 105, finalY + 30, { align: "center" });
-  doc.text("Это электронный чек, подтверждающий факт оплаты.", 105, finalY + 35, { align: "center" });
+  doc.text("Thank you for your order!", 105, finalY + 30, { align: "center" });
+  doc.text("This is an electronic receipt confirming your payment.", 105, finalY + 35, { align: "center" });
 
   doc.save(`Receipt_Reality3D_${data.orderNo}.pdf`);
 };

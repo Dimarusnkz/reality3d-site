@@ -221,7 +221,7 @@ async function confirmShopPayment(orderId: string, actorChatId: string, callback
 
       await tx.shopOrder.update({
         where: { id: order.id },
-        data: { paymentStatus: "paid", status: "paid", paymentProvider: "max_manual" },
+        data: { paymentStatus: "paid", status: "packed", paymentProvider: "max_manual" },
       });
 
       for (const item of order.items) {

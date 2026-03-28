@@ -3,10 +3,11 @@ import { cn } from "@/lib/utils";
 export function getShopOrderStatusMeta(status: string | null | undefined) {
   const s = String(status || "").toLowerCase();
   if (s === "paid") return { label: "Оплачен", className: cn("text-green-400 bg-green-500/10 border border-green-500/20") };
-  if (s === "shipped") return { label: "Отправлен", className: cn("text-indigo-400 bg-indigo-500/10 border border-indigo-500/20") };
+  if (s === "packed") return { label: "Сборка", className: cn("text-cyan-400 bg-cyan-500/10 border border-cyan-500/20") };
+  if (s === "shipped") return { label: "Доставка", className: cn("text-indigo-400 bg-indigo-500/10 border border-indigo-500/20") };
   if (s === "completed") return { label: "Завершён", className: cn("text-slate-300 bg-slate-500/10 border border-slate-500/20") };
   if (s === "cancelled") return { label: "Отменён", className: cn("text-red-400 bg-red-500/10 border border-red-500/20") };
-  if (s === "pending") return { label: "В обработке", className: cn("text-yellow-400 bg-yellow-500/10 border border-yellow-500/20") };
+  if (s === "pending") return { label: "Новый", className: cn("text-yellow-400 bg-yellow-500/10 border border-yellow-500/20") };
   return { label: status ? String(status) : "—", className: cn("text-gray-300 bg-slate-500/10 border border-slate-500/20") };
 }
 
