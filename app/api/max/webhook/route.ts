@@ -399,10 +399,12 @@ async function handleOrderStatusCommand(chatId: number, query: string) {
   }
 
   const prisma = getPrisma();
+  const orderNo = parseInt(query, 10);
+  
   const order = await prisma.shopOrder.findFirst({
     where: {
       OR: [
-        { orderNo: query },
+        ...(Number.isFinite(orderNo) ? [{ orderNo }] : []),
         { id: query }
       ]
     }
