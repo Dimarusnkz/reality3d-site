@@ -48,6 +48,8 @@ model User {
   warehousePurchaseOrders     WarehousePurchaseOrder[]   @relation("WarehousePurchaseOrderCreator")
   auditEvents                 AuditEvent[]               @relation("UserAuditEvents")
   printCalculations           PrintCalculation[]
+
+  @@index([role])
 }
 
 model Session {
@@ -246,6 +248,9 @@ model ShopProduct {
   @@index([isActive, priceKopeks])
   @@index([categoryId])
   @@index([itemType])
+  @@index([sku])
+  @@index([createdAt])
+  @@index([updatedAt])
 }
 
 model ShopProductImage {
@@ -332,6 +337,8 @@ model ShopOrder {
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
+  @@index([paymentStatus, createdAt])
+  @@index([createdAt])
 }
 
 model ShopOrderItem {
@@ -348,6 +355,9 @@ model ShopOrderItem {
   product         ShopProduct? @relation(fields: [productId], references: [id])
 
   @@index([orderId])
+  @@index([productId])
+  @@index([sku])
+  @@index([createdAt])
 }
 
 model ShopPayment {
@@ -556,6 +566,7 @@ model WarehouseReceipt {
   @@index([status, receivedAt])
   @@index([supplierId, receivedAt])
   @@index([warehouseId, receivedAt])
+  @@index([postedAt])
 }
 
 model WarehouseTransfer {
@@ -582,6 +593,7 @@ model WarehouseTransfer {
   @@index([status, createdAt])
   @@index([fromWarehouseId, createdAt])
   @@index([toWarehouseId, createdAt])
+  @@index([postedAt])
 }
 
 model WarehouseTransferItem {
@@ -616,6 +628,7 @@ model WarehouseReceiptItem {
 
   @@index([receiptId])
   @@index([productId])
+  @@index([sku])
 }
 
 model WarehouseRecipe {
@@ -659,11 +672,12 @@ model WarehouseProductionOrder {
   consumes        WarehouseProductionConsumeItem[]
   createdBy       User?                            @relation("WarehouseProductionCreator", fields: [createdByUserId], references: [id])
   postedBy        User?                            @relation("WarehouseProductionPoster", fields: [postedByUserId], references: [id])
-  product         ShopProduct                      @relation(fields: [productId], references: [id])
-  warehouse       Warehouse                        @relation(fields: [warehouseId], references: [id])
+  product         ShopProduct              @relation(fields: [productId], references: [id])
+  warehouse       Warehouse                @relation(fields: [warehouseId], references: [id])
 
   @@index([warehouseId, createdAt])
   @@index([status, createdAt])
+  @@index([postedAt])
 }
 
 model WarehouseProductionConsumeItem {
@@ -700,6 +714,7 @@ model WarehouseInventoryCount {
 
   @@index([warehouseId, startedAt])
   @@index([status, startedAt])
+  @@index([postedAt])
 }
 
 model WarehouseInventoryCountItem {
@@ -866,6 +881,7 @@ model WarehousePurchaseOrder {
 
   @@index([supplierId])
   @@index([status])
+  @@index([createdAt])
 }
 
 model WarehousePurchaseOrderItem {
@@ -883,6 +899,8 @@ model WarehousePurchaseOrderItem {
   product         ShopProduct?           @relation(fields: [productId], references: [id])
 
   @@index([purchaseOrderId])
+  @@index([productId])
+  @@index([sku])
 }
 
 model RateLimit {
