@@ -74,6 +74,7 @@ const permissions = [
   'products.purchase_price.view',
   'products.purchase_price.edit',
   'roles.manage',
+  'admin.analytics.view',
 ]
 
 for (const key of permissions) {
@@ -81,7 +82,7 @@ for (const key of permissions) {
 }
 
 const rolePerms = [
-  { role: 'manager', keys: ['warehouse.view', 'warehouse.receipt', 'warehouse.writeoff', 'warehouse.transfer', 'logs.view', 'shop.orders.manage', 'shop.orders.export', 'finance.view', 'finance.entry.create', 'finance.reconcile.create', 'products.purchase_price.view', 'products.purchase_price.edit'] },
+  { role: 'manager', keys: ['warehouse.view', 'warehouse.receipt', 'warehouse.writeoff', 'warehouse.transfer', 'logs.view', 'shop.orders.manage', 'shop.orders.export', 'finance.view', 'finance.entry.create', 'finance.reconcile.create', 'products.purchase_price.view', 'products.purchase_price.edit', 'admin.analytics.view'] },
   { role: 'warehouse', keys: ['warehouse.view', 'warehouse.receipt', 'warehouse.writeoff', 'warehouse.transfer', 'warehouse.threshold.edit', 'warehouse.locations.manage', 'logs.view'] },
   { role: 'accountant', keys: ['finance.view', 'finance.entry.create', 'finance.reconcile.create', 'logs.view', 'logs.export'] },
   { role: 'delivery', keys: ['shop.orders.manage', 'warehouse.view', 'logs.view'] },

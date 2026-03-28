@@ -54,6 +54,9 @@ export type PermissionKey =
   | 'roles.manage'
   | 'logs.view'
   | 'logs.export'
+  
+  // Analytics
+  | 'admin.analytics.view'
 
 export async function getUserAccessContext() {
   const session = await getSession()
