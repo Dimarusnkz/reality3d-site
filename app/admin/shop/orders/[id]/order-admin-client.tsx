@@ -19,6 +19,7 @@ function getCsrfToken() {
 export function OrderAdminClient({
   order,
   audit,
+  userRole,
 }: {
   order: {
     id: string;
@@ -43,6 +44,7 @@ export function OrderAdminClient({
     items: { id: string; productName: string; sku: string | null; quantity: number; unitPriceKopeks: number; totalKopeks: number }[];
   };
   audit: { id: string; createdAt: string; action: string; actorUserId: number | null }[];
+  userRole?: string;
 }) {
   const [form, setForm] = useState({
     status: order.status,
@@ -164,14 +166,17 @@ export function OrderAdminClient({
             {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
             Сохранить
           </button>
-          <button 
-            onClick={deleteOrder} 
-            disabled={deleteBusy || busy} 
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-50"
-            title="Удалить заказ"
-          >
-            {deleteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-          </button>
+          
+          {userRole === "admin" && (
+            <button 
+              onClick={deleteOrder} 
+              disabled={deleteBusy || busy} 
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-50 transition-all hover:scale-[1.02]"
+              title="Удалить заказ (только для админа)"
+            >
+              {deleteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            </button>
+          )}
         </div>
       </div>
 

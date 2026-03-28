@@ -6,11 +6,16 @@ import { cn } from "@/lib/utils";
 import { getShopOrderStatusMeta, getShopPaymentProviderLabel, getShopPaymentStatusMeta } from "@/lib/shop/order-status";
 import { Badge } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
-import { Search, Download, User, Truck, CreditCard } from "lucide-react";
+import { Search, Download, User, Truck, CreditCard, Eye } from "lucide-react";
 
 type SearchParams = { q?: string; status?: string };
 
 export default async function AdminShopOrdersPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const session = await getSession();
+  if (!session?.userId) redirect("/login");
+  const userId = parseInt(session.userId, 10);
+  const isAdmin = session.role === "admin";
+
   const prisma = getPrisma();
   const sp = await searchParams;
   const q = (sp.q || "").trim();
@@ -149,8 +154,15 @@ export default async function AdminShopOrdersPage({ searchParams }: { searchPara
                       </div>
                     </td>
                     <td className="px-6 py-5 text-right">
-                      <div className="text-lg font-black text-white tracking-tight">
-                        {formatRub(o.totalKopeks)}
+                      <div className="flex items-center justify-end gap-2">
+                        <Link href={`/admin/shop/orders/${o.id}`} className="p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-all" title="Открыть">
+                          <Eye className="w-4 h-4" />
+                        </Link>
+                        <div className="text-right">
+                          <div className="text-lg font-black text-white tracking-tight">
+                            {formatRub(o.totalKopeks)}
+                          </div>
+                        </div>
                       </div>
                     </td>
                   </tr>

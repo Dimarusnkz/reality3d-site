@@ -50,6 +50,7 @@ export default async function AdminShopOrderPage({ params }: { params: Promise<{
 
   return (
     <OrderAdminClient
+      userRole={session.role}
       order={{
         ...order,
         createdAt: order.createdAt.toISOString(),
