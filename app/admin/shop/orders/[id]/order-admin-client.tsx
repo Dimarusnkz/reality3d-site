@@ -239,9 +239,10 @@ export function OrderAdminClient({
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Статус заказа</label>
                 <select value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white">
-                  <option value="pending">В обработке</option>
+                  <option value="pending">Новый</option>
                   <option value="paid">Оплачен</option>
-                  <option value="shipped">Отправлен</option>
+                  <option value="packed">Сборка</option>
+                  <option value="shipped">Доставка</option>
                   <option value="completed">Завершён</option>
                   <option value="cancelled">Отменён</option>
                 </select>
