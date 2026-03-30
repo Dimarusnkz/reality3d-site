@@ -79,65 +79,6 @@ export default function ContactsPage() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-12 items-start">
-        <div className="space-y-8">
-          <div>
-            <h2 className="text-3xl font-black text-white mb-4 uppercase tracking-tight">Напишите нам</h2>
-            <p className="text-gray-500 text-sm leading-relaxed max-w-md">
-              Есть вопросы или хотите обсудить проект? Оставьте сообщение, и наш менеджер свяжется с вами в течение 15 минут.
-            </p>
-          </div>
-
-          <form className="space-y-4">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-gray-600 uppercase tracking-widest ml-1">Ваше имя</label>
-                <input 
-                  type="text" 
-                  className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4 text-white text-sm focus:outline-none focus:border-primary transition-all"
-                  placeholder="Иван Иванов"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-gray-600 uppercase tracking-widest ml-1">Телефон / Telegram</label>
-                <input 
-                  type="text" 
-                  className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4 text-white text-sm focus:outline-none focus:border-primary transition-all"
-                  placeholder="+7 (___) ___-__-__"
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-gray-600 uppercase tracking-widest ml-1">Сообщение</label>
-              <textarea 
-                rows={4}
-                className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4 text-white text-sm focus:outline-none focus:border-primary transition-all resize-none"
-                placeholder="Расскажите о вашей задаче..."
-              />
-            </div>
-            <button className="w-full sm:w-auto px-10 py-4 bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-3">
-              Отправить сообщение
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
-        </div>
-
-        <div className="h-[450px] rounded-3xl overflow-hidden border border-slate-800 relative group grayscale hover:grayscale-0 transition-all duration-700">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-             <div className="bg-slate-950/80 border border-slate-800 p-6 rounded-2xl text-center">
-                <MapPin className="h-8 w-8 text-primary mx-auto mb-3" />
-                <p className="text-white font-bold text-sm">Мы находимся здесь</p>
-             </div>
-          </div>
-          <iframe 
-            src="https://yandex.ru/map-widget/v1/?um=constructor%3A999c0d9c0e0c0e0c0e0c0e0c0e0c0e0c0e0c0e0c0e0c0e0c0e0c0e0c0e0c0e0c&amp;source=constructor" 
-            width="100%" 
-            height="100%" 
-            frameBorder="0"
-            className="relative z-0"
-          ></iframe>
-        </div>
-      </div>
     </div>
   );
 }
