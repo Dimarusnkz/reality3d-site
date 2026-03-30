@@ -35,6 +35,14 @@ export async function middleware(request: NextRequest) {
     if (!payload?.userId) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
+
+    // Admin/Staff check
+    if (request.nextUrl.pathname.startsWith('/admin')) {
+      const staffRoles = ['admin', 'manager', 'engineer', 'warehouse', 'delivery', 'accountant'];
+      if (!staffRoles.includes(payload.role)) {
+        return NextResponse.redirect(new URL('/lk', request.url));
+      }
+    }
   }
 
   if (request.method === 'GET') {

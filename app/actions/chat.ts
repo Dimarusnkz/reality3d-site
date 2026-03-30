@@ -57,7 +57,10 @@ export async function getChats(): Promise<ChatSessionWithDetails[]> {
 
   const chats = await prisma.chatSession.findMany({
     where: whereClause,
-    include: {
+    select: {
+      id: true,
+      status: true,
+      updatedAt: true,
       user: {
         select: { id: true, name: true, email: true }
       },

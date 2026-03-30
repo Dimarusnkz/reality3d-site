@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useOptimistic, useTransition, useEffect } from "react";
 import { createWarehouseMovement, updateInventorySettings } from "@/app/actions/warehouse";
 import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -16,14 +17,43 @@ type Inventory = { productId: number; unit: string; quantity: string; reserved: 
 
 export function WarehouseClient({
   products,
-  inventory,
+  inventory: initialInventory,
   warehouseId,
 }: {
   products: Product[];
   inventory: Inventory[];
   warehouseId: number;
 }) {
-  const inventoryMap = useMemo(() => new Map(inventory.map((i) => [i.productId, i])), [inventory]);
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [optimisticInventory, addOptimisticInventory] = useOptimistic(
+    initialInventory,
+    (state: Inventory[], action: { type: 'movement' | 'settings', payload: any }) => {
+      if (action.type === 'movement') {
+        const { productId, delta, unit } = action.payload;
+        return state.map(item => {
+          if (item.productId === productId) {
+            const nextQty = Number(item.quantity) + delta;
+            return { ...item, quantity: String(nextQty) };
+          }
+          return item;
+        });
+      }
+      if (action.type === 'settings') {
+        const { productId, minThreshold } = action.payload;
+        return state.map(item => {
+          if (item.productId === productId) {
+            return { ...item, minThreshold };
+          }
+          return item;
+        });
+      }
+      return state;
+    }
+  );
+
+  const inventoryMap = useMemo(() => new Map(optimisticInventory.map((i) => [i.productId, i])), [optimisticInventory]);
+  
   const [productId, setProductId] = useState<number>(products[0]?.id || 0);
   const [unit, setUnit] = useState<"pcs" | "m" | "kg">("pcs");
   const [quantity, setQuantity] = useState("1");
@@ -35,13 +65,29 @@ export function WarehouseClient({
   const [shopOrderId, setShopOrderId] = useState("");
   const [serviceOrderId, setServiceOrderId] = useState("");
   const [minThreshold, setMinThreshold] = useState("0");
-  const [isBusy, setIsBusy] = useState(false);
 
   const selectedInventory = inventoryMap.get(productId);
 
+  // Sync local minThreshold when product changes
+  useEffect(() => {
+    if (selectedInventory) {
+      setMinThreshold(selectedInventory.minThreshold);
+      setUnit(selectedInventory.unit as any);
+    }
+  }, [productId, selectedInventory]);
+
   const submitMovement = async () => {
-    setIsBusy(true);
-    try {
+    const qty = Number(quantity.replace(',', '.'));
+    if (isNaN(qty)) return;
+
+    const delta = actionType === 'receipt' ? qty : -qty;
+
+    startTransition(async () => {
+      addOptimisticInventory({ 
+        type: 'movement', 
+        payload: { productId, delta, unit } 
+      });
+
       const res = await createWarehouseMovement(
         {
           warehouseId,
@@ -58,29 +104,33 @@ export function WarehouseClient({
         },
         getCsrfToken()
       );
+
       if (!res.ok) {
         alert(res.error || "Ошибка");
-        return;
+      } else {
+        router.refresh();
       }
-      window.location.reload();
-    } finally {
-      setIsBusy(false);
-    }
+    });
   };
 
   const saveSettings = async () => {
-    setIsBusy(true);
-    try {
+    startTransition(async () => {
+      addOptimisticInventory({ 
+        type: 'settings', 
+        payload: { productId, minThreshold } 
+      });
+
       const res = await updateInventorySettings({ warehouseId, productId, unit, minThreshold }, getCsrfToken());
+      
       if (!res.ok) {
         alert(res.error || "Ошибка");
-        return;
+      } else {
+        router.refresh();
       }
-      window.location.reload();
-    } finally {
-      setIsBusy(false);
-    }
+    });
   };
+
+  const isBusy = isPending;
 
   return (
     <div className="space-y-6">
@@ -241,6 +291,7 @@ export function WarehouseClient({
             disabled={isBusy}
             className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white px-6 text-sm font-semibold transition-colors disabled:opacity-50"
           >
+            {isBusy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             Сохранить
           </button>
         </div>

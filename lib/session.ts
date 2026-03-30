@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getPrisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
+import { cache } from 'react';
 
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
   throw new Error('SESSION_SECRET is required in production');
@@ -18,6 +19,7 @@ const cookie = {
 
 type SessionJwtPayload = {
   userId: string;
+  role: string;
   sessionId: string;
   expires: string;
 };
@@ -36,10 +38,11 @@ export async function decrypt(session: string | undefined = '') {
       algorithms: ['HS256'],
     });
     const userId = typeof payload.userId === 'string' ? payload.userId : null;
+    const role = typeof payload.role === 'string' ? payload.role : null;
     const sessionId = typeof payload.sessionId === 'string' ? payload.sessionId : null;
     const expires = typeof payload.expires === 'string' ? payload.expires : null;
-    if (!userId || !sessionId || !expires) return null;
-    return { userId, sessionId, expires } as const;
+    if (!userId || !role || !sessionId || !expires) return null;
+    return { userId, role, sessionId, expires } as const;
   } catch {
     return null;
   }
@@ -58,7 +61,7 @@ export async function createSession(userId: string, role: string) {
     select: { id: true },
   });
 
-  const session = await encrypt({ userId, sessionId: sessionDb.id, expires: expires.toISOString() });
+  const session = await encrypt({ userId, role, sessionId: sessionDb.id, expires: expires.toISOString() });
 
   const cookieStore = await cookies();
   cookieStore.set(cookie.name, session, { ...cookie.options, expires });
@@ -67,37 +70,13 @@ export async function createSession(userId: string, role: string) {
 }
 
 export async function verifySession() {
-  const prisma = getPrisma();
-  const cookieStore = await cookies();
-  const session = cookieStore.get(cookie.name)?.value;
-  const payload = await decrypt(session);
+  const session = await getSession();
 
-  if (!payload?.userId || !payload?.sessionId) {
+  if (!session || !session.userId || !session.sessionId) {
     redirect('/login');
   }
 
-  const sessionDb = await prisma.session.findUnique({
-    where: { id: payload.sessionId },
-    select: { id: true, userId: true, expiresAt: true, revokedAt: true },
-  });
-
-  if (!sessionDb || sessionDb.revokedAt || sessionDb.expiresAt.getTime() <= Date.now()) {
-    cookieStore.delete(cookie.name);
-    redirect('/login');
-  }
-
-  await prisma.session.update({
-    where: { id: sessionDb.id },
-    data: { lastUsedAt: new Date() },
-  });
-
-  const user = await prisma.user.findUnique({ where: { id: sessionDb.userId }, select: { role: true } });
-  if (!user) {
-    cookieStore.delete(cookie.name);
-    redirect('/login');
-  }
-
-  return { userId: payload.userId, role: user.role, sessionId: sessionDb.id };
+  return session;
 }
 
 export async function deleteSession() {
@@ -117,7 +96,10 @@ export async function deleteSession() {
   cookieStore.delete(cookie.name);
 }
 
-export async function getSession() {
+/**
+ * Get current session with caching for the duration of the request.
+ */
+export const getSession = cache(async () => {
   const prisma = getPrisma();
   const cookieStore = await cookies();
   const session = cookieStore.get(cookie.name)?.value;
@@ -131,8 +113,17 @@ export async function getSession() {
   });
   if (!sessionDb || sessionDb.revokedAt || sessionDb.expiresAt.getTime() <= Date.now()) return null;
 
-  const user = await prisma.user.findUnique({ where: { id: sessionDb.userId }, select: { role: true } });
+  const user = await prisma.user.findUnique({ 
+    where: { id: sessionDb.userId }, 
+    select: { role: true } 
+  });
   if (!user) return null;
 
+  // Update lastUsedAt in the background (no await to avoid blocking)
+  prisma.session.update({
+    where: { id: payload.sessionId },
+    data: { lastUsedAt: new Date() },
+  }).catch(() => {});
+
   return { userId: payload.userId as string, role: user.role, sessionId: payload.sessionId as string };
-}
+});
