@@ -36,9 +36,9 @@ export default async function AdminDashboard() {
         <DashboardStats />
       </Suspense>
 
-      {/* Server Metrics for Admins */}
-      {session.role === "admin" && (
-        <div className="neon-card rounded-2xl border border-slate-800 overflow-hidden bg-slate-900/20">
+      {/* Server Metrics for Staff */}
+      {["admin", "manager"].includes(session.role) && (
+        <div className="neon-card rounded-2xl border border-slate-800 overflow-hidden bg-slate-900/20 shadow-lg shadow-primary/5">
           <ServerMetricsPanel className="border-0 bg-transparent" />
         </div>
       )}

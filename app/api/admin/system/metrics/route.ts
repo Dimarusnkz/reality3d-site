@@ -59,7 +59,7 @@ async function getNetSnapshot() {
 
 export async function GET() {
   const session = await getSession();
-  if (!session?.userId || session.role !== "admin") {
+  if (!session?.userId || !["admin", "manager"].includes(session.role)) {
     return NextResponse.json({ ok: false as const }, { status: 403 });
   }
 

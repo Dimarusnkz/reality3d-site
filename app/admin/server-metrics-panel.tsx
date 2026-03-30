@@ -128,7 +128,10 @@ export function ServerMetricsPanel({ className }: { className?: string }) {
       </div>
 
       {isLoading ? (
-        <div className="text-sm text-gray-500">Загрузка…</div>
+        <div className="flex items-center gap-2 text-sm text-gray-500 animate-pulse py-10 justify-center">
+          <Activity className="w-4 h-4 animate-spin text-primary" />
+          Связь с сервером...
+        </div>
       ) : error ? (
         <div className="text-sm text-red-400">{error}</div>
       ) : (
