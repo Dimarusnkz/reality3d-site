@@ -330,3 +330,30 @@ export async function deleteShopProduct(id: number, csrfToken: string) {
     return { ok: false as const, error: 'Не удалось удалить товар' }
   }
 }
+
+export async function restoreShopProduct(id: number, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { ok: false as const, error: csrf.error }
+
+  const session = await getSession()
+  const admin = requireAdmin(session)
+  if (!admin.ok) return admin
+
+  try {
+    await prisma.shopProduct.update({
+      where: { id },
+      data: {
+        deletedAt: null,
+        isActive: true,
+      },
+    })
+
+    await logAudit({ actorUserId: admin.userId, action: 'shop.product.restore', target: String(id) })
+    revalidatePath('/admin/shop/products')
+    revalidatePath('/shop')
+    return { ok: true as const }
+  } catch (e) {
+    return { ok: false as const, error: 'Не удалось восстановить товар' }
+  }
+}

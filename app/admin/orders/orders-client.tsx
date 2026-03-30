@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, MessageSquare, X, Save, Calendar, User, FileText, Trash2, Edit2, Download, ArrowLeft, Loader2, CheckCircle } from "lucide-react";
-import { getOrderDetails, updateOrderStatus, updateOrderPrice, addOrderComment, assignOrder, getEmployees, deleteOrder, updateOrderDetails, confirmOrderPaymentAdmin } from "@/app/actions/orders";
+import { Search, MessageSquare, X, Save, Calendar, User, FileText, Trash2, Edit2, Download, ArrowLeft, Loader2, CheckCircle, RefreshCw } from "lucide-react";
+import { getOrderDetails, updateOrderStatus, updateOrderPrice, addOrderComment, assignOrder, getEmployees, deleteOrder, updateOrderDetails, confirmOrderPaymentAdmin, restoreOrder } from "@/app/actions/orders";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -57,6 +57,7 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
   // Filter state
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [showDeleted, setShowDeleted] = useState(false);
 
   const filteredOrders = orders.filter(order => {
      const matchesClient = !clientIdParam || order.userId === parseInt(clientIdParam);
@@ -66,7 +67,8 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
         (order.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.id.toString().includes(searchTerm);
      const matchesStatus = statusFilter === "all" || order.status === statusFilter;
-     return matchesSearch && matchesStatus && matchesClient;
+     const matchesDeleted = showDeleted ? order.deletedAt !== null : order.deletedAt === null;
+     return matchesSearch && matchesStatus && matchesClient && matchesDeleted;
   });
 
   const handleConfirmPayment = async () => {
@@ -183,6 +185,19 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
     }
   };
 
+  const handleRestoreOrder = async () => {
+    if (!selectedOrder || !confirm("Восстановить этот заказ?")) return;
+    const res = await restoreOrder(selectedOrder.id, getCsrfToken());
+    if (res.success) {
+      const updatedOrder = { ...selectedOrder, deletedAt: null };
+      setSelectedOrder(updatedOrder);
+      setOrders(orders.map(o => o.id === selectedOrder.id ? updatedOrder : o));
+      alert("Заказ успешно восстановлен");
+    } else {
+      alert("Ошибка восстановления заказа");
+    }
+  };
+
   const handleAssignChange = async (employeeId: string) => {
     if (!selectedOrder) return;
     const id = employeeId === "unassigned" ? null : parseInt(employeeId);
@@ -278,6 +293,17 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
                   )}
                 >
                   Все
+                </button>
+                <button 
+                  onClick={() => setShowDeleted(!showDeleted)}
+                  className={cn(
+                    "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border whitespace-nowrap", 
+                    showDeleted 
+                      ? "bg-red-500/10 text-red-500 border-red-500/30 shadow-lg shadow-red-500/5" 
+                      : "bg-slate-900 text-gray-500 border-slate-800 hover:text-gray-300"
+                  )}
+                >
+                  {showDeleted ? "Удаленные" : "Активные"}
                 </button>
                 {STATUS_OPTIONS.map(opt => (
                     <button 
@@ -491,6 +517,17 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
                                       <Button onClick={handleDeleteOrder} variant="secondary" size="sm" className="h-8 w-8 p-0" title="Удалить">
                                         <Trash2 className="w-3.5 h-3.5 text-red-400" />
                                       </Button>
+                                      {selectedOrder.deletedAt && (
+                                        <Button 
+                                          onClick={handleRestoreOrder}
+                                          variant="secondary"
+                                          size="sm"
+                                          className="h-8 px-3 text-[10px] bg-green-600/10 text-green-500 hover:bg-green-600/20 border-green-600/20 ml-2"
+                                        >
+                                          <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                                          Восстановить
+                                        </Button>
+                                      )}
                                     </>
                                   )}
                                 </div>

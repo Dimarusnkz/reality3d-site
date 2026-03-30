@@ -2,10 +2,11 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { deleteShopProduct } from "@/app/actions/shop-admin";
-import { Edit2, Trash2, Eye, CheckCircle, XCircle, Search } from "lucide-react";
+import { deleteShopProduct, restoreShopProduct } from "@/app/actions/shop-admin";
+import { Edit2, Trash2, Eye, CheckCircle, XCircle, Search, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -17,16 +18,24 @@ function getCsrfToken() {
 export default function ShopProductsTable({ initialProducts }: { initialProducts: any[] }) {
   const [products, setProducts] = useState(initialProducts);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showDeleted, setShowDeleted] = useState(false);
 
   const filteredProducts = useMemo(() => {
-    if (!searchTerm.trim()) return products;
+    let list = products;
+    if (showDeleted) {
+      list = list.filter(p => p.deletedAt !== null);
+    } else {
+      list = list.filter(p => p.deletedAt === null);
+    }
+
+    if (!searchTerm.trim()) return list;
     const s = searchTerm.toLowerCase();
-    return products.filter(p => 
+    return list.filter(p => 
       p.name.toLowerCase().includes(s) || 
       (p.sku && p.sku.toLowerCase().includes(s)) ||
       p.slug.toLowerCase().includes(s)
     );
-  }, [products, searchTerm]);
+  }, [products, searchTerm, showDeleted]);
 
   const remove = async (id: number) => {
     if (!confirm("Удалить товар?")) return;
@@ -35,20 +44,43 @@ export default function ShopProductsTable({ initialProducts }: { initialProducts
       alert(res.error || "Ошибка при удалении");
       return;
     }
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    setProducts((prev) => prev.map((p) => p.id === id ? { ...p, deletedAt: new Date() } : p));
+  };
+
+  const restore = async (id: number) => {
+    if (!confirm("Восстановить товар?")) return;
+    const res = await restoreShopProduct(id, getCsrfToken());
+    if (!res.ok) {
+      alert(res.error || "Ошибка при восстановлении");
+      return;
+    }
+    setProducts((prev) => prev.map((p) => p.id === id ? { ...p, deletedAt: null, isActive: true } : p));
   };
 
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-        <input
-          type="text"
-          placeholder="Поиск по названию, артикулу или slug..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-slate-900/50 border border-slate-800 rounded-xl pl-12 pr-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-        />
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Поиск по названию, артикулу или slug..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-slate-900/50 border border-slate-800 rounded-xl pl-12 pr-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+          />
+        </div>
+        <button 
+          onClick={() => setShowDeleted(!showDeleted)}
+          className={cn(
+            "px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all border whitespace-nowrap", 
+            showDeleted 
+              ? "bg-red-500/10 text-red-500 border-red-500/30 shadow-lg shadow-red-500/5" 
+              : "bg-slate-900 text-gray-500 border-slate-800 hover:text-gray-300"
+          )}
+        >
+          {showDeleted ? "Корзина" : "Активные"}
+        </button>
       </div>
 
       <div className="neon-card rounded-2xl overflow-hidden border border-slate-800/50">
@@ -85,39 +117,54 @@ export default function ShopProductsTable({ initialProducts }: { initialProducts
                     </div>
                   </td>
                   <td className="px-6 py-5">
-                    <Badge variant={p.isActive ? "success" : "warning"}>
-                      {p.isActive ? "Активен" : "Скрыт"}
+                    <Badge variant={p.deletedAt ? "error" : p.isActive ? "success" : "warning"}>
+                      {p.deletedAt ? "Удален" : p.isActive ? "Активен" : "Скрыт"}
                     </Badge>
                   </td>
                   <td className="px-6 py-5 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <LinkButton
-                        href={`/shop/${p.slug}`}
-                        target="_blank"
-                        variant="secondary"
-                        size="sm"
-                        title="Просмотр на сайте"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </LinkButton>
-                      <LinkButton
-                        href={`/admin/shop/products/${p.id}`}
-                        variant="secondary"
-                        size="sm"
-                        className="text-blue-400 hover:text-blue-300"
-                        title="Оформление карточки"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </LinkButton>
-                      <Button
-                        onClick={() => remove(p.id)}
-                        variant="secondary"
-                        size="sm"
-                        className="text-red-400 hover:text-red-300"
-                        title="Удалить"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {!p.deletedAt ? (
+                        <>
+                          <LinkButton
+                            href={`/shop/${p.slug}`}
+                            target="_blank"
+                            variant="secondary"
+                            size="sm"
+                            title="Просмотр на сайте"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </LinkButton>
+                          <LinkButton
+                            href={`/admin/shop/products/${p.id}`}
+                            variant="secondary"
+                            size="sm"
+                            className="text-blue-400 hover:text-blue-300"
+                            title="Оформление карточки"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </LinkButton>
+                          <Button
+                            onClick={() => remove(p.id)}
+                            variant="secondary"
+                            size="sm"
+                            className="text-red-400 hover:text-red-300"
+                            title="Удалить"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          onClick={() => restore(p.id)}
+                          variant="secondary"
+                          size="sm"
+                          className="bg-green-600/10 text-green-500 hover:bg-green-600/20 border-green-600/20"
+                          title="Восстановить"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Восстановить
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
