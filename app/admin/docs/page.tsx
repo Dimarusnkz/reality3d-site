@@ -1,6 +1,6 @@
 import { getAllDocs } from "@/lib/docs";
 import Link from "next/link";
-import { Book, Shield, Users, CreditCard, Truck, HelpCircle } from "lucide-react";
+import { Book, Shield, Users, CreditCard, Truck, HelpCircle, PenTool } from "lucide-react";
 
 export default async function AdminDocsPage() {
   const docs = await getAllDocs();
@@ -13,9 +13,14 @@ export default async function AdminDocsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2">База знаний</h1>
-        <p className="text-slate-400">Документация, регламенты и инструкции Reality3D</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">База знаний</h1>
+          <p className="text-slate-400">Документация, регламенты и инструкции Reality3D</p>
+        </div>
+        <div className="text-xs text-slate-500 uppercase tracking-widest bg-slate-900 border border-slate-800 px-4 py-2 rounded-lg">
+          Режим редактирования активен
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -32,13 +37,21 @@ export default async function AdminDocsPage() {
 
               <div className="space-y-3">
                 {catDocs.length > 0 ? catDocs.map((doc) => (
-                  <Link 
-                    key={doc.slug}
-                    href={cat.id === 'public' ? `/info/${doc.slug}` : `/admin/docs/${doc.slug}`}
-                    className="block p-3 rounded-lg bg-slate-950 border border-slate-800 text-sm text-slate-300 hover:text-primary hover:border-primary/30 transition-all"
-                  >
-                    {doc.title}
-                  </Link>
+                  <div key={doc.slug} className="group relative">
+                    <Link 
+                      href={cat.id === 'public' ? `/info/${doc.slug}` : `/admin/docs/${doc.category}/${doc.slug}`}
+                      className="block p-3 rounded-lg bg-slate-950 border border-slate-800 text-sm text-slate-300 hover:text-primary hover:border-primary/30 transition-all pr-12"
+                    >
+                      {doc.title}
+                    </Link>
+                    <Link
+                      href={`/admin/docs/${doc.category}/${doc.slug}`}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-all opacity-0 group-hover:opacity-100"
+                      title="Редактировать"
+                    >
+                      <PenTool className="w-4 h-4" />
+                    </Link>
+                  </div>
                 )) : (
                   <p className="text-xs text-slate-500 italic">Раздел пока пуст</p>
                 )}
