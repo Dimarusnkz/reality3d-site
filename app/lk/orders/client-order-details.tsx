@@ -6,6 +6,7 @@ import { getOrderDetails, addOrderComment, createOrder } from "@/app/actions/ord
 import { cn } from "@/lib/utils";
 import { getCalcOrderStatusMeta } from "@/lib/orders/calc-order-status";
 import { generateReceiptPDF } from "@/lib/shop/receipt-generator";
+import { ModelViewer } from "@/components/three/model-viewer";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -183,28 +184,49 @@ export function ClientOrderDetailsModal({ orderId, onClose }: ClientOrderDetails
                         
                         {/* Files Display */}
                         {files.length > 0 && (
-                          <div className="mt-4 border-t border-slate-800 pt-4">
-                            <h4 className="text-sm font-medium text-gray-400 mb-2">Прикрепленные файлы:</h4>
-                            <div className="space-y-2">
-                              {files.map((file: any, idx: number) => (
-                                <a 
-                                  key={idx}
-                                  href={`/api/files/${file.fileName}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-3 bg-slate-800 p-2 rounded-lg border border-slate-700 hover:border-primary/50 transition-colors group"
-                                >
-                                  <div className="bg-primary/10 p-2 rounded">
-                                    <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                  </div>
-                                  <div className="flex-1 overflow-hidden">
-                                    <p className="text-sm text-gray-200 truncate group-hover:text-white">{file.originalName}</p>
-                                    <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                                  </div>
-                                  <svg className="w-4 h-4 text-gray-500 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                </a>
-                              ))}
+                          <div className="mt-4 border-t border-slate-800 pt-4 space-y-4">
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-400 mb-2">Прикрепленные файлы:</h4>
+                              <div className="space-y-2">
+                                {files.map((file: any, idx: number) => (
+                                  <a 
+                                    key={idx}
+                                    href={`/api/files/${file.fileName}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3 bg-slate-800 p-2 rounded-lg border border-slate-700 hover:border-primary/50 transition-colors group"
+                                  >
+                                    <div className="bg-primary/10 p-2 rounded">
+                                      <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    </div>
+                                    <div className="flex-1 overflow-hidden">
+                                      <p className="text-sm text-gray-200 truncate group-hover:text-white">{file.originalName}</p>
+                                      <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                    </div>
+                                    <svg className="w-4 h-4 text-gray-500 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                  </a>
+                                ))}
+                              </div>
                             </div>
+
+                            {/* 3D Viewer for the first STL/OBJ file found */}
+                            {(() => {
+                              const viewerFile = files.find((f: any) => 
+                                f.fileName.toLowerCase().endsWith('.stl') || f.fileName.toLowerCase().endsWith('.obj')
+                              );
+                              if (viewerFile) {
+                                return (
+                                  <div className="space-y-2">
+                                    <h4 className="text-sm font-medium text-gray-400">3D Предпросмотр:</h4>
+                                    <ModelViewer 
+                                      url={`/api/files/${viewerFile.fileName}`} 
+                                      fileName={viewerFile.originalName} 
+                                    />
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                         )}
                     </div>

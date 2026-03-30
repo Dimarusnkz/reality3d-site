@@ -15,6 +15,7 @@ function getCsrfToken() {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ModelViewer } from "@/components/three/model-viewer";
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "В обработке", variant: "warning" as const },
@@ -545,40 +546,61 @@ export default function OrdersClient({ initialOrders, currentUserRole }: { initi
                             
                             {/* Files */}
                             {(isEditing ? editData.files : getOrderFiles(selectedOrder)).length > 0 && (
-                              <div className="border-t border-slate-800/50 pt-4 mt-4">
-                                <h4 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-3">Прикрепленные файлы:</h4>
-                                <div className="space-y-2">
-                                  {(isEditing ? editData.files : getOrderFiles(selectedOrder)).map((file: any, idx: number) => (
-                                    <div key={idx} className="flex items-center justify-between gap-3 p-3 bg-slate-900/50 rounded-xl border border-slate-800 group/file">
-                                        <a 
-                                          href={`/api/files/${file.fileName}`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="flex items-center gap-3 text-sm text-blue-400 hover:text-blue-300 transition-colors font-bold overflow-hidden"
-                                        >
-                                          <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-                                            <FileText className="w-4 h-4" />
-                                          </div>
-                                          <div className="truncate">
-                                            <div className="truncate">{file.originalName}</div>
-                                            <div className="text-[10px] text-gray-600">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
-                                          </div>
-                                          <Download className="w-3 h-3 ml-1 opacity-0 group-hover/file:opacity-50 transition-opacity" />
-                                        </a>
-                                        {isEditing && (
-                                            <Button 
-                                                onClick={() => handleRemoveFile(file.fileName)}
-                                                variant="secondary"
-                                                size="sm"
-                                                className="h-8 w-8 p-0 text-red-400 hover:text-red-300"
-                                                title="Удалить файл"
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </Button>
-                                        )}
-                                    </div>
-                                  ))}
+                              <div className="border-t border-slate-800/50 pt-4 mt-4 space-y-4">
+                                <div>
+                                  <h4 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-3">Прикрепленные файлы:</h4>
+                                  <div className="space-y-2">
+                                    {(isEditing ? editData.files : getOrderFiles(selectedOrder)).map((file: any, idx: number) => (
+                                      <div key={idx} className="flex items-center justify-between gap-3 p-3 bg-slate-900/50 rounded-xl border border-slate-800 group/file">
+                                          <a 
+                                            href={`/api/files/${file.fileName}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-3 text-sm text-blue-400 hover:text-blue-300 transition-colors font-bold overflow-hidden"
+                                          >
+                                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+                                              <FileText className="w-4 h-4" />
+                                            </div>
+                                            <div className="truncate">
+                                              <div className="truncate">{file.originalName}</div>
+                                              <div className="text-[10px] text-gray-600">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                                            </div>
+                                            <Download className="w-3 h-3 ml-1 opacity-0 group-hover/file:opacity-50 transition-opacity" />
+                                          </a>
+                                          {isEditing && (
+                                              <Button 
+                                                  onClick={() => handleRemoveFile(file.fileName)}
+                                                  variant="secondary"
+                                                  size="sm"
+                                                  className="h-8 w-8 p-0 text-red-400 hover:text-red-300"
+                                                  title="Удалить файл"
+                                              >
+                                                  <X className="w-4 h-4" />
+                                              </Button>
+                                          )}
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
+
+                                {/* 3D Viewer for the first STL/OBJ file found */}
+                                {(() => {
+                                  const viewerFile = (isEditing ? editData.files : getOrderFiles(selectedOrder)).find((f: any) => 
+                                    f.fileName.toLowerCase().endsWith('.stl') || f.fileName.toLowerCase().endsWith('.obj')
+                                  );
+                                  if (viewerFile) {
+                                    return (
+                                      <div className="space-y-2">
+                                        <h4 className="text-[10px] font-black text-gray-600 uppercase tracking-widest">3D Предпросмотр:</h4>
+                                        <ModelViewer 
+                                          url={`/api/files/${viewerFile.fileName}`} 
+                                          fileName={viewerFile.originalName} 
+                                        />
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </div>
                             )}
                         </div>
