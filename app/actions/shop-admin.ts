@@ -310,55 +310,19 @@ export async function deleteShopProduct(id: number, csrfToken: string) {
   if (!admin.ok) return admin
 
   try {
-    const product = await prisma.shopProduct.findUnique({
+    const product = await prisma.shopProduct.findUnique({ where: { id } })
+    if (!product) return { ok: false as const, error: 'Товар не найден' }
+
+    await prisma.shopProduct.update({
       where: { id },
-      select: { id: true, slug: true, name: true },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+        stock: 0,
+      },
     })
-    if (!product) return { ok: true as const }
 
-    // Logic for preventing deletion of products in warehouse documents
-    const [receiptItemsCount, poItemsCount, warehouseLogsCount] = await Promise.all([
-      prisma.warehouseReceiptItem.count({ where: { productId: id } }),
-      prisma.warehousePurchaseOrderItem.count({ where: { productId: id } }),
-      prisma.shopWarehouseLog.count({ where: { productId: id, actionType: { in: ['receipt', 'writeoff'] } } }),
-    ])
-
-    if (receiptItemsCount > 0 || poItemsCount > 0 || warehouseLogsCount > 0) {
-      return { 
-        ok: false as const, 
-        error: `Ошибка: Нельзя удалить товар, так как он есть в документе "Поступление" или по нему были складские операции.` 
-      }
-    }
-
-    const [orderItems, clientLogs] = await Promise.all([
-      prisma.shopOrderItem.count({ where: { productId: id } }),
-      prisma.shopClientLog.count({ where: { productId: id } }),
-    ])
-
-    await prisma.shopCartItem.deleteMany({ where: { productId: id } })
-    await prisma.shopWishlistItem.deleteMany({ where: { productId: id } })
-    await prisma.shopProductImage.deleteMany({ where: { productId: id } })
-
-    if (orderItems > 0 || clientLogs > 0) {
-      await prisma.shopInventoryItem.updateMany({ where: { productId: id }, data: { quantity: 0 } })
-      const suffix = Date.now()
-      await prisma.shopProduct.update({
-        where: { id },
-        data: {
-          isActive: false,
-          stock: 0,
-          slug: `${product.slug}--archived-${suffix}`,
-          name: `${product.name} (архив)`,
-        },
-      })
-      return { ok: true as const, archived: true }
-    } else {
-      await prisma.shopInventoryItem.deleteMany({ where: { productId: id } })
-      await prisma.shopWarehouseLog.deleteMany({ where: { productId: id } })
-      await prisma.shopClientLog.deleteMany({ where: { productId: id } })
-      await prisma.shopProduct.delete({ where: { id } })
-    }
-    await logAudit({ actorUserId: admin.userId, action: 'shop.product.delete', target: String(id) })
+    await logAudit({ actorUserId: admin.userId, action: 'shop.product.soft_delete', target: String(id) })
     revalidatePath('/admin/shop/products')
     revalidatePath('/shop')
     return { ok: true as const }
