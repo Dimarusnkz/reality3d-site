@@ -3,6 +3,7 @@ import { formatRub } from "@/lib/shop/money";
 import { Badge } from "@/components/ui/badge";
 import { getShopOrderStatusMeta, getShopPaymentStatusMeta } from "@/lib/shop/order-status";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export async function RecentOrders() {
   const prisma = getPrisma();
@@ -51,7 +52,7 @@ export async function RecentOrders() {
                     <div className="text-white font-bold">{formatRub(order.totalKopeks)}</div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <Badge variant={statusMeta.variant} className="text-[8px] px-1.5 py-0">
+                    <Badge className={cn("text-[8px] px-1.5 py-0", statusMeta.className)}>
                       {statusMeta.label}
                     </Badge>
                   </td>
