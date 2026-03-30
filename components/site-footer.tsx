@@ -78,9 +78,15 @@ export function SiteFooter() {
           </ul>
         </div>
       </div>
-      <div className="container mx-auto px-4 mt-12 pt-8 border-t border-slate-900 text-center text-xs text-gray-600">
-         © 2026 Reality3D. Все права защищены.
-      </div>
-    </footer>
-  );
-}
+        <div className="container mx-auto px-4 mt-12 pt-8 border-t border-slate-900 flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-gray-600">
+          <div>
+            © 2026 Reality3D. Все права защищены.
+          </div>
+          <div className="flex gap-6 uppercase tracking-widest text-[10px]">
+            <Link href="/info/privacy" className="hover:text-primary transition-colors">Политика конфиденциальности</Link>
+            <Link href="/info/terms" className="hover:text-primary transition-colors">Публичная оферта</Link>
+          </div>
+        </div>
+      </footer>
+    );
+  }
