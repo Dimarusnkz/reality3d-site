@@ -41,6 +41,16 @@ export function SiteFooter() {
         </div>
 
         <div className="space-y-4">
+          <h3 className="font-bold text-white uppercase tracking-widest text-[10px]">Инфо</h3>
+          <ul className="space-y-3 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">
+            <li><Link href="/info/about" className="hover:text-primary transition-colors">О компании</Link></li>
+            <li><Link href="/info/payment-delivery" className="hover:text-primary transition-colors">Оплата и доставка</Link></li>
+            <li><Link href="/info/faq" className="hover:text-primary transition-colors">FAQ и Глоссарий</Link></li>
+            <li><Link href="/contacts" className="hover:text-primary transition-colors">Контакты</Link></li>
+          </ul>
+        </div>
+
+        <div className="space-y-4">
           <h3 className="font-bold text-white uppercase tracking-widest text-[10px]">Услуги</h3>
           <ul className="space-y-3 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">
             <li><Link href="/services" className="hover:text-primary transition-colors">FDM Печать</Link></li>

@@ -19,7 +19,8 @@ import {
   Database,
   Wallet,
   KeyRound,
-  Zap
+  Zap,
+  Book
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logout } from "@/app/actions/auth";
@@ -38,6 +39,7 @@ const ADMIN_NAV_ITEMS = [
   { href: "/admin/clients", label: "Клиенты", icon: Users, permission: 'users.view' },
   { href: "/admin/reviews", label: "Отзывы", icon: Star, permission: 'reviews.manage' },
   { href: "/admin/team", label: "Сотрудники", icon: Shield, permission: 'roles.manage' },
+  { href: "/admin/docs", label: "База знаний", icon: Book, permission: 'logs.view' },
   { href: "/admin/blog", label: "Блог", icon: PenTool, permission: 'blog.manage' },
   { href: "/admin/portfolio", label: "Портфолио", icon: ImageIcon, permission: 'portfolio.manage' },
 ];
