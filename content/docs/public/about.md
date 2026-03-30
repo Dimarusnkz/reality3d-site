@@ -19,10 +19,15 @@ lastUpdated: "2026-03-30"
 - **Сервисное обслуживание**: настройка и ремонт 3D-принтеров.
 
 ## Наши контакты
-- **Адрес**: г. Санкт-Петербург, (Ваш точный адрес)
-- **Телефон**: +7 (XXX) XXX-XX-XX
-- **Email**: info@reality3d.ru
+- **Адрес**: г. Санкт-Петербург, пр. Современиков 1к3 (вход со двора, цокольный этаж)
+- **Телефон**: +7 (923) 631-7850
+- **Email**: zakaz@reality3d.ru
 - **Режим работы**: Пн-Пт: 10:00 — 19:00
+
+## Социальные сети
+- **Telegram**: [t.me/Reality_3Dtg](https://t.me/Reality_3Dtg)
+- **Max**: [max.ru](https://max.ru/join/4YSX3vkvUjYNPAqayBmTLJuEmr0pBy65drrrrOOm6qg)
+- **VK**: [vk.com/Reality3DSPB](https://vk.com/Reality3DSPB)
 
 ## Юридическая информация
 - **ИП/ООО**: Reality3D

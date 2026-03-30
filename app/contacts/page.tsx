@@ -28,7 +28,7 @@ export default function ContactsPage() {
               (вход со двора, цокольный этаж)
             </p>
             <a 
-              href="https://yandex.ru/maps/-/CCUf6-u-pA" 
+              href="https://yandex.com/maps/10174/saint-petersburg-and-leningrad-oblast/house/ulitsa_sovremennikov_1k3/Z0kYdwBgS0MHQFtjfXt4c35gYw==/?ll=30.170260%2C59.792237&z=16.83" 
               target="_blank" 
               className="text-[10px] font-black text-primary uppercase tracking-[0.2em] hover:text-white transition-colors"
             >
@@ -50,9 +50,10 @@ export default function ContactsPage() {
               +7 (923) 631-7850<br />
               zakaz@reality3d.ru
             </p>
-            <div className="flex gap-4">
-              <a href="https://t.me/reality3d" className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] hover:text-white transition-colors">Telegram</a>
-              <a href="https://wa.me/79236317850" className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] hover:text-white transition-colors">WhatsApp</a>
+            <div className="flex flex-wrap gap-4">
+              <a href="https://t.me/Reality_3Dtg" target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] hover:text-white transition-colors">Telegram</a>
+              <a href="https://max.ru/join/4YSX3vkvUjYNPAqayBmTLJuEmr0pBy65drrrrOOm6qg" target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-purple-400 uppercase tracking-[0.2em] hover:text-white transition-colors">Max</a>
+              <a href="https://vk.com/Reality3DSPB" target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] hover:text-white transition-colors">VK</a>
             </div>
           </div>
         </div>
