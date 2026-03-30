@@ -67,6 +67,7 @@ export async function GET() {
   const memFree = os.freemem();
   const cpu = getCpuSnapshot();
   const load = os.loadavg();
+  const uptime = os.uptime();
 
   const [disk, net] = await Promise.all([getDiskSnapshot(), getNetSnapshot()]);
 
@@ -74,6 +75,7 @@ export async function GET() {
     {
       ok: true as const,
       at: Date.now(),
+      uptime,
       load,
       cpu,
       mem: { totalBytes: memTotal, freeBytes: memFree },

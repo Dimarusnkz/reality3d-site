@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { DashboardStats, StatsSkeleton } from "./dashboard-stats";
 import { RecentOrders, RecentOrdersSkeleton } from "./recent-orders";
 import { RecentFinance, RecentFinanceSkeleton } from "./recent-finance";
+import { ServerMetricsPanel } from "./server-metrics-panel";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 
@@ -34,6 +35,13 @@ export default async function AdminDashboard() {
       <Suspense fallback={<StatsSkeleton />}>
         <DashboardStats />
       </Suspense>
+
+      {/* Server Metrics for Admins */}
+      {session.role === "admin" && (
+        <div className="neon-card rounded-2xl border border-slate-800 overflow-hidden bg-slate-900/20">
+          <ServerMetricsPanel className="border-0 bg-transparent" />
+        </div>
+      )}
 
       {/* Main Grid with Streaming */}
       <div className="grid lg:grid-cols-2 gap-10">
