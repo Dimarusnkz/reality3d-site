@@ -52,7 +52,8 @@ export async function getClientOrders() {
 
   return await prisma.order.findMany({
     where: {
-      userId: parseInt(session.userId)
+      userId: parseInt(session.userId),
+      deletedAt: null
     },
     select: {
       id: true,
@@ -190,6 +191,7 @@ export async function getOrders() {
   }
 
   return await prisma.order.findMany({
+    where: { deletedAt: null },
     include: {
       user: {
         select: { name: true, email: true }
@@ -412,22 +414,13 @@ export async function deleteOrder(orderId: number, csrfToken: string) {
   }
 
   try {
-    // Delete related comments first (cascade usually handles this but good to be safe if not configured)
-    await prisma.orderComment.deleteMany({ where: { orderId } })
-    
-    // Check for chat session and delete if exists
-    const chatSession = await prisma.chatSession.findUnique({ where: { orderId } })
-    if (chatSession) {
-        await prisma.chatMessage.deleteMany({ where: { sessionId: chatSession.id } })
-        await prisma.chatSession.delete({ where: { id: chatSession.id } })      
-    }
-
-    await prisma.order.delete({
-      where: { id: orderId }
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { deletedAt: new Date() }
     })
     await logAudit({
       actorUserId: parseInt(session.userId, 10),
-      action: 'orders.delete',
+      action: 'orders.soft_delete',
       target: String(orderId),
     })
     revalidatePath('/admin/orders')
@@ -436,6 +429,35 @@ export async function deleteOrder(orderId: number, csrfToken: string) {
   } catch (error) {
     console.error('Failed to delete order:', error)
     return { error: 'Failed to delete order' }
+  }
+}
+
+export async function restoreOrder(orderId: number, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { error: csrf.error }
+
+  const session = await getSession()
+  if (!session || session.role !== 'admin') {
+    return { error: 'Unauthorized' }
+  }
+
+  try {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { deletedAt: null }
+    })
+    await logAudit({
+      actorUserId: parseInt(session.userId, 10),
+      action: 'orders.restore',
+      target: String(orderId),
+    })
+    revalidatePath('/admin/orders')
+    revalidatePath('/lk/orders')
+    return { success: true }
+  } catch (error) {
+    console.error('Failed to restore order:', error)
+    return { error: 'Failed to restore order' }
   }
 }
 

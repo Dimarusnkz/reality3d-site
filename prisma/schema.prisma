@@ -115,6 +115,7 @@ model Order {
   deadline          DateTime?
   title             String?
   updatedAt         DateTime           @default(now()) @updatedAt
+  deletedAt         DateTime?
   chat              ChatSession?
   assignedTo        User?              @relation("OrderAssignee", fields: [assignedToId], references: [id])
   user              User               @relation(fields: [userId], references: [id])
@@ -223,6 +224,7 @@ model ShopProduct {
   purchasePriceKopeks Int?
   allowPreorder       Boolean                          @default(false)
   itemType            String                           @default("product")
+  deletedAt           DateTime?
   weightGrams         Int?
   lengthMm            Int?
   widthMm             Int?
@@ -320,6 +322,7 @@ model ShopOrder {
   comment                 String?
   createdAt               DateTime           @default(now())
   updatedAt               DateTime           @default(now()) @updatedAt
+  deletedAt               DateTime?
   deliveryPhone           String?
   shippingCarrier         String?
   shippingTrackingNo      String?
