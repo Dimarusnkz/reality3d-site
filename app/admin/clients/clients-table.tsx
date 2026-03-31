@@ -133,106 +133,108 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
   }
 
   return (
-    <div className="neon-card rounded-2xl overflow-hidden border border-slate-800/50">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="text-gray-500 bg-slate-950 border-b border-slate-800/50">
-            <tr>
-              <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Клиент / Контакты</th>
-              <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px] text-center">Заказы</th>
-              <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px] text-right">Действия</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800/30">
-            {clients.map((client) => (
-              <tr key={client.id} className="hover:bg-primary/[0.02] transition-colors group">
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-primary font-bold shadow-inner group-hover:border-primary/30 transition-colors">
-                      {client.name ? client.name[0].toUpperCase() : 'U'}
-                    </div>
-                    <div>
-                      <div className="font-bold text-white text-base group-hover:text-primary transition-colors">{client.name || 'Без имени'}</div>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[10px] font-bold uppercase tracking-tight text-gray-500">
-                         <div className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer">
-                           <Mail className="w-3 h-3 text-primary/60" />
-                           {client.email}
-                         </div>
-                         {client.phone && (
-                           <div className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors cursor-pointer">
-                             <Phone className="w-3 h-3 text-green-500/60" />
-                             {client.phone}
+    <>
+      <div className="neon-card rounded-2xl overflow-hidden border border-slate-800/50">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="text-gray-500 bg-slate-950 border-b border-slate-800/50">
+              <tr>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Клиент / Контакты</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px] text-center">Заказы</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px] text-right">Действия</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/30">
+              {clients.map((client) => (
+                <tr key={client.id} className="hover:bg-primary/[0.02] transition-colors group">
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-primary font-bold shadow-inner group-hover:border-primary/30 transition-colors">
+                        {client.name ? client.name[0].toUpperCase() : 'U'}
+                      </div>
+                      <div>
+                        <div className="font-bold text-white text-base group-hover:text-primary transition-colors">{client.name || 'Без имени'}</div>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[10px] font-bold uppercase tracking-tight text-gray-500">
+                           <div className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer">
+                             <Mail className="w-3 h-3 text-primary/60" />
+                             {client.email}
                            </div>
-                         )}
-                         <div className="text-slate-700">ID: {client.id}</div>
+                           {client.phone && (
+                             <div className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors cursor-pointer">
+                               <Phone className="w-3 h-3 text-green-500/60" />
+                               {client.phone}
+                             </div>
+                           )}
+                           <div className="text-slate-700">ID: {client.id}</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </td>
-                <td className="px-6 py-5 text-center">
-                  <button 
-                    onClick={() => router.push(`/admin/orders?clientId=${client.id}`)}
-                    className={cn(
-                      "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border",
-                      client.activeOrdersCount > 0 
-                        ? "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 shadow-lg shadow-primary/5" 
-                        : "bg-slate-900 text-gray-500 border-slate-800 hover:text-gray-400 hover:border-slate-700"
-                    )}
-                    title="Посмотреть заказы"
-                  >
-                    <Package className="w-3.5 h-3.5" />
-                    {client.activeOrdersCount}
-                  </button>
-                </td>
-                <td className="px-6 py-5 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button 
-                      onClick={() => setSelectedClient(client)}
-                      variant="secondary"
-                      size="sm"
-                      title="Подробная информация"
+                  </td>
+                  <td className="px-6 py-5 text-center">
+                    <button 
+                      onClick={() => router.push(`/admin/orders?clientId=${client.id}`)}
+                      className={cn(
+                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border",
+                        client.activeOrdersCount > 0 
+                          ? "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 shadow-lg shadow-primary/5" 
+                          : "bg-slate-900 text-gray-500 border-slate-800 hover:text-gray-400 hover:border-slate-700"
+                      )}
+                      title="Посмотреть заказы"
                     >
-                      <Info className="w-4 h-4" />
-                    </Button>
-
-                    <Button 
-                      onClick={() => handleMessage(client)}
-                      variant="secondary"
-                      size="sm"
-                      className="text-blue-400 hover:text-blue-300"
-                      title="Написать сообщение"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                    </Button>
-                    
-                    {currentUserRole === 'admin' && (
+                      <Package className="w-3.5 h-3.5" />
+                      {client.activeOrdersCount}
+                    </button>
+                  </td>
+                  <td className="px-6 py-5 text-right">
+                    <div className="flex items-center justify-end gap-2">
                       <Button 
-                        onClick={() => handleDelete(client.id)}
+                        onClick={() => setSelectedClient(client)}
                         variant="secondary"
                         size="sm"
-                        className="text-red-400 hover:text-red-300"
-                        title="Удалить клиента"
+                        title="Подробная информация"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Info className="w-4 h-4" />
                       </Button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
 
-      <div className="px-6 py-4 bg-slate-950/50 border-t border-slate-800/50 flex items-center justify-between">
-        <div className="text-xs font-bold uppercase tracking-widest text-gray-500">
-          Всего клиентов: <span className="text-white">{clients.length}</span>
+                      <Button 
+                        onClick={() => handleMessage(client)}
+                        variant="secondary"
+                        size="sm"
+                        className="text-blue-400 hover:text-blue-300"
+                        title="Написать сообщение"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                      </Button>
+                      
+                      {currentUserRole === 'admin' && (
+                        <Button 
+                          onClick={() => handleDelete(client.id)}
+                          variant="secondary"
+                          size="sm"
+                          className="text-red-400 hover:text-red-300"
+                          title="Удалить клиента"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-500">
-          <Package className="w-3 h-3" />
-          Активных заказов: <span className="text-primary">{clients.reduce((sum, c) => sum + (c.activeOrdersCount || 0), 0)}</span>
+
+        <div className="px-6 py-4 bg-slate-950/50 border-t border-slate-800/50 flex items-center justify-between">
+          <div className="text-xs font-bold uppercase tracking-widest text-gray-500">
+            Всего клиентов: <span className="text-white">{clients.length}</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-500">
+            <Package className="w-3 h-3" />
+            Активных заказов: <span className="text-primary">{clients.reduce((sum, c) => sum + (c.activeOrdersCount || 0), 0)}</span>
+          </div>
         </div>
-        </div>
+      </div>
 
       {selectedClient && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
@@ -411,8 +413,6 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
           </div>
         </div>
       )}
-    </div>
-  );
-}
+    </>
   );
 }
