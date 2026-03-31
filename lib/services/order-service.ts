@@ -152,7 +152,7 @@ ${filesList}
       })
 
       // Финансовая проводка (расход)
-      if (order.price > 0) {
+      if (order.price && order.price > 0) {
         await tx.cashEntry.create({
           data: {
             direction: 'expense',
