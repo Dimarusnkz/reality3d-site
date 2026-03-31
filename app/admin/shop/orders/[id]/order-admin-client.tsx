@@ -73,6 +73,42 @@ export function OrderAdminClient({
 
   const itemsTotal = useMemo(() => order.items.reduce((s, i) => s + i.totalKopeks, 0), [order.items]);
 
+  const refundOrder = async () => {
+    if (!confirm("Выполнить возврат денежных средств по этому заказу? Будет создана расходная кассовая операция.")) return;
+    setRefundBusy(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await refundShopOrderAdmin(order.id, getCsrfToken());
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      setSuccess("Возврат средств успешно оформлен");
+      window.location.reload();
+    } finally {
+      setRefundBusy(false);
+    }
+  };
+
+  const returnToStock = async () => {
+    if (!confirm("Вернуть товары из этого заказа на склад? Остатки будут увеличены.")) return;
+    setReturnBusy(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await returnItemsToStockAdmin(order.id, getCsrfToken());
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      setSuccess("Товары успешно возвращены на склад");
+      window.location.reload();
+    } finally {
+      setReturnBusy(false);
+    }
+  };
+
   const save = async () => {
     setBusy(true);
     setError(null);
@@ -298,6 +334,34 @@ export function OrderAdminClient({
                   </button>
                 ) : null}
               </div>
+
+              {/* Refund and Return block */}
+              <div className="pt-4 border-t border-slate-800/50 space-y-3">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Управление возвратом</div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={refundOrder}
+                    disabled={refundBusy || order.paymentStatus !== "paid"}
+                    className="flex-1 inline-flex h-9 items-center justify-center rounded-lg bg-orange-600 px-4 text-xs font-semibold text-white hover:bg-orange-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title={order.paymentStatus !== "paid" ? "Только для оплаченных заказов" : "Вернуть средства"}
+                  >
+                    {refundBusy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <DollarSign className="w-4 h-4 mr-2" />}
+                    Вернуть средства
+                  </button>
+                  <button
+                    onClick={returnToStock}
+                    disabled={returnBusy}
+                    className="flex-1 inline-flex h-9 items-center justify-center rounded-lg bg-blue-600 px-4 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-50 transition-colors"
+                  >
+                    {returnBusy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCcw className="w-4 h-4 mr-2" />}
+                    Вернуть на склад
+                  </button>
+                </div>
+                {order.paymentStatus === "refunded" && (
+                  <p className="text-[10px] text-orange-400 font-bold uppercase">Средства возвращены клиенту</p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Статус доставки</label>
                 <select value={form.shippingStatus} onChange={(e) => setForm((p) => ({ ...p, shippingStatus: e.target.value }))} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white">
