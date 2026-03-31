@@ -2,7 +2,16 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { confirmShopOrderPaymentAdmin, updateShopOrderAdmin, cancelShopOrderAdmin, deleteShopOrderAdmin, refundShopOrderAdmin, returnItemsToStockAdmin } from "@/app/actions/shop-admin";
+import { 
+  confirmShopOrderPaymentAdmin, 
+  updateShopOrderAdmin, 
+  cancelShopOrderAdmin, 
+  deleteShopOrderAdmin 
+} from "@/app/actions/shop-orders-admin";
+import { 
+  refundShopOrderAdmin, 
+  returnItemsToStockAdmin 
+} from "@/app/actions/shop-admin";
 import { Loader2, Save, CheckCircle, XCircle, Trash2, RefreshCcw, DollarSign } from "lucide-react";
 import { formatRub } from "@/lib/shop/money";
 import { getShippingMethodLabel } from "@/lib/shop/shipping";
