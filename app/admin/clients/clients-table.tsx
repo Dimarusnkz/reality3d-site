@@ -392,13 +392,13 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
                 ) : (
                   <>
                     {currentUserRole === 'admin' && (
-                      <button
+                      <Button
                           onClick={handleEditClick}
                           className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-blue-900/20"
                       >
                           <Edit2 className="w-3.5 h-3.5" />
                           Редактировать
-                      </button>
+                      </Button>
                     )}
                     <button
                         onClick={() => setSelectedClient(null)}
