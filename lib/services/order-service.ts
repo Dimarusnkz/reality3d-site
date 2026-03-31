@@ -153,15 +153,21 @@ ${filesList}
 
       // Финансовая проводка (расход)
       if (order.price && order.price > 0) {
-        await tx.cashEntry.create({
-          data: {
-            direction: 'expense',
-            entryType: 'refund',
-            amountKopeks: Math.round(order.price * 100),
-            description: `Возврат средств по заказу #${order.id}`,
-            actorUserId: userId
-          }
-        })
+        const account = (await tx.cashAccount.findUnique({ where: { code: 'bank' }, select: { id: true } })) 
+          || (await tx.cashAccount.findUnique({ where: { code: 'online' }, select: { id: true } }))
+        
+        if (account) {
+          await tx.cashEntry.create({
+            data: {
+              accountId: account.id,
+              direction: 'expense',
+              entryType: 'refund',
+              amountKopeks: Math.round(order.price * 100),
+              description: `Возврат средств по заказу #${order.id}`,
+              createdByUserId: userId
+            }
+          })
+        }
       }
     })
 
@@ -212,15 +218,21 @@ ${filesList}
       })
 
       // Финансовая проводка (расход)
-      await tx.cashEntry.create({
-        data: {
-          direction: 'expense',
-          entryType: 'refund',
-          amountKopeks: order.totalKopeks,
-          description: `Возврат средств по магазинному заказу #${order.orderNo}`,
-          actorUserId: userId
-        }
-      })
+      const account = (await tx.cashAccount.findUnique({ where: { code: 'bank' }, select: { id: true } })) 
+        || (await tx.cashAccount.findUnique({ where: { code: 'online' }, select: { id: true } }))
+      
+      if (account) {
+        await tx.cashEntry.create({
+          data: {
+            accountId: account.id,
+            direction: 'expense',
+            entryType: 'refund',
+            amountKopeks: order.totalKopeks,
+            description: `Возврат средств по магазинному заказу #${order.orderNo}`,
+            createdByUserId: userId
+          }
+        })
+      }
     })
 
     await logAudit({
