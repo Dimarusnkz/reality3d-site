@@ -8,11 +8,11 @@ npm install
 
 ./build_server.sh
 
-pm2 reload reality3d --update-env || pm2 restart reality3d --update-env || pm2 start reality3d --update-env
+pm2 reload reality3d --update-env || pm2 restart reality3d --update-env || pm2 start npm --name "reality3d" -- start -- -p 8080
 
 ok=0
 for i in $(seq 1 30); do
-  code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/ || true)
+  code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/ || true)
   if [ "$code" = "200" ] || [ "$code" = "307" ]; then
     ok=1
     break
