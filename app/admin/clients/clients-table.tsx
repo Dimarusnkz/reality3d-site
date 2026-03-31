@@ -232,26 +232,26 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
           <Package className="w-3 h-3" />
           Активных заказов: <span className="text-primary">{clients.reduce((sum, c) => sum + (c.activeOrdersCount || 0), 0)}</span>
         </div>
-      </div>
+        </div>
 
       {selectedClient && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950">
-              <h3 className="font-semibold text-lg text-white">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-950">
+              <h3 className="font-bold text-lg text-white tracking-tight">
                 {isEditing ? 'Редактирование клиента' : 'Информация о клиенте'}
               </h3>
               <button 
                 onClick={() => { setSelectedClient(null); setIsEditing(false); }}
-                className="p-1 text-gray-400 hover:text-white transition-colors"
+                className="p-2 text-gray-500 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             
-            <div className="p-6 space-y-6">
-              <div className="flex items-center gap-4">
-                 <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-primary text-2xl font-bold border border-slate-700">
+            <div className="p-8 space-y-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
+              <div className="flex items-center gap-6">
+                 <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center text-primary text-3xl font-bold border-2 border-slate-700 shadow-xl">
                     {selectedClient.name ? selectedClient.name[0].toUpperCase() : 'U'}
                  </div>
                  <div className="flex-1">
@@ -260,96 +260,107 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
                         type="text"
                         value={editForm.name}
                         onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary mb-1"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 mb-1 transition-all"
                         placeholder="Имя клиента"
                       />
                     ) : (
-                      <h4 className="text-xl font-medium text-white">{selectedClient.name || 'Без имени'}</h4>
+                      <h4 className="text-2xl font-bold text-white tracking-tight">{selectedClient.name || 'Без имени'}</h4>
                     )}
-                    <p className="text-sm text-gray-400">ID: {selectedClient.id}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                        <span className="px-2 py-0.5 rounded-full bg-slate-800 text-xs text-gray-400 border border-slate-700">
+                    <div className="flex items-center gap-3 mt-2">
+                        <span className="px-2.5 py-1 rounded-lg bg-primary/10 text-[10px] font-bold uppercase tracking-widest text-primary border border-primary/20">
                             {selectedClient.role === 'client' ? 'Клиент' : 'Пользователь'}
                         </span>
-                        <span className="text-xs text-gray-500">
-                            Регистрация: {new Date(selectedClient.createdAt).toLocaleDateString()}
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                            ID: {selectedClient.id}
                         </span>
+                    </div>
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mt-2">
+                        Регистрация: {new Date(selectedClient.createdAt).toLocaleDateString()}
                     </div>
                  </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                    <h5 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Контакты</h5>
-                    <div className="space-y-3 bg-slate-950/50 p-4 rounded-lg border border-slate-800/50">
-                        <div className="flex items-start gap-3">
-                            <Mail className="w-4 h-4 text-primary mt-1" />
+              <div className="space-y-6">
+                <div className="space-y-3">
+                    <h5 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Контакты</h5>
+                    <div className="space-y-4 bg-slate-950/30 p-5 rounded-2xl border border-slate-800/50">
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 rounded-lg bg-primary/10 mt-1">
+                              <Mail className="w-4 h-4 text-primary" />
+                            </div>
                             <div className="flex-1">
-                                <div className="text-sm text-gray-400">Email</div>
+                                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Электронная почта</div>
                                 {isEditing ? (
                                   <input
                                     type="email"
                                     value={editForm.email}
                                     onChange={(e) => setEditForm({...editForm, email: e.target.value})}
-                                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1 text-white focus:outline-none focus:border-primary mt-1"
+                                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                                   />
                                 ) : (
-                                  <div className="text-white">{selectedClient.email}</div>
+                                  <div className="text-white font-medium">{selectedClient.email}</div>
                                 )}
                             </div>
                         </div>
-                        <div className="flex items-start gap-3">
-                            <Phone className="w-4 h-4 text-primary mt-1" />
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 rounded-lg bg-green-500/10 mt-1">
+                              <Phone className="w-4 h-4 text-green-500" />
+                            </div>
                             <div className="flex-1">
-                                <div className="text-sm text-gray-400">Телефон</div>
+                                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Номер телефона</div>
                                 {isEditing ? (
                                   <input
                                     type="text"
                                     value={editForm.phone}
                                     onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
-                                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1 text-white focus:outline-none focus:border-primary mt-1"
+                                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                                     placeholder="+7..."
                                   />
                                 ) : (
-                                  <div className="text-white">{selectedClient.phone || 'Не указан'}</div>
+                                  <div className="text-white font-medium">{selectedClient.phone || 'Не указан'}</div>
                                 )}
                             </div>
                         </div>
 
                         {isEditing && (
-                          <div className="flex items-start gap-3">
-                              <User className="w-4 h-4 text-primary mt-1" />
+                          <div className="flex items-start gap-4">
+                              <div className="p-2 rounded-lg bg-blue-500/10 mt-1">
+                                <User className="w-4 h-4 text-blue-500" />
+                              </div>
                               <div className="flex-1">
-                                  <div className="text-sm text-gray-400">Новый пароль (оставьте пустым, чтобы не менять)</div>
+                                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Безопасность</div>
                                   <input
                                     type="password"
                                     value={editForm.password}
                                     onChange={(e) => setEditForm({...editForm, password: e.target.value})}
-                                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1 text-white focus:outline-none focus:border-primary mt-1"
-                                    placeholder="Минимум 6 символов"
+                                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                                    placeholder="Новый пароль (минимум 6 символов)"
                                   />
+                                  <p className="text-[9px] text-gray-600 mt-1 uppercase font-bold tracking-tight">Оставьте пустым, чтобы не менять</p>
                               </div>
                           </div>
                         )}
                     </div>
                 </div>
 
-                <div className="space-y-2">
-                    <h5 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Доставка</h5>
-                    <div className="space-y-3 bg-slate-950/50 p-4 rounded-lg border border-slate-800/50">
-                        <div className="flex items-start gap-3">
-                            <MapPin className="w-4 h-4 text-primary mt-1" />
+                <div className="space-y-3">
+                    <h5 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Доставка</h5>
+                    <div className="space-y-4 bg-slate-950/30 p-5 rounded-2xl border border-slate-800/50">
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 rounded-lg bg-secondary/10 mt-1">
+                              <MapPin className="w-4 h-4 text-secondary" />
+                            </div>
                             <div className="flex-1">
-                                <div className="text-sm text-gray-400">Адрес доставки</div>
+                                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Адрес по умолчанию</div>
                                 {isEditing ? (
                                   <textarea
                                     value={editForm.address}
                                     onChange={(e) => setEditForm({...editForm, address: e.target.value})}
-                                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary mt-1 min-h-[80px]"
+                                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all min-h-[100px]"
                                     placeholder="Город, улица, дом..."
                                   />
                                 ) : (
-                                  <div className="text-white">{(selectedClient as any).address || 'Адрес не указан'}</div>
+                                  <div className="text-white font-medium leading-relaxed">{(selectedClient as any).address || 'Адрес не указан'}</div>
                                 )}
                             </div>
                         </div>
@@ -357,22 +368,22 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-800 flex justify-end gap-2">
+              <div className="pt-6 border-t border-slate-800 flex justify-end gap-3">
                 {isEditing ? (
                   <>
                     <button
                         onClick={handleCancelEdit}
                         disabled={isSaving}
-                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors text-sm font-medium"
+                        className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-all text-[10px] font-bold uppercase tracking-widest disabled:opacity-50"
                     >
                         Отмена
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+                        className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl transition-all text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50"
                     >
-                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                         Сохранить
                     </button>
                   </>
@@ -381,15 +392,15 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
                     {currentUserRole === 'admin' && (
                       <button
                           onClick={handleEditClick}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+                          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-blue-900/20"
                       >
-                          <Edit2 className="w-4 h-4" />
+                          <Edit2 className="w-3.5 h-3.5" />
                           Редактировать
                       </button>
                     )}
                     <button
                         onClick={() => setSelectedClient(null)}
-                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors text-sm font-medium"
+                        className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-all text-[10px] font-bold uppercase tracking-widest"
                     >
                         Закрыть
                     </button>
@@ -401,5 +412,7 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
         </div>
       )}
     </div>
+  );
+}
   );
 }
