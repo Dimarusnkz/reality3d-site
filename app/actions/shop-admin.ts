@@ -10,6 +10,10 @@ import { z } from 'zod'
 import { logAudit } from '@/lib/audit'
 import { formatZodError } from '@/lib/utils'
 
+import { OrderService } from '@/lib/services/order-service'
+import { WarehouseService } from '@/lib/services/warehouse-service'
+import { getDefaultWarehouseId } from '@/lib/warehouse/default-warehouse'
+
 function requireAdmin(session: { userId?: string; role?: string } | null) {
   if (!session?.userId) return { ok: false as const, error: 'Unauthorized' }
   if (session.role !== 'admin' && session.role !== 'manager') return { ok: false as const, error: 'Unauthorized' }
@@ -355,5 +359,61 @@ export async function restoreShopProduct(id: number, csrfToken: string) {
     return { ok: true as const }
   } catch (e) {
     return { ok: false as const, error: 'Не удалось восстановить товар' }
+  }
+}
+
+export async function cancelShopOrderAdmin(shopOrderId: string, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { error: csrf.error }
+
+  const session = await getSession()
+  const admin = requireAdmin(session)
+  if (!admin.ok) return admin
+
+  const orderService = new OrderService(prisma)
+  try {
+    await orderService.cancelShopOrder(shopOrderId, admin.userId, session!.role!)
+    return { ok: true as const }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+export async function refundShopOrderAdmin(shopOrderId: string, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { error: csrf.error }
+
+  const session = await getSession()
+  const admin = requireAdmin(session)
+  if (!admin.ok) return admin
+
+  const orderService = new OrderService(prisma)
+  try {
+    await orderService.refundShopOrder(shopOrderId, admin.userId, session!.role!)
+    return { ok: true as const }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+export async function returnItemsToStockAdmin(shopOrderId: string, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { error: csrf.error }
+
+  const session = await getSession()
+  const admin = requireAdmin(session)
+  if (!admin.ok) return admin
+
+  const warehouseService = new WarehouseService(prisma)
+  const defaultWarehouseId = await getDefaultWarehouseId(prisma)
+  
+  try {
+    await warehouseService.returnShopOrderItemsToStock(shopOrderId, admin.userId, session!.role!, defaultWarehouseId)
+    return { ok: true as const }
+  } catch (error: any) {
+    return { error: error.message }
   }
 }

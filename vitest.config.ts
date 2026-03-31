@@ -1,9 +1,13 @@
 import { defineConfig } from 'vitest/config'
+import path from 'path'
 
 export default defineConfig({
   test: {
     environment: 'node',
     include: ['**/*.test.ts'],
+    alias: {
+      '@': path.resolve(__dirname, './'),
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'lcov'],

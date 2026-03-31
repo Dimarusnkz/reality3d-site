@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { confirmShopOrderPaymentAdmin, updateShopOrderAdmin, cancelShopOrderAdmin, deleteShopOrderAdmin } from "@/app/actions/shop-orders-admin";
-import { Loader2, Save, CheckCircle, XCircle, Trash2 } from "lucide-react";
+import { confirmShopOrderPaymentAdmin, updateShopOrderAdmin, cancelShopOrderAdmin, deleteShopOrderAdmin, refundShopOrderAdmin, returnItemsToStockAdmin } from "@/app/actions/shop-admin";
+import { Loader2, Save, CheckCircle, XCircle, Trash2, RefreshCcw, DollarSign } from "lucide-react";
 import { formatRub } from "@/lib/shop/money";
 import { getShippingMethodLabel } from "@/lib/shop/shipping";
 import { cn } from "@/lib/utils";
@@ -59,6 +59,8 @@ export function OrderAdminClient({
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [refundBusy, setRefundBusy] = useState(false);
+  const [returnBusy, setReturnBusy] = useState(false);
 
   const itemsTotal = useMemo(() => order.items.reduce((s, i) => s + i.totalKopeks, 0), [order.items]);
 

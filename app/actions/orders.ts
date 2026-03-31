@@ -496,6 +496,44 @@ export async function updateOrderDetails(orderId: number, data: { title: string,
 }
 
 // Helper to get employees for assignment dropdown
+export async function cancelOrderAdmin(orderId: number, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { error: csrf.error }
+
+  const session = await getSession()
+  if (!session || !['admin', 'manager'].includes(session.role)) {
+    return { error: 'Unauthorized' }
+  }
+
+  const orderService = new OrderService(prisma)
+  try {
+    await orderService.cancelOrder(orderId, parseInt(session.userId), session.role)
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+export async function refundOrderAdmin(orderId: number, csrfToken: string) {
+  const prisma = getPrisma()
+  const csrf = await assertCsrfTokenValue(csrfToken || null)
+  if (!csrf.ok) return { error: csrf.error }
+
+  const session = await getSession()
+  if (!session || !['admin', 'manager'].includes(session.role)) {
+    return { error: 'Unauthorized' }
+  }
+
+  const orderService = new OrderService(prisma)
+  try {
+    await orderService.refundOrder(orderId, parseInt(session.userId), session.role)
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
 export async function getEmployees() {
   const prisma = getPrisma()
     const session = await getSession()

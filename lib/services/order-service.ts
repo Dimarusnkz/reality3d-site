@@ -120,4 +120,116 @@ ${filesList}
 
     revalidatePath('/admin/orders')
   }
+
+  async cancelOrder(orderId: number, userId: number, role: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } })
+    if (!order) throw new Error('Заказ не найден')
+
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: { status: 'cancelled' }
+    })
+
+    await logAudit({
+      actorUserId: userId,
+      action: 'order.cancel',
+      target: String(orderId)
+    })
+
+    revalidatePath('/admin/orders')
+    revalidatePath('/lk/orders')
+  }
+
+  async refundOrder(orderId: number, userId: number, role: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } })
+    if (!order) throw new Error('Заказ не найден')
+    if (order.status !== 'paid') throw new Error('Можно вернуть только оплаченный заказ')
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: orderId },
+        data: { status: 'refunded' }
+      })
+
+      // Финансовая проводка (расход)
+      if (order.price > 0) {
+        await tx.cashEntry.create({
+          data: {
+            direction: 'expense',
+            entryType: 'refund',
+            amountKopeks: Math.round(order.price * 100),
+            description: `Возврат средств по заказу #${order.id}`,
+            actorUserId: userId
+          }
+        })
+      }
+    })
+
+    await logAudit({
+      actorUserId: userId,
+      action: 'order.refund',
+      target: String(orderId)
+    })
+
+    revalidatePath('/admin/orders')
+    revalidatePath('/admin/finance')
+  }
+
+  async cancelShopOrder(shopOrderId: string, userId: number, role: string) {
+    const order = await this.prisma.shopOrder.findUnique({
+      where: { id: shopOrderId }
+    })
+    if (!order) throw new Error('Заказ не найден')
+
+    await this.prisma.shopOrder.update({
+      where: { id: shopOrderId },
+      data: { status: 'cancelled' }
+    })
+
+    await logAudit({
+      actorUserId: userId,
+      action: 'shop.order.cancel',
+      target: order.orderNo
+    })
+
+    revalidatePath('/admin/shop/orders')
+  }
+
+  async refundShopOrder(shopOrderId: string, userId: number, role: string) {
+    const order = await this.prisma.shopOrder.findUnique({
+      where: { id: shopOrderId }
+    })
+    if (!order) throw new Error('Заказ не найден')
+    if (order.paymentStatus !== 'paid') throw new Error('Можно вернуть только оплаченный заказ')
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.shopOrder.update({
+        where: { id: shopOrderId },
+        data: {
+          status: 'refunded',
+          paymentStatus: 'refunded'
+        }
+      })
+
+      // Финансовая проводка (расход)
+      await tx.cashEntry.create({
+        data: {
+          direction: 'expense',
+          entryType: 'refund',
+          amountKopeks: order.totalKopeks,
+          description: `Возврат средств по магазинному заказу #${order.orderNo}`,
+          actorUserId: userId
+        }
+      })
+    })
+
+    await logAudit({
+      actorUserId: userId,
+      action: 'shop.order.refund',
+      target: order.orderNo
+    })
+
+    revalidatePath('/admin/shop/orders')
+    revalidatePath('/admin/finance')
+  }
 }

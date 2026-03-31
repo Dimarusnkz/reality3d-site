@@ -202,4 +202,61 @@ export class WarehouseService {
     revalidatePath('/admin/warehouse')
     revalidatePath('/admin/logs')
   }
+
+  /**
+   * Возвращает товары из отмененного заказа в магазин на склад.
+   */
+  async returnShopOrderItemsToStock(shopOrderId: string, userId: number, role: string, defaultWarehouseId: number) {
+    const order = await this.prisma.shopOrder.findUnique({
+      where: { id: shopOrderId },
+      include: { items: { include: { product: true } } }
+    })
+    if (!order) throw new Error('Заказ не найден')
+
+    const meta = await getLogMeta()
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const item of order.items) {
+        if (!item.product) continue
+
+        const qty = Number(item.quantity)
+        const unit = (item.product as any).unit || 'pcs'
+
+        const inventory = await tx.shopInventoryItem.upsert({
+          where: { productId_warehouseId: { productId: item.productId, warehouseId: defaultWarehouseId } },
+          create: { productId: item.productId, warehouseId: defaultWarehouseId, unit, quantity: qty, reserved: 0, minThreshold: 0 },
+          update: { quantity: { increment: qty } }
+        })
+
+        if (unit === 'pcs') {
+          await tx.shopProduct.update({
+            where: { id: item.productId },
+            data: { stock: { increment: Math.trunc(qty) } }
+          })
+        }
+
+        await tx.shopWarehouseLog.create({
+          data: {
+            actorUserId: userId,
+            actorRole: role,
+            actionType: 'receipt',
+            reason: 'inventory',
+            productId: item.productId,
+            warehouseId: defaultWarehouseId,
+            sku: item.product.sku,
+            productName: item.product.name,
+            quantityDelta: qty,
+            unit,
+            shopOrderId: order.id,
+            comment: `Возврат при отмене заказа #${order.orderNo}`,
+            ipHash: meta.ipHash,
+            userAgent: meta.userAgent,
+          }
+        })
+      }
+    })
+
+    revalidatePath('/admin/warehouse')
+    revalidatePath('/admin/shop/orders')
+  }
 }

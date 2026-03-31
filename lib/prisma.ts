@@ -1,7 +1,6 @@
 import { PrismaClient as PostgresClient } from '@prisma/client';
 import { PrismaClient as SqliteClient } from '../generated/sqlite-client';
 import { PrismaClient as MysqlClient } from '../generated/mysql-client';
-import { cache } from 'react';
 
 type AnyClient = PostgresClient;
 
@@ -10,7 +9,7 @@ const PROVIDER_FILE = '.db_provider';
 // Internal global cache for clients
 const globalForClients = global as unknown as { __prismaClients?: Record<string, AnyClient> };
 
-export const getDbProvider = cache(() => {
+export const getDbProvider = () => {
   // Edge runtime doesn't support fs. If we're in Edge, we must fallback to env.
   // Next.js defines process.env.NEXT_RUNTIME
   if (process.env.NEXT_RUNTIME === 'edge') {
@@ -29,12 +28,16 @@ export const getDbProvider = cache(() => {
   
   // Fallback to env or default
   return (process.env.DB_PROVIDER || 'postgres').toLowerCase();
-});
+};
 
 export function setDbProvider(provider: string) {
+  const p = provider.toLowerCase();
   try {
     const fs = require('fs');
-    fs.writeFileSync(PROVIDER_FILE, provider.toLowerCase(), 'utf8');
+    fs.writeFileSync(PROVIDER_FILE, p, 'utf8');
+    if (globalForClients.__prismaClients) {
+      delete globalForClients.__prismaClients[p];
+    }
   } catch (e) {
     console.error('Failed to write .db_provider:', e);
   }
