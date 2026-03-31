@@ -417,7 +417,7 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
           </div>
         </div>,
         document.body
-      ))}
+      )}
     </>
   );
 }
