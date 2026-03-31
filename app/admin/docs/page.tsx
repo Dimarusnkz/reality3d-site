@@ -1,14 +1,21 @@
-import { getAllDocs } from "@/lib/docs";
+import { getAllDocs, getKBCategories } from "@/lib/docs";
 import Link from "next/link";
-import { Book, Shield, Users, CreditCard, Truck, HelpCircle, PenTool } from "lucide-react";
+import { Book, Shield, Users, HelpCircle, PenTool, Plus } from "lucide-react";
 
 export default async function AdminDocsPage() {
   const docs = await getAllDocs();
+  const dbCategories = await getKBCategories();
   
   const categories = [
     { id: 'public', name: 'Публичные страницы', icon: Book, color: 'text-blue-400' },
     { id: 'admin', name: 'Внутренние регламенты', icon: Shield, color: 'text-red-400' },
     { id: 'lk', name: 'Личный кабинет', icon: Users, color: 'text-green-400' },
+    ...dbCategories.map(c => ({
+      id: c.slug,
+      name: c.name,
+      icon: Book,
+      color: c.targetRole === 'admin' ? 'text-red-500' : c.targetRole === 'employee' ? 'text-orange-400' : 'text-blue-400'
+    }))
   ];
 
   return (
@@ -18,8 +25,17 @@ export default async function AdminDocsPage() {
           <h1 className="text-3xl font-bold text-white mb-2">База знаний</h1>
           <p className="text-slate-400">Документация, регламенты и инструкции Reality3D</p>
         </div>
-        <div className="text-xs text-slate-500 uppercase tracking-widest bg-slate-900 border border-slate-800 px-4 py-2 rounded-lg">
-          Режим редактирования активен
+        <div className="flex items-center gap-3">
+          <Link 
+            href="/admin/kb/new" 
+            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            Создать статью
+          </Link>
+          <div className="text-xs text-slate-500 uppercase tracking-widest bg-slate-900 border border-slate-800 px-4 py-2 rounded-lg">
+            Режим редактирования
+          </div>
         </div>
       </div>
 
@@ -39,13 +55,13 @@ export default async function AdminDocsPage() {
                 {catDocs.length > 0 ? catDocs.map((doc) => (
                   <div key={doc.slug} className="group relative">
                     <Link 
-                      href={cat.id === 'public' ? `/info/${doc.slug}` : `/admin/docs/${doc.category}/${doc.slug}`}
+                      href={doc.isDb ? `/admin/kb/edit/${doc.id}` : `/admin/docs/${doc.category}/${doc.slug}`}
                       className="block p-3 rounded-lg bg-slate-950 border border-slate-800 text-sm text-slate-300 hover:text-primary hover:border-primary/30 transition-all pr-12"
                     >
                       {doc.title}
                     </Link>
                     <Link
-                      href={`/admin/docs/${doc.category}/${doc.slug}`}
+                      href={doc.isDb ? `/admin/kb/edit/${doc.id}` : `/admin/docs/${doc.category}/${doc.slug}`}
                       className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-all opacity-0 group-hover:opacity-100"
                       title="Редактировать"
                     >

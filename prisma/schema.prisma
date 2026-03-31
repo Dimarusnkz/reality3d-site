@@ -906,6 +906,36 @@ model WarehousePurchaseOrderItem {
   @@index([sku])
 }
 
+model KnowledgeBaseCategory {
+  id          Int                 @id @default(autoincrement())
+  name        String
+  slug        String              @unique
+  description String?
+  sortOrder   Int                 @default(0)
+  targetRole  String              @default("all") // all, user, employee, admin
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @default(now()) @updatedAt
+  articles    KnowledgeBaseArticle[]
+
+  @@index([targetRole])
+}
+
+model KnowledgeBaseArticle {
+  id          Int                   @id @default(autoincrement())
+  categoryId  Int
+  title       String
+  slug        String                @unique
+  content     String                @db.Text
+  excerpt     String?               @db.Text
+  isPublished Boolean               @default(true)
+  sortOrder   Int                   @default(0)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @default(now()) @updatedAt
+  category    KnowledgeBaseCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+}
+
 model RateLimit {
   key       String   @id
   count     Int
