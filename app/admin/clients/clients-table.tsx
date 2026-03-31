@@ -17,10 +17,13 @@ function getCsrfToken() {
   return parts.pop()?.split(";").shift() || "";
 }
 
+import { createPortal } from "react-dom";
+
 export default function ClientsTable({ currentUserRole }: { currentUserRole: string }) {
   const [clients, setClients] = useState<ClientWithStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedClient, setSelectedClient] = useState<ClientWithStats | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', address: '', password: '' });
@@ -36,6 +39,7 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
   };
 
   useEffect(() => {
+    setMounted(true);
     loadClients();
   }, []);
 
@@ -236,7 +240,7 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
         </div>
       </div>
 
-      {selectedClient && (
+      {mounted && selectedClient && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-950">
@@ -411,8 +415,9 @@ export default function ClientsTable({ currentUserRole }: { currentUserRole: str
               </div>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+        document.body
+      ))}
     </>
   );
 }
