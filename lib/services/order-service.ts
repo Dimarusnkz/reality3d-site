@@ -195,7 +195,7 @@ ${filesList}
     await logAudit({
       actorUserId: userId,
       action: 'shop.order.cancel',
-      target: order.orderNo
+      target: String(order.orderNo)
     })
 
     revalidatePath('/admin/shop/orders')
@@ -238,7 +238,7 @@ ${filesList}
     await logAudit({
       actorUserId: userId,
       action: 'shop.order.refund',
-      target: order.orderNo
+      target: String(order.orderNo)
     })
 
     revalidatePath('/admin/shop/orders')
