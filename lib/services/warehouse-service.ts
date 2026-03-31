@@ -217,7 +217,7 @@ export class WarehouseService {
 
     await this.prisma.$transaction(async (tx) => {
       for (const item of order.items) {
-        if (!item.product) continue
+        if (!item.product || !item.productId) continue
 
         const qty = Number(item.quantity)
         const unit = (item.product as any).unit || 'pcs'
