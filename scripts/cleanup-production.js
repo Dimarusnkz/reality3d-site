@@ -30,12 +30,12 @@ async function main() {
 
       // 5. Логи аудита и системные логи
       console.log('Cleaning logs...');
-      await tx.auditLog.deleteMany({});
-      await tx.shopClientLog.deleteMany({});
+      if (tx.auditLog) await tx.auditLog.deleteMany({});
+      if (tx.shopClientLog) await tx.shopClientLog.deleteMany({});
 
       // 6. Отзывы
       console.log('Cleaning reviews...');
-      await tx.review.deleteMany({});
+      if (tx.review) await tx.review.deleteMany({});
 
       // 7. Склад (остатки и настройки)
       console.log('Cleaning warehouse stock...');
