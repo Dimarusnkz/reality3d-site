@@ -6,6 +6,7 @@ import { logAudit } from '@/lib/audit';
 import { cache } from 'react';
 
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+  console.error('CRITICAL: SESSION_SECRET is missing in production environment. The application will crash.');
   throw new Error('SESSION_SECRET is required in production');
 }
 

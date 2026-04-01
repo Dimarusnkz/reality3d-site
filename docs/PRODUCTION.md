@@ -68,7 +68,7 @@ sudo chown -R r3d:r3d /var/www/reality3d-uploads
 
 ```bash
 NODE_ENV=production
-PORT=3001
+PORT=8080
 
 DATABASE_URL=postgresql://reality3d:CHANGE_ME@127.0.0.1:5432/reality3d?schema=public
 
@@ -130,7 +130,7 @@ server {
   server_name reality3d.ru www.reality3d.ru;
 
   location / {
-    proxy_pass http://127.0.0.1:3001;
+    proxy_pass http://127.0.0.1:8080;
     proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;

@@ -9,7 +9,7 @@ if [ -n "${PORT:-}" ]; then
   exit 0
 fi
 
-for p in 3000 3001 3002; do
+for p in 8080 3000 3001 3002; do
   if curl -fsS -H "x-cron-secret: ${CRON_SECRET}" "http://127.0.0.1:${p}/api/cron/reconcile" >/dev/null; then
     exit 0
   fi
