@@ -13,7 +13,7 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
   if (!csrf.ok) return { ok: false as const, error: csrf.error }
 
   const access = await getUserAccessContext()
-  if (!access) return { ok: false as const, error: 'Unauthorized' }
+  if (!access) return { ok: false as const, error: 'Не авторизован' }
 
   const parsed = warehouseMovementSchema.safeParse(input)
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
@@ -28,7 +28,7 @@ export async function createWarehouseMovement(input: unknown, csrfToken: string)
           : 'warehouse.transfer'
 
   const permitted = await hasPermission(access.userId, access.role, permissionKey)
-  if (!permitted) return { ok: false as const, error: 'Unauthorized' }
+  if (!permitted) return { ok: false as const, error: 'Недостаточно прав' }
 
   const defaultWarehouseId = await getDefaultWarehouseId(prisma)
   const warehouseService = new WarehouseService(prisma)
@@ -47,9 +47,9 @@ export async function updateInventorySettings(input: unknown, csrfToken: string)
   if (!csrf.ok) return { ok: false as const, error: csrf.error }
 
   const access = await getUserAccessContext()
-  if (!access) return { ok: false as const, error: 'Unauthorized' }
+  if (!access) return { ok: false as const, error: 'Не авторизован' }
   const permitted = await hasPermission(access.userId, access.role, 'warehouse.threshold.edit')
-  if (!permitted) return { ok: false as const, error: 'Unauthorized' }
+  if (!permitted) return { ok: false as const, error: 'Недостаточно прав' }
 
   const parsed = inventorySettingsSchema.safeParse(input)
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }

@@ -26,10 +26,10 @@ export async function createCashEntry(input: unknown, csrfToken: string) {
   if (!csrf.ok) return { ok: false as const, error: csrf.error }
 
   const access = await getUserAccessContext()
-  if (!access) return { ok: false as const, error: 'Unauthorized' }
+  if (!access) return { ok: false as const, error: 'Не авторизован' }
 
   const permitted = await hasPermission(access.userId, access.role, 'finance.entry.create')
-  if (!permitted) return { ok: false as const, error: 'Unauthorized' }
+  if (!permitted) return { ok: false as const, error: 'Недостаточно прав' }
 
   const parsed = createEntrySchema.safeParse(input)
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }
@@ -109,10 +109,10 @@ export async function upsertCashReconciliation(input: unknown, csrfToken: string
   if (!csrf.ok) return { ok: false as const, error: csrf.error }
 
   const access = await getUserAccessContext()
-  if (!access) return { ok: false as const, error: 'Unauthorized' }
+  if (!access) return { ok: false as const, error: 'Не авторизован' }
 
   const permitted = await hasPermission(access.userId, access.role, 'finance.reconcile.create')
-  if (!permitted) return { ok: false as const, error: 'Unauthorized' }
+  if (!permitted) return { ok: false as const, error: 'Недостаточно прав' }
 
   const parsed = reconcileSchema.safeParse(input)
   if (!parsed.success) return { ok: false as const, error: 'Некорректные данные' }

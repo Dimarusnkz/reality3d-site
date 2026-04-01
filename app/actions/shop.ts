@@ -102,7 +102,7 @@ export async function setCartItemQuantity(productId: number, quantity: number, c
 
   const session = await getSession()
   if (!session?.userId) {
-    return { ok: false as const, error: 'Unauthorized' }
+    return { ok: false as const, error: 'Не авторизован' }
   }
   const userId = parseInt(session.userId, 10)
   const meta = await getLogMeta()
@@ -182,7 +182,7 @@ export async function mergeGuestCart(lines: { productId: number; quantity: numbe
   if (!csrf.ok) return { ok: false as const, error: csrf.error }
 
   const session = await getSession()
-  if (!session?.userId) return { ok: false as const, error: 'Unauthorized' }
+  if (!session?.userId) return { ok: false as const, error: 'Не авторизован' }
   const userId = parseInt(session.userId, 10)
 
   const normalized = (Array.isArray(lines) ? lines : [])

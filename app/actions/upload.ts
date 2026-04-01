@@ -11,13 +11,13 @@ import { z } from 'zod'
 
 const uploadSchema = z.object({
   file: z.any()
-    .refine((file) => file instanceof File, 'No file provided')
-    .refine((file) => file instanceof File && file.size <= UPLOAD_CONFIG.maxFileSizePrivate, 'File too large (Max 50MB)')
+    .refine((file) => file instanceof File, 'Файл не предоставлен')
+    .refine((file) => file instanceof File && file.size <= UPLOAD_CONFIG.maxFileSizePrivate, 'Файл слишком большой (макс. 50МБ)')
     .refine((file) => {
       if (!(file instanceof File)) return false;
       const ext = file.name.split('.').pop()?.toLowerCase() || ''
       return UPLOAD_CONFIG.allowedPrivateExtensions.has(ext)
-    }, 'Invalid file type. Only STL, OBJ, STEP allowed.')
+    }, 'Недопустимый тип файла. Разрешены только STL, OBJ, STEP.')
 })
 
 export async function uploadFile(formData: FormData) {
@@ -28,7 +28,7 @@ export async function uploadFile(formData: FormData) {
 
   const session = await getSession()
   if (!session || !session.userId) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   const file = formData.get('file') as File
@@ -37,7 +37,7 @@ export async function uploadFile(formData: FormData) {
   if (!result.success) {
     return { 
       success: false,
-      error: result.error.format()._errors[0] || 'Invalid file'
+      error: result.error.format()._errors[0] || 'Некорректный файл'
     }
   }
 
@@ -65,6 +65,6 @@ export async function uploadFile(formData: FormData) {
     }
   } catch (error) {
     console.error('Upload error:', error)
-    return { error: 'Failed to upload file' }
+    return { error: 'Не удалось загрузить файл' }
   }
 }

@@ -14,22 +14,22 @@ export async function createReview(rating: number, text: string, photos: string[
 
   const session = await getSession()
   if (!session || !session.userId) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   if (rating < 1 || rating > 5) {
-    return { error: 'Invalid rating' }
+    return { error: 'Некорректный рейтинг' }
   }
 
   if (!text || text.trim().length === 0) {
-    return { error: 'Text is required' }
+    return { error: 'Текст отзыва обязателен' }
   }
 
   try {
     const userId = typeof session.userId === 'string' ? parseInt(session.userId) : session.userId
 
     if (isNaN(userId)) {
-      return { error: 'Invalid user ID' }
+      return { error: 'Некорректный ID пользователя' }
     }
 
     await prisma.review.create({
@@ -48,7 +48,7 @@ export async function createReview(rating: number, text: string, photos: string[
   } catch (error) {
     console.error('Create review error:', error)
     // Return detailed error message for debugging
-    return { error: error instanceof Error ? error.message : 'Failed to create review' }
+    return { error: error instanceof Error ? error.message : 'Не удалось создать отзыв' }
   }
 }
 
@@ -113,7 +113,7 @@ export async function updateReviewStatus(id: number, status: 'approved' | 'rejec
 
   const session = await getSession()
   if (!session || session.role !== 'admin') {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   try {
@@ -127,7 +127,7 @@ export async function updateReviewStatus(id: number, status: 'approved' | 'rejec
     return { success: true }
   } catch (error) {
     console.error('Update review status error:', error)
-    return { error: 'Failed to update status' }
+    return { error: 'Не удалось обновить статус' }
   }
 }
 
@@ -140,7 +140,7 @@ export async function deleteReview(id: number, csrfToken: string) {
 
   const session = await getSession()
   if (!session || session.role !== 'admin') {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   try {
@@ -153,6 +153,6 @@ export async function deleteReview(id: number, csrfToken: string) {
     return { success: true }
   } catch (error) {
     console.error('Delete review error:', error)
-    return { error: 'Failed to delete review' }
+    return { error: 'Не удалось удалить отзыв' }
   }
 }

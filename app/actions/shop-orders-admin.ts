@@ -94,7 +94,7 @@ export async function confirmShopOrderPaymentAdmin(orderId: string, csrfToken: s
 
   const access = await requirePermission('shop.orders.manage')
   if (!access.ok) return access
-  if (access.role !== 'admin') return { ok: false as const, error: 'Unauthorized' }
+  if (access.role !== 'admin') return { ok: false as const, error: 'Недостаточно прав' }
 
   const order = await prisma.shopOrder.findUnique({
     where: { id: orderId },

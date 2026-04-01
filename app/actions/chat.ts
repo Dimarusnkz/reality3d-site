@@ -164,7 +164,7 @@ export async function sendMessage(
   }
 
   const session = await getSession()
-  if (!session) return { error: 'Unauthorized' }
+  if (!session) return { error: 'Не авторизован' }
 
   const { userId, role } = session
 
@@ -174,22 +174,22 @@ export async function sendMessage(
     select: { userId: true }
   })
 
-  if (!chat) return { error: 'Chat not found' }
+  if (!chat) return { error: 'Чат не найден' }
 
   if ((role === 'user' || role === 'client') && chat.userId !== parseInt(userId)) {
-    return { error: 'Forbidden' }
+    return { error: 'Доступ запрещен' }
   }
 
   // Clients cannot send internal messages
   if ((role === 'user' || role === 'client') && isInternal) {
-    return { error: 'Forbidden' }
+    return { error: 'Доступ запрещен' }
   }
 
   if (!content || content.trim().length === 0) {
-    return { error: 'Message is empty' }
+    return { error: 'Сообщение пустое' }
   }
   if (content.length > 5000) {
-    return { error: 'Message too long' }
+    return { error: 'Сообщение слишком длинное' }
   }
 
   try {
@@ -213,7 +213,7 @@ export async function sendMessage(
     return { success: true }
   } catch (error) {
     console.error('Error sending message:', error)
-    return { error: 'Failed to send message' }
+    return { error: 'Не удалось отправить сообщение' }
   }
 }
 
@@ -225,7 +225,7 @@ export async function createChatSession(csrfToken: string, orderId?: number, tar
     }
 
     const session = await getSession()
-    if (!session) return { error: 'Unauthorized' }
+    if (!session) return { error: 'Не авторизован' }
 
     const { userId, role } = session
     let chatUserId = parseInt(userId)
@@ -233,7 +233,7 @@ export async function createChatSession(csrfToken: string, orderId?: number, tar
     if (targetUserId) {
         // Only admin/manager can create chat for others
         if (role !== 'admin' && role !== 'manager') {
-            return { error: 'Forbidden' }
+            return { error: 'Доступ запрещен' }
         }
         chatUserId = targetUserId
     }
@@ -260,6 +260,6 @@ export async function createChatSession(csrfToken: string, orderId?: number, tar
         return { success: true, chatId: newChat.id }
     } catch (error) {
         console.error('Error creating chat:', error)
-        return { error: 'Failed to create chat' }
+        return { error: 'Не удалось создать чат' }
     }
 }

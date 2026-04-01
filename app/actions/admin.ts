@@ -16,7 +16,7 @@ export async function createUser(formData: FormData) {
 
   const session = await getSession()
   if (!session || session.role !== 'admin') {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   const name = formData.get('name') as string
@@ -25,7 +25,7 @@ export async function createUser(formData: FormData) {
   const role = formData.get('role') as string
 
   if (!name || !email || !password || !role) {
-    return { error: 'Missing required fields' }
+    return { error: 'Заполните все обязательные поля' }
   }
 
   try {
@@ -47,7 +47,7 @@ export async function createUser(formData: FormData) {
     return { success: true }
   } catch (error) {
     console.error('Error creating user:', error)
-    return { error: 'Failed to create user' }
+    return { error: 'Не удалось создать пользователя' }
   }
 }
 
@@ -62,7 +62,7 @@ export async function deleteUser(userId: number, csrfToken: string) {
 
   const session = await getSession()
   if (!session || session.role !== 'admin') {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   try {
@@ -75,7 +75,7 @@ export async function deleteUser(userId: number, csrfToken: string) {
     return { success: true }
   } catch (error) {
     console.error('Error deleting user:', error)
-    return { error: 'Failed to delete user' }
+    return { error: 'Не удалось удалить пользователя' }
   }
 }
 
@@ -88,7 +88,7 @@ export async function updateUser(userId: number, formData: FormData) {
 
     const session = await getSession()
     if (!session || session.role !== 'admin') {
-      return { error: 'Unauthorized' }
+      return { error: 'Не авторизован' }
     }
 
     const name = formData.get('name') as string
@@ -117,6 +117,6 @@ export async function updateUser(userId: number, formData: FormData) {
         return { success: true }
     } catch (error) {
         console.error('Error updating user:', error)
-        return { error: 'Failed to update user' }
+        return { error: 'Не удалось обновить пользователя' }
     }
 }

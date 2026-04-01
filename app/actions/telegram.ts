@@ -14,7 +14,7 @@ export async function sendTestTelegramMessage(csrfToken: string) {
 
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   try {
@@ -23,11 +23,11 @@ export async function sendTestTelegramMessage(csrfToken: string) {
     if (success) {
       return { success: true }
     } else {
-      return { error: 'Failed to send test message' }
+      return { error: 'Не удалось отправить тестовое сообщение' }
     }
   } catch (error) {
     console.error('Failed to send test telegram message:', error)
-    return { error: 'Failed to send test message' }
+    return { error: 'Не удалось отправить тестовое сообщение' }
   }
 }
 
@@ -52,11 +52,11 @@ export async function addTelegramSubscriber(chatId: string, csrfToken: string, n
 
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   if (!chatId) {
-    return { error: 'Chat ID is required' }
+    return { error: 'Chat ID обязателен' }
   }
 
   try {
@@ -71,7 +71,7 @@ export async function addTelegramSubscriber(chatId: string, csrfToken: string, n
     return { success: true, subscriber }
   } catch (error) {
     console.error('Failed to add telegram subscriber:', error)
-    return { error: 'Failed to add subscriber (possibly duplicate ID)' }
+    return { error: 'Не удалось добавить подписчика (возможно, ID уже существует)' }
   }
 }
 
@@ -84,7 +84,7 @@ export async function deleteTelegramSubscriber(id: number, csrfToken: string) {
 
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   try {
@@ -96,7 +96,7 @@ export async function deleteTelegramSubscriber(id: number, csrfToken: string) {
     return { success: true }
   } catch (error) {
     console.error('Failed to delete telegram subscriber:', error)
-    return { error: 'Failed to delete subscriber' }
+    return { error: 'Не удалось удалить подписчика' }
   }
 }
 

@@ -82,7 +82,7 @@ export async function deleteClient(id: number, csrfToken: string) {
 
   const session = await getSession()
   if (!session || session.role !== 'admin') {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   try {
@@ -139,7 +139,7 @@ export async function deleteClient(id: number, csrfToken: string) {
     return { success: true }
   } catch (error) {
     console.error('Error deleting client:', error)
-    return { error: 'Failed to delete client with history' }
+    return { error: 'Не удалось удалить клиента и его историю' }
   }
 }
 
@@ -156,7 +156,7 @@ export async function updateClient(
 
   const session = await getSession()
   if (!session || session.role !== 'admin') {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   try {
@@ -170,7 +170,7 @@ export async function updateClient(
       })
       
       if (existingUser) {
-        return { error: 'Email already in use' }
+        return { error: 'Email уже используется другим пользователем' }
       }
     }
 
@@ -194,6 +194,6 @@ export async function updateClient(
     return { success: true }
   } catch (error) {
     console.error('Error updating client:', error)
-    return { error: 'Failed to update client' }
+    return { error: 'Не удалось обновить данные клиента' }
   }
 }

@@ -24,7 +24,7 @@ export async function createOrder(data: {
 
   const session = await getSession()
   if (!session || !session.userId) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   const parsed = createOrderSchema.safeParse(data)
@@ -39,7 +39,7 @@ export async function createOrder(data: {
     return { success: true, orderId: order.id }
   } catch (error) {
     console.error('Failed to create order:', error)
-    return { error: 'Failed to create order' }
+    return { error: 'Не удалось создать заказ' }
   }
 }
 
@@ -98,7 +98,7 @@ export async function confirmOrderPaymentAdmin(orderId: number, csrfToken: strin
 
   const session = await getSession()
   if (!session || session.role !== 'admin') {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   const orderService = new OrderService(prisma)
@@ -108,7 +108,7 @@ export async function confirmOrderPaymentAdmin(orderId: number, csrfToken: strin
     return { success: true }
   } catch (error) {
     console.error('Failed to confirm payment:', error)
-    return { error: 'Failed to confirm payment' }
+    return { error: 'Не удалось подтвердить оплату' }
   }
 }
 
@@ -247,7 +247,7 @@ export async function updateOrderStatus(orderId: number, status: string, csrfTok
 
   const session = await getSession()
   if (!session || !['admin', 'manager', 'engineer', 'warehouse', 'delivery'].includes(session.role)) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   try {
@@ -268,7 +268,7 @@ export async function updateOrderStatus(orderId: number, status: string, csrfTok
     return { success: true }
   } catch (error) {
     console.error('Failed to update status:', error)
-    return { error: 'Failed to update status' }
+    return { error: 'Не удалось обновить статус' }
   }
 }
 
@@ -281,7 +281,7 @@ export async function updateOrderPrice(orderId: number, price: number, csrfToken
 
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   try {
@@ -300,7 +300,7 @@ export async function updateOrderPrice(orderId: number, price: number, csrfToken
     return { success: true }
   } catch (error) {
     console.error('Failed to update price:', error)
-    return { error: 'Failed to update price' }
+    return { error: 'Не удалось обновить цену' }
   }
 }
 
@@ -313,7 +313,7 @@ export async function assignOrder(orderId: number, employeeId: number | null, cs
 
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   try {
@@ -331,7 +331,7 @@ export async function assignOrder(orderId: number, employeeId: number | null, cs
     return { success: true }
   } catch (error) {
     console.error('Failed to assign order:', error)
-    return { error: 'Failed to assign order' }
+    return { error: 'Не удалось назначить заказ' }
   }
 }
 
@@ -344,7 +344,7 @@ export async function updateOrderDeadline(orderId: number, deadline: Date | null
 
     const session = await getSession()
     if (!session || !['admin', 'manager'].includes(session.role)) {
-      return { error: 'Unauthorized' }
+      return { error: 'Не авторизован' }
     }
 
     try {
@@ -362,7 +362,7 @@ export async function updateOrderDeadline(orderId: number, deadline: Date | null
       return { success: true }
     } catch (error) {
       console.error('Failed to update deadline:', error)
-      return { error: 'Failed to update deadline' }
+      return { error: 'Не удалось обновить срок' }
     }
 }
 
@@ -375,7 +375,7 @@ export async function addOrderComment(orderId: number, text: string, csrfToken: 
 
   const session = await getSession()
   if (!session || !session.userId) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   try {
@@ -397,7 +397,7 @@ export async function addOrderComment(orderId: number, text: string, csrfToken: 
     return { success: true }
   } catch (error) {
     console.error('Failed to add comment:', error)
-    return { error: 'Failed to add comment' }
+    return { error: 'Не удалось добавить комментарий' }
   }
 }
 
@@ -410,7 +410,7 @@ export async function deleteOrder(orderId: number, csrfToken: string) {
 
   const session = await getSession()
   if (!session || session.role !== 'admin') {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   try {
@@ -420,15 +420,14 @@ export async function deleteOrder(orderId: number, csrfToken: string) {
     })
     await logAudit({
       actorUserId: parseInt(session.userId, 10),
-      action: 'orders.soft_delete',
+      action: 'orders.delete',
       target: String(orderId),
     })
     revalidatePath('/admin/orders')
-    revalidatePath('/lk/orders')
     return { success: true }
   } catch (error) {
     console.error('Failed to delete order:', error)
-    return { error: 'Failed to delete order' }
+    return { error: 'Не удалось удалить заказ' }
   }
 }
 
@@ -439,7 +438,7 @@ export async function restoreOrder(orderId: number, csrfToken: string) {
 
   const session = await getSession()
   if (!session || session.role !== 'admin') {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   try {
@@ -457,7 +456,7 @@ export async function restoreOrder(orderId: number, csrfToken: string) {
     return { success: true }
   } catch (error) {
     console.error('Failed to restore order:', error)
-    return { error: 'Failed to restore order' }
+    return { error: 'Не удалось восстановить заказ' }
   }
 }
 
@@ -470,7 +469,7 @@ export async function updateOrderDetails(orderId: number, data: { title: string,
 
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   try {
@@ -491,7 +490,7 @@ export async function updateOrderDetails(orderId: number, data: { title: string,
     return { success: true }
   } catch (error) {
     console.error('Failed to update order details:', error)
-    return { error: 'Failed to update order details' }
+    return { error: 'Не удалось обновить детали заказа' }
   }
 }
 
@@ -503,7 +502,7 @@ export async function cancelOrderAdmin(orderId: number, csrfToken: string) {
 
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   const orderService = new OrderService(prisma)
@@ -522,7 +521,7 @@ export async function refundOrderAdmin(orderId: number, csrfToken: string) {
 
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   const orderService = new OrderService(prisma)

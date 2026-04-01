@@ -23,7 +23,7 @@ export async function updateProfile(prevState: ProfileState, formData: FormData)
 
   const session = await getSession()
   if (!session || !session.userId) {
-    return { error: 'Unauthorized', success: false }
+    return { error: 'Не авторизован', success: false }
   }
 
   const userId = parseInt(session.userId)
@@ -56,7 +56,7 @@ export async function updateProfile(prevState: ProfileState, formData: FormData)
   const nameTrim = name.trim()
   const phoneNorm = phone.trim() ? normalizePhone(phone) : ''
 
-  if (!emailTrim) return { error: 'Email is required', success: false }
+  if (!emailTrim) return { error: 'Email обязателен', success: false }
   if (emailTrim.length > 100 || !EMAIL_RE.test(emailTrim)) return { error: 'Неверный email', success: false }
   if (nameTrim && !NAME_RE.test(nameTrim)) return { error: 'Имя: только буквы (2–50 символов)', success: false }
   if (phoneNorm && !PHONE_RE.test(phoneNorm)) return { error: 'Телефон: формат +7XXXXXXXXXX', success: false }
@@ -71,7 +71,7 @@ export async function updateProfile(prevState: ProfileState, formData: FormData)
     })
 
     if (existingUser && existingUser.id !== userId) {
-      return { error: 'Email is already in use', success: false }
+      return { error: 'Email уже используется другим пользователем', success: false }
     }
 
     await prisma.user.update({
@@ -89,7 +89,7 @@ export async function updateProfile(prevState: ProfileState, formData: FormData)
     return { success: true, message: 'Профиль успешно обновлен' }
   } catch (error) {
     console.error('Failed to update profile:', error)
-    return { error: 'Failed to update profile', success: false }
+    return { error: 'Не удалось обновить профиль', success: false }
   }
 }
 
@@ -102,7 +102,7 @@ export async function updatePassword(prevState: ProfileState, formData: FormData
 
   const session = await getSession()
   if (!session || !session.userId) {
-    return { error: 'Unauthorized', success: false }
+    return { error: 'Не авторизован', success: false }
   }
 
   const userId = parseInt(session.userId)

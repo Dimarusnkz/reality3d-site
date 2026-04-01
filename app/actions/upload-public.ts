@@ -11,13 +11,13 @@ import { z } from 'zod'
 
 const publicUploadSchema = z.object({
   file: z.any()
-    .refine((file) => file instanceof File, 'No file provided')
-    .refine((file) => file instanceof File && file.size <= UPLOAD_CONFIG.maxFileSizePublic, 'File too large (Max 5MB)')
+    .refine((file) => file instanceof File, 'Файл не предоставлен')
+    .refine((file) => file instanceof File && file.size <= UPLOAD_CONFIG.maxFileSizePublic, 'Файл слишком большой (макс. 5МБ)')
     .refine((file) => {
       if (!(file instanceof File)) return false;
       const ext = file.name.split('.').pop()?.toLowerCase() || ''
       return UPLOAD_CONFIG.allowedPublicExtensions.has(ext)
-    }, 'Invalid file type. Only JPG, PNG, WEBP allowed.')
+    }, 'Недопустимый тип файла. Разрешены только JPG, PNG, WEBP.')
 })
 
 export async function uploadPublicFile(formData: FormData) {
@@ -28,7 +28,7 @@ export async function uploadPublicFile(formData: FormData) {
 
   const session = await getSession()
   if (!session || !session.userId) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   const file = formData.get('file') as File
@@ -37,7 +37,7 @@ export async function uploadPublicFile(formData: FormData) {
   if (!result.success) {
     return { 
       success: false, 
-      error: result.error.format()._errors[0] || 'Invalid file'
+      error: result.error.format()._errors[0] || 'Некорректный файл'
     }
   }
 
@@ -64,6 +64,6 @@ export async function uploadPublicFile(formData: FormData) {
     }
   } catch (error) {
     console.error('Upload error:', error)
-    return { error: 'Failed to upload file' }
+    return { error: 'Не удалось загрузить файл' }
   }
 }

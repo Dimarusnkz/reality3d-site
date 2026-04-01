@@ -45,34 +45,34 @@ async function verifyTurnstile(token: string) {
 
 const captchaFieldSchema =
   process.env.TURNSTILE_ENABLED === 'true'
-    ? z.string().min(1, 'Captcha is required')
+    ? z.string().min(1, 'Подтвердите, что вы не робот')
     : z.string().optional();
 
 const loginSchema = z.object({
   email: z.string()
-    .max(30, 'Email must be at most 30 characters')
-    .email('Invalid email address')
-    .regex(/^[a-zA-Z0-9@._-]+$/, 'Email must contain only Latin letters'),
+    .max(30, 'Email не должен превышать 30 символов')
+    .email('Введите корректный email адрес')
+    .regex(/^[a-zA-Z0-9@._-]+$/, 'Email должен содержать только латинские буквы'),
   password: z.string()
-    .max(20, 'Password must be at most 20 characters'),
+    .max(20, 'Пароль не должен превышать 20 символов'),
   'cf-turnstile-response': captchaFieldSchema,
   redirectTo: z.string().max(200).optional().nullable(),
 });
 
 const registerSchema = z.object({
   name: z.string()
-    .min(2, 'Name must be at least 2 characters')
-    .max(30, 'Name must be at most 30 characters'),
+    .min(2, 'Имя должно быть не менее 2 символов')
+    .max(30, 'Имя не должно превышать 30 символов'),
   email: z.string()
-    .max(30, 'Email must be at most 30 characters')
-    .email('Invalid email address')
-    .regex(/^[a-zA-Z0-9@._-]+$/, 'Email must contain only Latin letters'),
+    .max(30, 'Email не должен превышать 30 символов')
+    .email('Введите корректный email адрес')
+    .regex(/^[a-zA-Z0-9@._-]+$/, 'Email должен содержать только латинские буквы'),
   password: z.string()
-    .min(6, 'Password must be at least 6 characters')
-    .max(20, 'Password must be at most 20 characters')
-    .regex(/[0-9]/, 'Password must contain at least one number')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter'),
+    .min(6, 'Пароль должен быть не менее 6 символов')
+    .max(20, 'Пароль не должен превышать 20 символов')
+    .regex(/[0-9]/, 'Пароль должен содержать хотя бы одну цифру')
+    .regex(/[a-z]/, 'Пароль должен содержать хотя бы одну строчную букву')
+    .regex(/[A-Z]/, 'Пароль должен содержать хотя бы одну заглавную букву'),
   'cf-turnstile-response': captchaFieldSchema,
   redirectTo: z.string().max(200).optional().nullable(),
 });
@@ -255,7 +255,7 @@ export async function login(prevState: any, formData: FormData) {
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return {
         errors: {
-          email: ['Invalid email or password'],
+          email: ['Неверный email или пароль'],
         },
       };
     }
@@ -276,7 +276,7 @@ export async function login(prevState: any, formData: FormData) {
     console.error('Login error:', error);
     return {
       errors: {
-        email: [error instanceof Error ? error.message : 'An error occurred during login'],
+        email: [error instanceof Error ? error.message : 'Произошла ошибка при входе'],
       },
     };
   }
@@ -330,7 +330,7 @@ export async function register(prevState: any, formData: FormData) {
     if (existingUser) {
       return {
         errors: {
-          email: ['Email already in use'],
+          email: ['Email уже используется'],
         },
       };
     }
@@ -356,7 +356,7 @@ export async function register(prevState: any, formData: FormData) {
     console.error('Registration error:', error);
     return {
       errors: {
-        email: [error instanceof Error ? error.message : 'An error occurred during registration'],
+        email: [error instanceof Error ? error.message : 'Произошла ошибка при регистрации'],
       },
     };
   }

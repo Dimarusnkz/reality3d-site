@@ -90,7 +90,7 @@ export async function createArticle(data: { title: string; slug: string; excerpt
   const prisma = getPrisma()
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   const csrf = await assertCsrfTokenValue((data as any).csrfToken || null)
@@ -112,7 +112,7 @@ export async function createArticle(data: { title: string; slug: string; excerpt
     return { success: true }
   } catch (error) {
     console.error('Error creating article:', error)
-    return { error: 'Failed to create article' }
+    return { error: 'Не удалось создать статью' }
   }
 }
 
@@ -120,7 +120,7 @@ export async function updateArticle(id: number, data: { title: string; slug: str
   const prisma = getPrisma()
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   const csrf = await assertCsrfTokenValue((data as any).csrfToken || null)
@@ -139,7 +139,7 @@ export async function updateArticle(id: number, data: { title: string; slug: str
     return { success: true }
   } catch (error) {
     console.error('Error updating article:', error)
-    return { error: 'Failed to update article' }
+    return { error: 'Не удалось обновить статью' }
   }
 }
 
@@ -147,7 +147,7 @@ export async function deleteArticle(id: number, csrfToken: string) {
   const prisma = getPrisma()
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
-    return { error: 'Unauthorized' }
+    return { error: 'Не авторизован' }
   }
 
   const csrf = await assertCsrfTokenValue(csrfToken || null)
@@ -164,6 +164,6 @@ export async function deleteArticle(id: number, csrfToken: string) {
     return { success: true }
   } catch (error) {
     console.error('Error deleting article:', error)
-    return { error: 'Failed to delete article' }
+    return { error: 'Не удалось удалить статью' }
   }
 }
