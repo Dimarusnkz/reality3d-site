@@ -1,5 +1,5 @@
 import { getPrisma } from "@/lib/prisma";
-import { KBEditor } from "../../kb-editor";
+import { KBEditor } from "../kb-editor";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 
