@@ -51,8 +51,8 @@ async function main() {
     create: {
       name: 'Разработка',
       slug: 'development',
-      icon: 'code',
-      sortOrder: 100
+      sortOrder: 100,
+      targetRole: 'admin'
     }
   });
 
@@ -63,14 +63,14 @@ async function main() {
       title: 'Инструкция для разработчиков (Onboarding)',
       content: devGuideContent,
       categoryId: category.id,
-      published: true
+      isPublished: true
     },
     create: {
       title: 'Инструкция для разработчиков (Onboarding)',
       slug: 'developer-onboarding',
       content: devGuideContent,
       categoryId: category.id,
-      published: true
+      isPublished: true
     }
   });
 
