@@ -47,8 +47,10 @@ export class OrderService {
     // Detailed list of files if present
     let filesList = '';
     try {
-      if (data.details.files && Array.isArray(data.details.files)) {
-        filesList = '\n<b>📁 Файлы:</b>\n' + data.details.files.map((f: any) => `- <a href="${process.env.NEXT_PUBLIC_SITE_URL}/api/public/${f.fileUrl}">${f.fileName}</a>`).join('\n');
+      // Cast to any to handle flexible details structure safely
+      const details = data.details as any;
+      if (details && typeof details === 'object' && details.files && Array.isArray(details.files)) {
+        filesList = '\n<b>📁 Файлы:</b>\n' + details.files.map((f: any) => `- <a href="${process.env.NEXT_PUBLIC_SITE_URL}/api/public/${f.fileUrl}">${f.fileName}</a>`).join('\n');
       }
     } catch (e) {}
 
