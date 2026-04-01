@@ -87,6 +87,19 @@ export async function getArticleById(id: number) {
 }
 
 export async function createArticle(data: { title: string; slug: string; excerpt: string; content: string; coverImage: string; published: boolean }) {
+  if (!data.title || data.title.length < 3 || data.title.length > 200) {
+    return { error: 'Заголовок должен быть от 3 до 200 символов' }
+  }
+  if (!data.slug || !/^[a-z0-9-]+$/.test(data.slug) || data.slug.length > 150) {
+    return { error: 'Некорректный URL статьи (только латиница, цифры и дефис, до 150 символов)' }
+  }
+  if (data.excerpt && data.excerpt.length > 500) {
+    return { error: 'Краткое описание слишком длинное (макс. 500 символов)' }
+  }
+  if (data.content && data.content.length > 50000) {
+    return { error: 'Статья слишком длинная' }
+  }
+
   const prisma = getPrisma()
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {
@@ -117,6 +130,19 @@ export async function createArticle(data: { title: string; slug: string; excerpt
 }
 
 export async function updateArticle(id: number, data: { title: string; slug: string; excerpt: string; content: string; coverImage: string; published: boolean }) {
+  if (!data.title || data.title.length < 3 || data.title.length > 200) {
+    return { error: 'Заголовок должен быть от 3 до 200 символов' }
+  }
+  if (!data.slug || !/^[a-z0-9-]+$/.test(data.slug) || data.slug.length > 150) {
+    return { error: 'Некорректный URL статьи (только латиница, цифры и дефис, до 150 символов)' }
+  }
+  if (data.excerpt && data.excerpt.length > 500) {
+    return { error: 'Краткое описание слишком длинное (макс. 500 символов)' }
+  }
+  if (data.content && data.content.length > 50000) {
+    return { error: 'Статья слишком длинная' }
+  }
+
   const prisma = getPrisma()
   const session = await getSession()
   if (!session || !['admin', 'manager'].includes(session.role)) {

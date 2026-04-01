@@ -28,6 +28,16 @@ export async function createUser(formData: FormData) {
     return { error: 'Заполните все обязательные поля' }
   }
 
+  if (name.length < 2 || name.length > 50) {
+    return { error: 'Имя должно быть от 2 до 50 символов' }
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 100) {
+    return { error: 'Некорректный email' }
+  }
+  if (password.length < 6 || password.length > 100) {
+    return { error: 'Пароль должен быть от 6 до 100 символов' }
+  }
+
   try {
     const hashedPassword = await bcrypt.hash(password, 10)
 
@@ -95,6 +105,16 @@ export async function updateUser(userId: number, formData: FormData) {
     const email = formData.get('email') as string
     const role = formData.get('role') as string
     const password = formData.get('password') as string
+
+    if (name && (name.length < 2 || name.length > 50)) {
+      return { error: 'Имя должно быть от 2 до 50 символов' }
+    }
+    if (email && (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 100)) {
+      return { error: 'Некорректный email' }
+    }
+    if (password && (password.length < 6 || password.length > 100)) {
+      return { error: 'Пароль должен быть от 6 до 100 символов' }
+    }
 
     try {
         const data: any = {

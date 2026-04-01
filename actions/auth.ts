@@ -50,31 +50,32 @@ const captchaFieldSchema =
 
 const loginSchema = z.object({
   email: z.string()
-    .max(30, 'Email не должен превышать 30 символов')
+    .max(100, 'Email не должен превышать 100 символов')
     .email('Введите корректный email адрес')
-    .regex(/^[a-zA-Z0-9@._-]+$/, 'Email должен содержать только латинские буквы'),
+    .regex(/^[a-zA-Z0-9@._-]+$/, 'Email должен содержать только латинские буквы, цифры и символы @._-'),
   password: z.string()
-    .max(20, 'Пароль не должен превышать 20 символов'),
+    .max(100, 'Пароль слишком длинный'),
   'cf-turnstile-response': captchaFieldSchema,
-  redirectTo: z.string().max(200).optional().nullable(),
+  redirectTo: z.string().max(500).optional().nullable(),
 });
 
 const registerSchema = z.object({
   name: z.string()
     .min(2, 'Имя должно быть не менее 2 символов')
-    .max(30, 'Имя не должно превышать 30 символов'),
+    .max(50, 'Имя не должно превышать 50 символов')
+    .regex(/^[a-zA-Zа-яА-ЯёЁ\s-]+$/, 'Имя может содержать только буквы, пробелы и дефис'),
   email: z.string()
-    .max(30, 'Email не должен превышать 30 символов')
+    .max(100, 'Email не должен превышать 100 символов')
     .email('Введите корректный email адрес')
-    .regex(/^[a-zA-Z0-9@._-]+$/, 'Email должен содержать только латинские буквы'),
+    .regex(/^[a-zA-Z0-9@._-]+$/, 'Email должен содержать только латинские буквы, цифры и символы @._-'),
   password: z.string()
     .min(6, 'Пароль должен быть не менее 6 символов')
-    .max(20, 'Пароль не должен превышать 20 символов')
+    .max(100, 'Пароль не должен превышать 100 символов')
     .regex(/[0-9]/, 'Пароль должен содержать хотя бы одну цифру')
     .regex(/[a-z]/, 'Пароль должен содержать хотя бы одну строчную букву')
     .regex(/[A-Z]/, 'Пароль должен содержать хотя бы одну заглавную букву'),
   'cf-turnstile-response': captchaFieldSchema,
-  redirectTo: z.string().max(200).optional().nullable(),
+  redirectTo: z.string().max(500).optional().nullable(),
 });
 
 function sanitizeRedirectTo(value: unknown) {

@@ -21,8 +21,11 @@ export async function createReview(rating: number, text: string, photos: string[
     return { error: 'Некорректный рейтинг' }
   }
 
-  if (!text || text.trim().length === 0) {
-    return { error: 'Текст отзыва обязателен' }
+  if (!text || text.trim().length < 5) {
+    return { error: 'Отзыв слишком короткий (минимум 5 символов)' }
+  }
+  if (text.length > 1000) {
+    return { error: 'Отзыв слишком длинный (макс. 1000 символов)' }
   }
 
   try {

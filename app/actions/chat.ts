@@ -188,8 +188,8 @@ export async function sendMessage(
   if (!content || content.trim().length === 0) {
     return { error: 'Сообщение пустое' }
   }
-  if (content.length > 5000) {
-    return { error: 'Сообщение слишком длинное' }
+  if (content.length > 2000) {
+    return { error: 'Сообщение слишком длинное (макс. 2000 символов)' }
   }
 
   try {

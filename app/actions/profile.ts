@@ -8,6 +8,16 @@ import { assertCsrf } from '@/lib/csrf'
 import { getClientIp } from '@/lib/request'
 import { rateLimit } from '@/lib/rate-limit'
 
+import { z } from 'zod'
+
+const profileSchema = z.object({
+  name: z.string().trim().min(2, 'Имя: от 2 до 50 символов').max(50, 'Имя: от 2 до 50 символов').regex(/^[a-zA-Zа-яА-ЯёЁ\s-]+$/, 'Имя может содержать только буквы, пробелы и дефис').optional().nullable(),
+  email: z.string().trim().email('Неверный email').max(100, 'Email слишком длинный'),
+  phone: z.string().trim().regex(/^\+7\d{10}$/, 'Телефон: формат +7XXXXXXXXXX').optional().nullable(),
+  address: z.string().trim().max(200, 'Адрес не более 200 символов').optional().nullable(),
+  city: z.string().trim().max(100, 'Город не более 100 символов').optional().nullable(),
+})
+
 export type ProfileState = {
   success?: boolean
   error?: string
@@ -27,44 +37,39 @@ export async function updateProfile(prevState: ProfileState, formData: FormData)
   }
 
   const userId = parseInt(session.userId)
-  const name = String(formData.get('name') || '')
-  const email = String(formData.get('email') || '')
-  const phone = String(formData.get('phone') || '')
-  const address = String(formData.get('address') || '')
-  const city = String(formData.get('city') || '')
-
-  const PHONE_RE = /^\+7\d{10}$/
-  const NAME_RE = /^[A-Za-zА-Яа-яЁё\s\-]{2,50}$/
-  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
-
-  const normalizePhone = (input: string) => {
-    const raw = input.trim()
-    const digits = raw.replace(/[^\d+]/g, '')
-    let onlyDigits = digits.startsWith('+') ? `+${digits.slice(1).replace(/\D/g, '')}` : digits.replace(/\D/g, '')
-    if (onlyDigits.startsWith('+7')) {
-      const d = onlyDigits.slice(2).replace(/\D/g, '').slice(0, 10)
-      return `+7${d}`
-    }
-    const d = onlyDigits.replace(/\D/g, '')
-    if (d.startsWith('8')) return `+7${d.slice(1).slice(0, 10)}`
-    if (d.startsWith('7')) return `+7${d.slice(1).slice(0, 10)}`
-    if (d.startsWith('9')) return `+7${d.slice(0, 10)}`
-    return raw.startsWith('+') ? `+${d.slice(0, 11)}` : d.slice(0, 11)
+  
+  const rawData = {
+    name: formData.get('name') || null,
+    email: formData.get('email'),
+    phone: formData.get('phone') || null,
+    address: formData.get('address') || null,
+    city: formData.get('city') || null,
   }
 
-  const emailTrim = email.trim()
-  const nameTrim = name.trim()
-  const phoneNorm = phone.trim() ? normalizePhone(phone) : ''
+  const normalizePhone = (input: any) => {
+    if (typeof input !== 'string') return null
+    const digits = input.replace(/\D/g, '')
+    if (digits.length === 11 && (digits.startsWith('8') || digits.startsWith('7'))) {
+      return `+7${digits.slice(1)}`
+    }
+    if (digits.length === 10) {
+      return `+7${digits}`
+    }
+    return input
+  }
 
-  if (!emailTrim) return { error: 'Email обязателен', success: false }
-  if (emailTrim.length > 100 || !EMAIL_RE.test(emailTrim)) return { error: 'Неверный email', success: false }
-  if (nameTrim && !NAME_RE.test(nameTrim)) return { error: 'Имя: только буквы (2–50 символов)', success: false }
-  if (phoneNorm && !PHONE_RE.test(phoneNorm)) return { error: 'Телефон: формат +7XXXXXXXXXX', success: false }
-  if (address.length > 200) return { error: 'Адрес не более 200 символов', success: false }
-  if (city.length > 100) return { error: 'Город не более 100 символов', success: false }
+  if (rawData.phone) {
+    rawData.phone = normalizePhone(rawData.phone)
+  }
+
+  const result = profileSchema.safeParse(rawData)
+  if (!result.success) {
+    return { error: result.error.issues[0].message, success: false }
+  }
+
+  const { name, email, phone, address, city } = result.data
 
   try {
-    // Check if email is already taken by another user
     const existingUser = await prisma.user.findUnique({
       where: { email },
       select: { id: true }
@@ -77,11 +82,11 @@ export async function updateProfile(prevState: ProfileState, formData: FormData)
     await prisma.user.update({
       where: { id: userId },
       data: {
-        name: nameTrim || null,
-        email: emailTrim,
-        phone: phoneNorm || null,
-        address: address.trim() || null,
-        city: city.trim() || null,
+        name,
+        email,
+        phone,
+        address,
+        city,
       }
     })
 
