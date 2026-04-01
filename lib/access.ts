@@ -57,6 +57,9 @@ export type PermissionKey =
   
   // Analytics
   | 'admin.analytics.view'
+  
+  // Knowledge Base Management
+  | 'admin.access'
 
 export async function getUserAccessContext() {
   const session = await getSession()

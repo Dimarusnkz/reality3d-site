@@ -75,6 +75,7 @@ const permissions = [
   'products.purchase_price.edit',
   'roles.manage',
   'admin.analytics.view',
+  'admin.access',
 ]
 
 for (const key of permissions) {
