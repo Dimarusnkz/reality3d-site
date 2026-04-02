@@ -303,17 +303,7 @@ export function ChatProvider({
     }
   };
 
-  return (
-    <ChatContext.Provider value={{ 
-      sessions, 
-      currentSessionId, 
-      role, 
-      isOpen, 
-      toggleChat, 
-      openChat, 
-      closeChat, 
-      sendMessage, 
- const selectSession = (sessionId: string) => {
+  const selectSession = (sessionId: string) => {
     setCurrentSessionId(sessionId);
   };
 

@@ -111,9 +111,9 @@ export async function requestPasswordReset(prevState: any, formData: FormData) {
     });
     if (!user) {
       // Don't reveal that user doesn't exist for security
-      await logAudit({ actorUserId: user.id, action: 'auth.reset_password', target: user.id.toString() });
+      await logAudit({ actorUserId: null, action: 'auth.reset_password', target: email });
 
-    return { success: true };
+      return { success: true };
     }
 
     const token = crypto.randomBytes(32).toString('hex');
