@@ -11,6 +11,7 @@ import {
 } from "@/app/actions/access-admin";
 import { Loader2, Plus, Shield, User as UserIcon, Users, Trash2, CheckCircle2, XCircle, Info, ChevronRight, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PERMISSION_LABELS, PermissionKey } from "@/lib/access";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
@@ -283,9 +284,14 @@ export function RolesClient({ users, groups, permissions }: { users: UserRow[]; 
                 <div className="grid gap-3">
                   {selectedUser.overrides.map(ov => (
                     <div key={ov.key} className="flex items-center justify-between p-4 bg-slate-950/50 border border-slate-800 rounded-2xl">
-                      <div className="flex items-center gap-3">
-                        {ov.allow ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <XCircle className="h-4 w-4 text-red-500" />}
-                        <span className="text-[10px] font-mono text-gray-400">{ov.key}</span>
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <div className="flex items-center gap-3">
+                          {ov.allow ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <XCircle className="h-4 w-4 text-red-500" />}
+                          <span className="text-[10px] font-black text-white uppercase tracking-tight truncate">
+                            {PERMISSION_LABELS[ov.key as PermissionKey] || ov.key}
+                          </span>
+                        </div>
+                        <span className="text-[9px] font-mono text-gray-600 ml-7 truncate italic">{ov.key}</span>
                       </div>
                       <button 
                         onClick={() => runAction(() => setUserPermissionOverride({ userId: selectedUserId, permissionKey: ov.key, allow: null }, getCsrfToken()))}
@@ -306,10 +312,12 @@ export function RolesClient({ users, groups, permissions }: { users: UserRow[]; 
                   <select 
                     value={permKey} 
                     onChange={(e) => setPermKey(e.target.value)}
-                    className="md:col-span-2 w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white text-xs font-mono focus:outline-none focus:border-primary/50 transition-all shadow-inner"
+                    className="md:col-span-2 w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white text-[10px] font-black uppercase tracking-tight focus:outline-none focus:border-primary/50 transition-all shadow-inner"
                   >
                     {permissions.map(p => (
-                      <option key={p.key} value={p.key}>{p.key}</option>
+                      <option key={p.key} value={p.key}>
+                        {PERMISSION_LABELS[p.key as PermissionKey] || p.key}
+                      </option>
                     ))}
                   </select>
                   <select 
@@ -374,9 +382,14 @@ export function RolesClient({ users, groups, permissions }: { users: UserRow[]; 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {selectedGroup.permissions.map(pKey => (
                     <div key={pKey} className="flex items-center justify-between p-4 bg-slate-950 border border-slate-800 rounded-2xl group/item">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                        <span className="text-[10px] font-mono text-gray-400 truncate" title={pKey}>{pKey}</span>
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <div className="flex items-center gap-3">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                          <span className="text-[10px] font-black text-white uppercase tracking-tight truncate">
+                            {PERMISSION_LABELS[pKey as PermissionKey] || pKey}
+                          </span>
+                        </div>
+                        <span className="text-[9px] font-mono text-gray-600 ml-7 truncate italic">{pKey}</span>
                       </div>
                       <button 
                         onClick={() => runAction(() => updateGroupPermission({ 
@@ -401,10 +414,12 @@ export function RolesClient({ users, groups, permissions }: { users: UserRow[]; 
                   <select 
                     value={targetGroupPermKey} 
                     onChange={(e) => setTargetGroupPermKey(e.target.value)}
-                    className="md:col-span-3 w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white text-xs font-mono focus:outline-none focus:border-primary/50 transition-all shadow-inner"
+                    className="md:col-span-3 w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white text-[10px] font-black uppercase tracking-tight focus:outline-none focus:border-primary/50 transition-all shadow-inner"
                   >
                     {permissions.filter(p => !selectedGroup.permissions.includes(p.key)).map(p => (
-                      <option key={p.key} value={p.key}>{p.key} — {p.description}</option>
+                      <option key={p.key} value={p.key}>
+                        {PERMISSION_LABELS[p.key as PermissionKey] || p.key}
+                      </option>
                     ))}
                   </select>
                   <button
