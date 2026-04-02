@@ -74,7 +74,11 @@ export async function POST(req: NextRequest) {
         create: { chatId: String(chatOrUserId), name: name || undefined },
       });
 
-      if (updateType === "bot_started") {
+      const state = await prisma.maxBotState.findUnique({ where: { chatId: String(chatOrUserId) } });
+      const text = (message?.text || "").trim();
+
+      if (updateType === "bot_started" || text === "/start") {
+        if (state) await prisma.maxBotState.delete({ where: { chatId: String(chatOrUserId) } });
         await sendMaxDirect(
           chatOrUserId,
           `✅ MAX подключён.\nВаш MAX ID: ${chatOrUserId}\nПолучатель добавлен — уведомления начнут приходить.\n\nДоступные команды:\n/stock [SKU или название] — проверить остаток\n/lowstock — список товаров с низким остатком\n/status [номер заказа] — статус заказа\n/new_product — создать карточку товара`
@@ -83,9 +87,6 @@ export async function POST(req: NextRequest) {
       }
 
       // Handle FSM steps
-      const state = await prisma.maxBotState.findUnique({ where: { chatId: String(chatOrUserId) } });
-      const text = (message?.text || "").trim();
-
       if (text.startsWith("/") || ["остаток", "дефицит", "статус"].includes(text.toLowerCase())) {
         // Command reset state
         if (state) await prisma.maxBotState.delete({ where: { chatId: String(chatOrUserId) } });
@@ -353,30 +354,6 @@ async function sendMaxDirect(id: number, text: string, options: any = {}) {
     method: "POST",
     headers: { Authorization: token, "Content-Type": "application/json" },
     body: JSON.stringify(body),
-  }).catch(() => {});
-}
-
-async function sendMaxDirect(id: number, text: string) {
-  const token = process.env.MAX_BOT_TOKEN;
-  if (!token) return;
-
-  const url = new URL("https://platform-api.max.ru/messages");
-  url.searchParams.set("chat_id", String(id));
-
-  const res1 = await fetch(url.toString(), {
-    method: "POST",
-    headers: { Authorization: token, "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  }).catch(() => null as any);
-
-  if (res1 && res1.ok) return;
-
-  const url2 = new URL("https://platform-api.max.ru/messages");
-  url2.searchParams.set("user_id", String(id));
-  await fetch(url2.toString(), {
-    method: "POST",
-    headers: { Authorization: token, "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
   }).catch(() => {});
 }
 
