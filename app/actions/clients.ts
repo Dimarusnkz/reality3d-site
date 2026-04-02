@@ -166,7 +166,8 @@ export async function updateClient(
         where: {
           email: data.email,
           id: { not: id }
-        }
+        },
+        select: { id: true }
       })
       
       if (existingUser) {
@@ -187,7 +188,8 @@ export async function updateClient(
 
     await prisma.user.update({
       where: { id },
-      data: updateData
+      data: updateData,
+      select: { id: true }
     })
 
     revalidatePath('/admin/clients')

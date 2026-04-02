@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { switchDatabase, getDatabasesHealth } from "@/app/actions/databases";
+import { getDatabasesHealth } from "@/app/actions/databases";
 import { AlertCircle, CheckCircle2, Database, RefreshCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,25 +29,12 @@ export default function DatabasesClient({ initial }: { initial: any }) {
     });
   };
 
-  const onSwitch = (provider: "postgres" | "sqlite" | "mysql") => {
-    setError(null);
-    startTransition(async () => {
-      const res = await switchDatabase(provider, getCsrfToken());
-      if ((res as any)?.success) {
-        const next = await getDatabasesHealth();
-        setData(next as any);
-        return;
-      }
-      setError((res as any)?.error || "Не удалось переключить режим");
-    });
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white">Базы данных</h1>
-          <p className="text-sm text-slate-400">Проверка доступности и переключение режима Prisma.</p>
+          <p className="text-sm text-slate-400">Мониторинг доступности БД. Переключение осуществляется через DB_PROVIDER в .env.</p>
         </div>
         <button
           onClick={refresh}
@@ -107,21 +94,18 @@ export default function DatabasesClient({ initial }: { initial: any }) {
             </div>
 
             <div className="mt-4">
-              <button
-                onClick={() => onSwitch(row.provider)}
-                disabled={isPending || !row.enabled || !canSwitch}
+              <div
                 className={cn(
-                  "w-full rounded-lg px-3 py-2 text-sm font-medium",
+                  "w-full rounded-lg px-3 py-2 text-sm font-bold text-center uppercase tracking-widest",
                   row.provider === current
-                    ? "bg-slate-800 text-slate-200"
-                    : "bg-primary text-white hover:bg-primary/90",
-                  (!row.enabled || isPending) && "opacity-50 pointer-events-none"
+                    ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                    : "bg-slate-800/50 text-slate-500 border border-slate-800"
                 )}
               >
-                {row.provider === current ? "Текущий режим" : "Переключить"}
-              </button>
-              <p className="mt-2 text-xs text-slate-500">
-                Переключение сохраняется только в памяти процесса (для serverless потребуется env + redeploy).
+                {row.provider === current ? "Активен" : "Доступен для конфига"}
+              </div>
+              <p className="mt-2 text-[10px] text-slate-500 uppercase font-black">
+                Для смены БД измените DB_PROVIDER в файле .env
               </p>
             </div>
           </div>

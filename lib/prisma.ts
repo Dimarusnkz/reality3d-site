@@ -4,43 +4,19 @@ import { PrismaClient as MysqlClient } from '../generated/mysql-client';
 
 type AnyClient = PostgresClient;
 
-const PROVIDER_FILE = '.db_provider';
-
 // Internal global cache for clients
 const globalForClients = global as unknown as { __prismaClients?: Record<string, AnyClient> };
 
+// Provider is determined only by environment variables for stability.
+// Global mutation via file is disabled to prevent race conditions.
 export const getDbProvider = () => {
-  // Edge runtime doesn't support fs. If we're in Edge, we must fallback to env.
-  // Next.js defines process.env.NEXT_RUNTIME
-  if (process.env.NEXT_RUNTIME === 'edge') {
-    return (process.env.DB_PROVIDER || 'postgres').toLowerCase();
-  }
-
-  // Dynamic import of fs to avoid Edge runtime errors during build/middleware
-  try {
-    const fs = require('fs');
-    if (fs.existsSync(PROVIDER_FILE)) {
-      return fs.readFileSync(PROVIDER_FILE, 'utf8').trim().toLowerCase();
-    }
-  } catch (e) {
-    // Silent catch for edge runtime or missing file
-  }
-  
-  // Fallback to env or default
   return (process.env.DB_PROVIDER || 'postgres').toLowerCase();
 };
 
 export function setDbProvider(provider: string) {
-  const p = provider.toLowerCase();
-  try {
-    const fs = require('fs');
-    fs.writeFileSync(PROVIDER_FILE, p, 'utf8');
-    if (globalForClients.__prismaClients) {
-      delete globalForClients.__prismaClients[p];
-    }
-  } catch (e) {
-    console.error('Failed to write .db_provider:', e);
-  }
+  // Runtime switching is disabled for stability.
+  // Use DB_PROVIDER environment variable to change the database.
+  console.warn('setDbProvider is deprecated and disabled. Use DB_PROVIDER env instead.');
 }
 
 function makeClient(provider: string): AnyClient {

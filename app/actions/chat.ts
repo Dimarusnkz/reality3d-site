@@ -90,34 +90,43 @@ export async function getChats(): Promise<ChatSessionWithDetails[]> {
   }))
 }
 
-export async function getChatMessages(sessionId: number, limit: number = 50, cursor?: number): Promise<{ messages: MessageWithSender[], nextCursor?: number }> {
-  const prisma = getPrisma()
-  const session = await getSession()
-  if (!session) return { messages: [] }
+export async function getChatMessages(
+  sessionId: number,
+  limit: number = 50,
+  cursor?: number,
+  direction: 'older' | 'newer' = 'older'
+): Promise<{ messages: MessageWithSender[]; nextCursor?: number }> {
+  const prisma = getPrisma();
+  const session = await getSession();
+  if (!session) return { messages: [] };
 
-  const { userId, role } = session
+  const { userId, role } = session;
 
   // Verify access
   const chat = await prisma.chatSession.findUnique({
     where: { id: sessionId },
-    select: { userId: true }
-  })
+    select: { userId: true },
+  });
 
-  if (!chat) return { messages: [] }
+  if (!chat) return { messages: [] };
 
   // Client can only see their own chat
   if ((role === 'user' || role === 'client') && chat.userId !== parseInt(userId)) {
-    return { messages: [] }
+    return { messages: [] };
   }
 
   // Filter internal messages for clients
-  const whereClause: any = { sessionId }
+  const whereClause: any = { sessionId };
   if (role === 'user' || role === 'client') {
-    whereClause.isInternal = false
+    whereClause.isInternal = false;
   }
 
   if (cursor) {
-    whereClause.id = { lt: cursor }
+    if (direction === 'older') {
+      whereClause.id = { lt: cursor };
+    } else {
+      whereClause.id = { gt: cursor };
+    }
   }
 
   const messages = await prisma.chatMessage.findMany({
@@ -125,11 +134,11 @@ export async function getChatMessages(sessionId: number, limit: number = 50, cur
     take: limit + 1, // Fetch one extra to determine if there's a next page
     include: {
       sender: {
-        select: { id: true, name: true, role: true }
-      }
+        select: { id: true, name: true, role: true },
+      },
     },
-    orderBy: { id: 'desc' } // Fetch latest first for pagination from bottom
-  })
+    orderBy: { id: direction === 'older' ? 'desc' : 'asc' },
+  });
 
   let nextCursor: number | undefined = undefined;
   if (messages.length > limit) {
@@ -137,15 +146,15 @@ export async function getChatMessages(sessionId: number, limit: number = 50, cur
     nextCursor = nextItem!.id;
   }
 
-  const result = messages.reverse().map(msg => ({
+  const result = (direction === 'older' ? messages.reverse() : messages).map((msg) => ({
     id: msg.id,
     content: msg.content,
     isInternal: msg.isInternal,
     attachments: msg.attachments,
     createdAt: msg.createdAt,
     sender: msg.sender,
-    isMine: msg.senderId === parseInt(userId)
-  }))
+    isMine: msg.senderId === parseInt(userId),
+  }));
 
   return { messages: result, nextCursor };
 }

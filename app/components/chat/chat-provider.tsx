@@ -32,7 +32,10 @@ export interface ChatSession {
   clientUnreadCount: number; // Not really used in DB logic yet, but kept for compatibility
   status: "active" | "closed" | "archived";
   nextCursor?: number;
+  latestMessageId?: number;
   isLoadingMore?: boolean;
+  isPolling?: boolean;
+  lastPollAt?: number;
 }
 
 interface ChatContextType {
@@ -72,100 +75,145 @@ export function ChatProvider({
   }, [initialRole]);
 
   const fetchChats = useCallback(async () => {
-    if (role === 'guest') return; // Guests don't fetch DB chats yet
+    if (role === 'guest') return;
     try {
       const dbChats = await getChats();
       
-      const mappedSessions: ChatSession[] = await Promise.all(dbChats.map(async (chat) => {
-        // Optimization: Fetch messages only if it's the current session and we don't have them yet
-        let messages: Message[] = [];
-        let nextCursor: number | undefined = undefined;
-
-        if (currentSessionId === chat.id.toString()) {
-             const { messages: dbMessages, nextCursor: dbNextCursor } = await getChatMessages(chat.id);
-             messages = dbMessages.map(m => ({
-                 id: m.id.toString(),
-                 text: m.content,
-                 sender: m.sender?.role || 'system',
-                 timestamp: new Date(m.createdAt).getTime(),
-                 isInternal: m.isInternal,
-                 type: 'text'
-             }));
-             nextCursor = dbNextCursor;
-        }
-
-        return {
-          id: chat.id.toString(),
-          dbId: chat.id,
-          clientName: chat.user.name || chat.user.email,
-          messages: messages, // Will be empty unless selected
-          unreadCount: chat.unreadCount || 0,
-          clientUnreadCount: (role === 'user' || role === 'client') ? (chat.unreadCount || 0) : 0, 
-          status: chat.status as any,
-          nextCursor
-        };
-      }));
-
       setSessions(prev => {
-         return mappedSessions.map(newS => {
-             const oldS = prev.find(p => p.id === newS.id);
-             // If this is current session, we already have new messages/cursor
-             if (newS.id === currentSessionId) {
-               // But if we already had more messages (pagination), we might want to merge
-               // Actually for the poll, we only care about NEW messages at the bottom
-               // Simplified: for now just update if it's current, but in a real app 
-               // we'd check if last message ID is different.
-               return newS;
-             }
-             return { ...newS, messages: oldS?.messages || [], nextCursor: oldS?.nextCursor };
-         });
+        return dbChats.map(chat => {
+          const oldS = prev.find(p => p.id === chat.id.toString());
+          return {
+            id: chat.id.toString(),
+            dbId: chat.id,
+            clientName: chat.user.name || chat.user.email,
+            messages: oldS?.messages || [],
+            unreadCount: chat.unreadCount || 0,
+            clientUnreadCount: (role === 'user' || role === 'client') ? (chat.unreadCount || 0) : 0, 
+            status: chat.status as any,
+            nextCursor: oldS?.nextCursor,
+            latestMessageId: oldS?.latestMessageId,
+            lastPollAt: oldS?.lastPollAt
+          };
+        });
       });
       
-      // If client has only one chat and no current session, select it
       if ((role === 'user' || role === 'client') && dbChats.length === 1 && !currentSessionId) {
           setCurrentSessionId(dbChats[0].id.toString());
       }
-
     } catch (error) {
       console.error("Failed to fetch chats", error);
     }
   }, [role, currentSessionId]);
 
-  // Initial fetch and polling
+  const pollNewMessages = useCallback(async () => {
+    if (!currentSessionId || role === 'guest') return;
+    
+    // Use functional update to get the most recent sessions
+    setSessions(prev => {
+      const session = prev.find(s => s.id === currentSessionId);
+      if (!session || session.isPolling) return prev;
+
+      const now = Date.now();
+      if (session.lastPollAt && now - session.lastPollAt < 4000) return prev;
+
+      // Mark as polling immediately in the state
+      const updatedSessions = prev.map(s => s.id === currentSessionId ? { ...s, isPolling: true, lastPollAt: now } : s);
+
+      // Start async fetch
+      (async () => {
+        try {
+          if (session.messages.length === 0) {
+            const { messages: dbMessages, nextCursor } = await getChatMessages(session.dbId);
+            const mappedMessages = dbMessages.map(m => ({
+              id: m.id.toString(),
+              text: m.content,
+              sender: m.sender?.role || 'system',
+              timestamp: new Date(m.createdAt).getTime(),
+              isInternal: m.isInternal,
+              type: 'text' as const
+            }));
+
+            setSessions(curr => curr.map(s => {
+              if (s.id === currentSessionId) {
+                return {
+                  ...s,
+                  messages: mappedMessages,
+                  nextCursor,
+                  latestMessageId: dbMessages.length > 0 ? dbMessages[dbMessages.length - 1].id : undefined,
+                  isPolling: false
+                };
+              }
+              return s;
+            }));
+          } else {
+            const { messages: newDbMessages } = await getChatMessages(
+              session.dbId, 
+              20, 
+              session.latestMessageId, 
+              'newer'
+            );
+
+            setSessions(curr => curr.map(s => {
+              if (s.id === currentSessionId) {
+                if (newDbMessages.length > 0) {
+                  const mappedNew = newDbMessages.map(m => ({
+                    id: m.id.toString(),
+                    text: m.content,
+                    sender: m.sender?.role || 'system',
+                    timestamp: new Date(m.createdAt).getTime(),
+                    isInternal: m.isInternal,
+                    type: 'text' as const
+                  }));
+
+                  const existingIds = new Set(s.messages.map(m => m.id));
+                  const filteredNew = mappedNew.filter(m => !existingIds.has(m.id));
+                  
+                  return {
+                    ...s,
+                    messages: [...s.messages, ...filteredNew],
+                    latestMessageId: newDbMessages[newDbMessages.length - 1].id,
+                    isPolling: false
+                  };
+                }
+                return { ...s, isPolling: false };
+              }
+              return s;
+            }));
+          }
+        } catch (error) {
+          console.error("Polling error", error);
+          setSessions(curr => curr.map(s => s.id === currentSessionId ? { ...s, isPolling: false } : s));
+        }
+      })();
+
+      return updatedSessions;
+    });
+  }, [currentSessionId, role]);
+
+  // Initial fetch and polling for chat list
   useEffect(() => {
     fetchChats();
-    const interval = setInterval(fetchChats, 10000); // Increased to 10s for less aggressive polling
+    const interval = setInterval(fetchChats, 30000); // Poll list less often (30s)
     return () => clearInterval(interval);
   }, [fetchChats]);
 
-  // Load messages when session is selected
+  // Poll for messages in CURRENT session
+  useEffect(() => {
+    if (!currentSessionId || role === 'guest') return;
+    pollNewMessages();
+    const interval = setInterval(pollNewMessages, 5000); // Poll messages every 5s
+    return () => clearInterval(interval);
+  }, [currentSessionId, role]); // Trigger when current session changes
+
+  // Load initial messages when session is selected (if not already loading via poll)
   useEffect(() => {
       if (currentSessionId && role !== 'guest') {
           const session = sessions.find(s => s.id === currentSessionId);
-          // Only fetch if we don't have messages yet
-          if (!session || session.messages.length === 0) {
-            getChatMessages(parseInt(currentSessionId)).then(({ messages: dbMessages, nextCursor }) => {
-                setSessions(prev => prev.map(s => {
-                    if (s.id === currentSessionId) {
-                        return {
-                            ...s,
-                            messages: dbMessages.map(m => ({
-                                id: m.id.toString(),
-                                text: m.content,
-                                sender: m.sender?.role || 'system',
-                                timestamp: new Date(m.createdAt).getTime(),
-                                isInternal: m.isInternal,
-                                type: 'text'
-                            })),
-                            nextCursor
-                        };
-                    }
-                    return s;
-                }));
-            });
+          if (session && session.messages.length === 0 && !session.isPolling) {
+            pollNewMessages();
           }
       }
-  }, [currentSessionId, role, sessions]);
+  }, [currentSessionId, role]);
 
   const loadMoreMessages = async (sessionId: string) => {
     const session = sessions.find(s => s.id === sessionId);
@@ -175,7 +223,7 @@ export function ChatProvider({
     setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, isLoadingMore: true } : s));
 
     try {
-      const { messages: dbMessages, nextCursor } = await getChatMessages(parseInt(sessionId), 50, session.nextCursor);
+      const { messages: dbMessages, nextCursor } = await getChatMessages(session.dbId, 50, session.nextCursor, 'older');
       
       const newMessages = dbMessages.map(m => ({
         id: m.id.toString(),
@@ -188,10 +236,12 @@ export function ChatProvider({
 
       setSessions(prev => prev.map(s => {
         if (s.id === sessionId) {
+          const nextLatestId = dbMessages.length > 0 ? Math.max(s.latestMessageId || 0, ...dbMessages.map(m => m.id)) : s.latestMessageId;
           return {
             ...s,
             messages: [...newMessages, ...s.messages], // Add older messages to the top
             nextCursor,
+            latestMessageId: nextLatestId,
             isLoadingMore: false
           };
         }
@@ -225,13 +275,14 @@ export function ChatProvider({
     if (!text.trim()) return;
     
     // Optimistic update
-    const tempId = Date.now().toString();
+    const tempId = `temp-${Date.now()}`;
     const newMessage: Message = {
       id: tempId,
       text,
       sender: role,
       timestamp: Date.now(),
-      isInternal
+      isInternal,
+      type: 'text'
     };
 
     setSessions(prev => prev.map(session => {
@@ -246,8 +297,9 @@ export function ChatProvider({
 
     if (currentSessionId && role !== 'guest') {
         await serverSendMessage(parseInt(currentSessionId), text, getCsrfToken(), isInternal);
-        // Refresh to get real ID and confirmed state
-        fetchChats();
+        
+        // After sending, trigger immediate poll to confirm message and update IDs
+        pollNewMessages();
     }
   };
 
@@ -261,13 +313,33 @@ export function ChatProvider({
       openChat, 
       closeChat, 
       sendMessage, 
-      selectSession: setCurrentSessionId,
-      currentUserRole: role,
-      setRole,
-      createNewChat,
-      refreshChats: fetchChats,
-      loadMoreMessages
-    }}>
+ const selectSession = (sessionId: string) => {
+    setCurrentSessionId(sessionId);
+  };
+
+  const refreshChats = useCallback(async () => {
+    await fetchChats();
+  }, [fetchChats]);
+
+  return (
+    <ChatContext.Provider 
+      value={{ 
+        sessions, 
+        currentSessionId, 
+        role, 
+        isOpen, 
+        toggleChat, 
+        openChat, 
+        closeChat, 
+        sendMessage, 
+        selectSession,
+        currentUserRole: role,
+        setRole,
+        createNewChat,
+        refreshChats,
+        loadMoreMessages
+      }}
+    >
       {children}
     </ChatContext.Provider>
   );

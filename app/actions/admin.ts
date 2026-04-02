@@ -78,6 +78,7 @@ export async function deleteUser(userId: number, csrfToken: string) {
   try {
     await prisma.user.delete({
       where: { id: userId },
+      select: { id: true }
     })
 
     await logAudit({ actorUserId: parseInt(session.userId, 10), action: 'admin.user.delete', target: userId.toString() })

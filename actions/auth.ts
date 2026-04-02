@@ -7,6 +7,7 @@ import { headers } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { createSession, deleteSession } from '@/lib/session';
 import { assertCsrf } from '@/lib/csrf';
+import { logAudit } from '@/lib/audit';
 import { getClientIp } from '@/lib/request';
 import { rateLimit } from '@/lib/rate-limit';
 import { sendEmailViaSendGrid } from '@/lib/notifications/sendgrid';
@@ -110,7 +111,9 @@ export async function requestPasswordReset(prevState: any, formData: FormData) {
     });
     if (!user) {
       // Don't reveal that user doesn't exist for security
-      return { success: true };
+      await logAudit({ actorUserId: user.id, action: 'auth.reset_password', target: user.id.toString() });
+
+    return { success: true };
     }
 
     const token = crypto.randomBytes(32).toString('hex');
@@ -124,6 +127,8 @@ export async function requestPasswordReset(prevState: any, formData: FormData) {
       },
       select: { id: true }
     });
+
+    await logAudit({ actorUserId: user.id, action: 'auth.reset_request', target: email });
 
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
     
@@ -200,6 +205,8 @@ export async function resetPassword(prevState: any, formData: FormData) {
       },
       select: { id: true }
     });
+
+    await logAudit({ actorUserId: user.id, action: 'auth.reset_password', target: user.id.toString() });
 
     return { success: true };
   } catch (e) {
@@ -346,6 +353,8 @@ export async function register(prevState: any, formData: FormData) {
       },
       select: { id: true }
     });
+
+    await logAudit({ actorUserId: user.id, action: 'auth.register', target: user.id.toString() });
 
     await createSession(user.id.toString(), 'user');
     if (redirectTo && !redirectTo.startsWith('/admin')) redirect(redirectTo);

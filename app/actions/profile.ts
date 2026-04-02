@@ -87,7 +87,8 @@ export async function updateProfile(prevState: ProfileState, formData: FormData)
         phone,
         address,
         city,
-      }
+      },
+      select: { id: true }
     })
 
     revalidatePath('/lk/settings')
@@ -154,7 +155,8 @@ export async function updatePassword(prevState: ProfileState, formData: FormData
     const hashedPassword = await bcrypt.hash(newPassword, 10)
     await prisma.user.update({
       where: { id: userId },
-      data: { password: hashedPassword }
+      data: { password: hashedPassword },
+      select: { id: true }
     })
 
     return { success: true, message: 'Пароль успешно изменен' }

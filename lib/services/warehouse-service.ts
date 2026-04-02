@@ -199,6 +199,13 @@ export class WarehouseService {
       })
     })
 
+    await logAudit({
+      actorUserId: userId,
+      action: 'warehouse.threshold.update',
+      target: product.sku || String(product.id),
+      metadata: { minThreshold: min, warehouseId },
+    })
+
     revalidatePath('/admin/warehouse')
     revalidatePath('/admin/logs')
   }

@@ -81,16 +81,6 @@ export async function switchDatabase(provider: Provider, csrfToken: string) {
   const csrf = await assertCsrfTokenValue(csrfToken || null)
   if (!csrf.ok) return { error: csrf.error }
 
-  if (!providerList().includes(provider)) return { error: 'Invalid provider' as const }
-  
-  setDbProvider(provider)
-
-  await logAudit({
-    actorUserId: parseInt(session.userId, 10),
-    action: 'db.switch',
-    target: provider,
-    metadata: { provider },
-  })
-
-  return { success: true as const }
+  // Runtime switching is disabled in production for stability.
+  return { error: 'Динамическое переключение БД отключено для стабильности. Используйте переменную окружения DB_PROVIDER.' as const }
 }

@@ -50,6 +50,7 @@ model User {
   printCalculations           PrintCalculation[]
 
   @@index([role])
+  @@index([phone])
 }
 
 model Session {
@@ -76,6 +77,8 @@ model AuditEvent {
   actor       User?    @relation("UserAuditEvents", fields: [actorUserId], references: [id])
 
   @@index([createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([action, createdAt])
 }
 
 model Article {
@@ -177,6 +180,9 @@ model ChatMessage {
   createdAt   DateTime    @default(now())
   sender      User?       @relation(fields: [senderId], references: [id])
   session     ChatSession @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId, id])
+  @@index([sessionId, createdAt])
 }
 
 model TelegramSubscriber {
@@ -248,8 +254,8 @@ model ShopProduct {
   purchaseOrderItems  WarehousePurchaseOrderItem[]
 
   @@index([isActive, priceKopeks])
-  @@index([categoryId])
-  @@index([itemType])
+  @@index([categoryId, isActive, priceKopeks])
+  @@index([itemType, isActive])
   @@index([sku])
   @@index([createdAt])
   @@index([updatedAt])
@@ -341,6 +347,8 @@ model ShopOrder {
   @@index([userId, createdAt])
   @@index([status, createdAt])
   @@index([paymentStatus, createdAt])
+  @@index([contactEmail, createdAt])
+  @@index([contactPhone, createdAt])
   @@index([createdAt])
 }
 
