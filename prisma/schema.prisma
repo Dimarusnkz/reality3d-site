@@ -953,3 +953,10 @@ model RateLimit {
 
   @@index([resetAt])
 }
+
+model MaxBotState {
+  chatId    String   @id
+  step      String
+  data      String   @default("{}") // JSON stringified data
+  updatedAt DateTime @updatedAt
+}
