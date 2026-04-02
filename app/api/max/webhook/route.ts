@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
             where: { chatId: actorChatId },
             data: { step: STEPS.WAITING_PRICE, data: JSON.stringify(data) },
           });
-          await sendMaxDirect(actorChatId, "💰 Введите цену товара в рублях (например: 1500).");
+          await sendMaxDirect(parseInt(actorChatId), "💰 Введите цену товара в рублях (например: 1500).");
           await answerMaxCallback(callbackId, { notification: "Категория выбрана" });
         }
       } else if (payload === "publish_product") {
@@ -337,28 +337,41 @@ async function finalizeProductCreation(chatId: string, callbackId: string) {
 }
 
 async function sendMaxDirect(id: number, text: string, options: any = {}) {
-  const token = process.env.MAX_BOT_TOKEN;
-  if (!token) return;
+  try {
+    const token = process.env.MAX_BOT_TOKEN;
+    if (!token) return;
 
-  const body = { text, ...options };
-  const url = new URL("https://platform-api.max.ru/messages");
-  url.searchParams.set("chat_id", String(id));
+    const body = { text, ...options };
+    const url = new URL("https://platform-api.max.ru/messages");
+    url.searchParams.set("chat_id", String(id));
 
-  const res1 = await fetch(url.toString(), {
-    method: "POST",
-    headers: { Authorization: token, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  }).catch(() => null as any);
+    const res1 = await fetch(url.toString(), {
+      method: "POST",
+      headers: { Authorization: token, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).catch(() => null as any);
 
-  if (res1 && res1.ok) return;
+    if (res1 && res1.ok) {
+      console.log(`MAX: Message sent to chat_id ${id}`);
+      return;
+    }
 
-  const url2 = new URL("https://platform-api.max.ru/messages");
-  url2.searchParams.set("user_id", String(id));
-  await fetch(url2.toString(), {
-    method: "POST",
-    headers: { Authorization: token, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  }).catch(() => {});
+    const url2 = new URL("https://platform-api.max.ru/messages");
+    url2.searchParams.set("user_id", String(id));
+    const res2 = await fetch(url2.toString(), {
+      method: "POST",
+      headers: { Authorization: token, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).catch(() => null as any);
+
+    if (res2 && res2.ok) {
+      console.log(`MAX: Message sent to user_id ${id}`);
+    } else {
+      console.error(`MAX: Failed to send message to ${id}. Status: ${res2?.status}. Body: ${await res2?.text().catch(() => "N/A")}`);
+    }
+  } catch (e) {
+    console.error(`MAX: Error in sendMaxDirect for ${id}:`, e);
+  }
 }
 
 async function answerMaxCallback(
