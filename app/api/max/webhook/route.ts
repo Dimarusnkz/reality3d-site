@@ -77,6 +77,8 @@ export async function POST(req: NextRequest) {
       const state = await prisma.maxBotState.findUnique({ where: { chatId: String(chatOrUserId) } });
       const text = (message?.text || "").trim();
 
+      console.log(`MAX processing message from ${chatOrUserId}: "${text}" (state: ${state?.step || 'none'})`);
+
       if (updateType === "bot_started" || text === "/start") {
         if (state) await prisma.maxBotState.delete({ where: { chatId: String(chatOrUserId) } });
         await sendMaxDirect(
@@ -86,12 +88,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
-      // Handle FSM steps
+      // Handle FSM steps or commands
       if (text.startsWith("/") || ["остаток", "дефицит", "статус"].includes(text.toLowerCase())) {
-        // Command reset state
-        if (state) await prisma.maxBotState.delete({ where: { chatId: String(chatOrUserId) } });
-
-        if (text === "/new_product") {
+        const lowText = text.toLowerCase();
+        
+        if (lowText === "/new_product") {
+          if (state) await prisma.maxBotState.delete({ where: { chatId: String(chatOrUserId) } });
           await prisma.maxBotState.create({
             data: { chatId: String(chatOrUserId), step: STEPS.WAITING_PHOTO },
           });
@@ -99,14 +101,16 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const lowText = text.toLowerCase();
+        // Reset state for other commands too
+        if (state) await prisma.maxBotState.delete({ where: { chatId: String(chatOrUserId) } });
+
         if (lowText.startsWith("/stock") || lowText.startsWith("остаток")) {
-          const query = lowText.replace("/stock", "").replace("остаток", "").trim();
+          const query = text.replace(/\/stock|остаток/gi, "").trim();
           await handleStockCommand(chatOrUserId, query);
         } else if (lowText === "/lowstock" || lowText === "дефицит") {
           await handleLowStockCommand(chatOrUserId);
         } else if (lowText.startsWith("/status") || lowText.startsWith("статус")) {
-          const query = lowText.replace("/status", "").replace("статус", "").trim();
+          const query = text.replace(/\/status|статус/gi, "").trim();
           await handleOrderStatusCommand(chatOrUserId, query);
         }
         return NextResponse.json({ ok: true });
