@@ -11,7 +11,7 @@ import {
 } from "@/app/actions/access-admin";
 import { Loader2, Plus, Shield, User as UserIcon, Users, Trash2, CheckCircle2, XCircle, Info, ChevronRight, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PERMISSION_LABELS, PermissionKey } from "@/lib/access";
+import { PERMISSION_LABELS, PermissionKey } from "@/lib/permissions";
 
 function getCsrfToken() {
   const value = `; ${document.cookie}`;
